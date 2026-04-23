@@ -70,8 +70,7 @@
         "transition": "slide",
         "type": "View",
         "viewType": "XML",
-        "path": "cashpool.app.cashpool.view",
-        "viewPath": "cashpool.app.cashpool.view"
+        "path": "cashpool.app.cashpool.view"
       },
       "routes": [
         {
