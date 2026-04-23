@@ -5,7 +5,7 @@
     xmlns:m="sap.m"
     xmlns:l="sap.ui.layout"
     xmlns:core="sap.ui.core"
-    core:require="{CurrencyType: 'sap/ui/model/type/Currency'}">
+    core:require="{Currency: 'sap/ui/model/type/Currency'}">
     <f:DynamicPage id="dynamicPageId" showFooter="false" class="sapUiNoContentPadding">
         <!-- Dynamic Page Header -->
         <f:title>
@@ -132,7 +132,7 @@
                                                             {path: 'view>saldoAntes/monto'},
                                                             {path: 'view>saldoAntes/moneda'}
                                                         ],
-                                                        type: 'CurrencyType',
+                                                        type: 'Currency',
                                                         formatOptions: {
                                                             currencyCode: false,
                                                             showMeasure: true
@@ -144,7 +144,7 @@
                                                             {path: 'view>saldoProgramado/monto'},
                                                             {path: 'view>saldoProgramado/moneda'}
                                                         ],
-                                                        type: 'CurrencyType',
+                                                        type: 'Currency',
                                                         formatOptions: {
                                                             currencyCode: false,
                                                             showMeasure: true
@@ -156,7 +156,7 @@
                                                             {path: 'view>valorTransferencia/monto'},
                                                             {path: 'view>valorTransferencia/moneda'}
                                                         ],
-                                                        type: 'CurrencyType',
+                                                        type: 'Currency',
                                                         formatOptions: {
                                                             currencyCode: false,
                                                             showMeasure: true
