@@ -1,5 +1,5 @@
 {
-  "_version": "1.83.0",
+  "_version": "2.0.0",
   "sap.app": {
     "id": "cashpool.app.cashpool",
     "type": "application",
@@ -71,7 +71,6 @@
         "type": "View",
         "viewType": "XML",
         "path": "cashpool.app.cashpool.view",
-        "async": true,
         "viewPath": "cashpool.app.cashpool.view"
       },
       "routes": [
@@ -93,8 +92,7 @@
     "rootView": {
       "viewName": "cashpool.app.cashpool.view.App",
       "type": "XML",
-      "id": "App",
-      "async": true
+      "id": "App"
     }
   }
 }

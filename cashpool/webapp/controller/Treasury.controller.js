@@ -1,7 +1,10 @@
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
-    "sap/ui/model/json/JSONModel"
-], (Controller, JSONModel) => {
+    "sap/ui/model/json/JSONModel",
+    "sap/ui/core/Fragment",
+    "cashpool/app/cashpool/utils/Formatter",
+    "sap/m/MessageToast"
+], (Controller, JSONModel, Fragment, Formatter, MessageToast) => {
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
@@ -44,15 +47,15 @@ sap.ui.define([
                             cuenta: "9876543210"
                         },
                         saldoAntes: {
-                            monto: "100,000.00",
+                            monto: 100000.00,
                             moneda: "USD"
                         },
                         saldoProgramado: {
-                            monto: "0.00",
+                            monto: 0.00,
                             moneda: "USD"
                         },
                         valorTransferencia: {
-                            monto: "10,000.00",
+                            monto: 10000.00,
                             moneda: "USD"
                         },
                         status: {
@@ -73,15 +76,15 @@ sap.ui.define([
                             cuenta: "1111222233"
                         },
                         saldoAntes: {
-                            monto: "50,000.00",
+                            monto: 50000.00,
                             moneda: "USD"
                         },
                         saldoProgramado: {
-                            monto: "0.00",
+                            monto: 0.00,
                             moneda: "USD"
                         },
                         valorTransferencia: {
-                            monto: "5,000.00",
+                            monto: 5000.00,
                             moneda: "USD"
                         },
                         status: {
@@ -102,15 +105,15 @@ sap.ui.define([
                             cuenta: "3333444455"
                         },
                         saldoAntes: {
-                            monto: "75,000.00",
+                            monto: 75000.00,
                             moneda: "EUR"
                         },
                         saldoProgramado: {
-                            monto: "0.00",
+                            monto: 0.00,
                             moneda: "EUR"
                         },
                         valorTransferencia: {
-                            monto: "5,000.00",
+                            monto: 5000.00,
                             moneda: "EUR"
                         },
                         status: {
@@ -137,7 +140,43 @@ sap.ui.define([
 
             // Aquí se implementaría la lógica para descargar el comprobante
             // Por ahora, mostrar un mensaje
-            alert(`Descargando comprobante de transferencia del ${oData.fecha}`);
+            const sFormattedCurrency = Formatter.formatCurrency(oData.valorTransferencia.monto, oData.valorTransferencia.moneda);
+            MessageToast.show(`Descargando comprobante de transferencia del ${oData.fecha} por el importe de ${sFormattedCurrency}`);
+        },
+
+        onAfterRendering() {
+            this._openConfigurationDialog();
+        },
+
+        _openConfigurationDialog() {
+            if (!this._configDialog) {
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "cashpool.app.cashpool.view.fragments.ConfigurationDialog",
+                    controller: this
+                }).then((oDialog) => {
+                    this._configDialog = oDialog;
+                    this.getView().addDependent(oDialog);
+                    oDialog.open();
+                });
+            } else {
+                this._configDialog.open();
+            }
+        },
+
+        onConfigureNow() {
+            // Handle configure now action
+            MessageToast.show("Configure Now clicked");
+        },
+
+        onCloseDialog() {
+            if (this._configDialog) {
+                this._configDialog.close();
+            }
+        },
+
+        onDialogClose() {
+            // Handle dialog close event
         }
     });
 });

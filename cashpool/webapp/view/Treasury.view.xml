@@ -3,7 +3,9 @@
     xmlns:mvc="sap.ui.core.mvc"
     xmlns:f="sap.f"
     xmlns:m="sap.m"
-    xmlns:l="sap.ui.layout">
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    core:require="{CurrencyType: 'sap/ui/model/type/Currency'}">
     <f:DynamicPage id="dynamicPageId" showFooter="false" class="sapUiNoContentPadding">
         <!-- Dynamic Page Header -->
         <f:title>
@@ -125,11 +127,41 @@
                                             </m:HBox>
                                         </m:VBox>
                                         <!-- Saldo Antes -->
-                                        <m:Text text="{view>saldoAntes/monto} {view>saldoAntes/moneda}" />
+                                        <m:Text text="{
+                                                        parts: [
+                                                            {path: 'view>saldoAntes/monto'},
+                                                            {path: 'view>saldoAntes/moneda'}
+                                                        ],
+                                                        type: 'CurrencyType',
+                                                        formatOptions: {
+                                                            currencyCode: false,
+                                                            showMeasure: true
+                                                        }
+                                                    }" />
                                         <!-- Saldo Programado -->
-                                        <m:Text text="{view>saldoProgramado/monto} {view>saldoProgramado/moneda}" />
+                                        <m:Text text="{
+                                                        parts: [
+                                                            {path: 'view>saldoProgramado/monto'},
+                                                            {path: 'view>saldoProgramado/moneda'}
+                                                        ],
+                                                        type: 'CurrencyType',
+                                                        formatOptions: {
+                                                            currencyCode: false,
+                                                            showMeasure: true
+                                                        }
+                                                    }" />
                                         <!-- Valor Transferencia -->
-                                        <m:Text text="{view>valorTransferencia/monto} {view>valorTransferencia/moneda}" />
+                                        <m:Text text="{
+                                                        parts: [
+                                                            {path: 'view>valorTransferencia/monto'},
+                                                            {path: 'view>valorTransferencia/moneda'}
+                                                        ],
+                                                        type: 'CurrencyType',
+                                                        formatOptions: {
+                                                            currencyCode: false,
+                                                            showMeasure: true
+                                                        }
+                                                    }" />
                                         <!-- Status -->
                                         <m:ObjectStatus
                                             text="{view>status/text}"

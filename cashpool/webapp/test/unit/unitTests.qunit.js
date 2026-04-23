@@ -1,10 +1,5 @@
-/* global QUnit */
-QUnit.config.autostart = false;
-
-sap.ui.require([
+sap.ui.define([
     "unit/AllTests"
-], function () {
+], () => {
     "use strict";
-
-    QUnit.start();
 });

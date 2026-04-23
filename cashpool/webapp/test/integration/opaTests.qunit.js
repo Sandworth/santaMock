@@ -1,7 +1,5 @@
-/* global QUnit */
-QUnit.config.autostart = false;
-
-sap.ui.require(["cashpool/app/cashpool/test/integration/AllJourneys"
-], function () {
-	QUnit.start();
+sap.ui.define([
+	"cashpool/app/cashpool/test/integration/AllJourneys"
+], () => {
+	"use strict";
 });

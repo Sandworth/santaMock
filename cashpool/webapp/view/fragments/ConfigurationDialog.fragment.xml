@@ -1,0 +1,15 @@
+<core:FragmentDefinition xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout">
+    <Dialog id="configurationDialog" title="{i18n>dialogTitle}" afterClose="onDialogClose" contentWidth="700px">
+        <content>
+            <l:VerticalLayout class="sapUiContentPadding" alignItems="Center" justifyContent="Center" width="100%">
+                <IllustratedMessage illustrationSize="Large" illustrationType="sapIllus-SuccessHighFive" title="{i18n>dialogIllustratedTitle}" description="{i18n>dialogIllustratedMessage}" enableDefaultTitleAndDescription="false" width="680px"/>
+            </l:VerticalLayout>
+        </content>
+        <buttons>
+            <Button text="{i18n>configureNowBtn}" type="Emphasized" press=".onConfigureNow"/>
+            <Button text="{i18n>closeBtn}" press=".onCloseDialog"/>
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

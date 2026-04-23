@@ -1,14 +1,32 @@
-/* global window, parent, location */
-	
-window.suite = function() {
+sap.ui.define(() => {
 	"use strict";
 
-	// eslint-disable-next-line
-	var oSuite = new parent.jsUnitTestSuite(),
-
-	sContextPath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-	oSuite.addTestPage(sContextPath + 'unit/unitTests.qunit.html');
-	oSuite.addTestPage(sContextPath + 'integration/opaTests.qunit.html');
-
-	return oSuite;
-};
+	return {
+		name: "QUnit test suite for cashpool.app.cashpool",
+		defaults: {
+			page: "ui5://test-resources/cashpool/app/cashpool/Test.qunit.html?testsuite={suite}&test={name}",
+			qunit: {
+				version: 2
+			},
+			sinon: {
+				version: 4
+			},
+			ui5: {
+				theme: "sap_horizon"
+			},
+			loader: {
+				paths: {
+					"cashpool/app/cashpool": "../"
+				}
+			}
+		},
+		tests: {
+			"unit/unitTests": {
+				title: "Unit tests for cashpool.app.cashpool"
+			},
+			"integration/opaTests": {
+				title: "Integration tests for cashpool.app.cashpool"
+			}
+		}
+	};
+});
