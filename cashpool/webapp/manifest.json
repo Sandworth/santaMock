@@ -1,0 +1,100 @@
+{
+  "_version": "1.83.0",
+  "sap.app": {
+    "id": "cashpool.app.cashpool",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "resources": "resources.json",
+    "sourceTemplate": {
+      "id": "@sap/generator-fiori:basic",
+      "version": "1.22.0",
+      "toolsId": "95aad226-c6ea-4eb5-a163-9ce4211a19ea"
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "",
+      "favIcon": "",
+      "phone": "",
+      "phone@2": "",
+      "tablet": "",
+      "tablet@2": ""
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+    "dependencies": {
+      "minUI5Version": "1.145.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.f": {},
+        "sap.ui.layout": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "cashpool.app.cashpool.i18n.i18n"
+        }
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "controlAggregation": "pages",
+        "controlId": "app",
+        "transition": "slide",
+        "type": "View",
+        "viewType": "XML",
+        "path": "cashpool.app.cashpool.view",
+        "async": true,
+        "viewPath": "cashpool.app.cashpool.view"
+      },
+      "routes": [
+        {
+          "name": "RouteTreasury",
+          "pattern": ":?query:",
+          "target": [
+            "TargetTreasury"
+          ]
+        }
+      ],
+      "targets": {
+        "TargetTreasury": {
+          "id": "Treasury",
+          "name": "Treasury"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "cashpool.app.cashpool.view.App",
+      "type": "XML",
+      "id": "App",
+      "async": true
+    }
+  }
+}

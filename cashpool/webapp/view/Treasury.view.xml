@@ -1,0 +1,165 @@
+<mvc:View
+    controllerName="cashpool.app.cashpool.controller.Treasury"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:m="sap.m"
+    xmlns:l="sap.ui.layout">
+    <f:DynamicPage id="dynamicPageId" showFooter="false" class="sapUiNoContentPadding">
+        <!-- Dynamic Page Header -->
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <m:Title text="{i18n>treasuryTitle}" level="H1" />
+                </f:heading>
+            </f:DynamicPageTitle>
+        </f:title>
+        <!-- Dynamic Page Content with IconTabFilter -->
+        <f:content>
+            <m:IconTabBar
+                id="idIconTabBar"
+                selectedKey="{view>/selectedTab}"
+                expandable="false"
+                applyContentPadding="false"
+                select=".onTabSelect">
+                <m:items>
+                    <!-- Tab 1: Consulta de Saldos -->
+                    <m:IconTabFilter
+                        key="tab1"
+                        text="{i18n>tabConsultaSaldos}"
+                        >
+                        <m:VBox class="sapUiSmallMargin">
+                            <m:Text text="{i18n>placeholderSaldos}" />
+                        </m:VBox>
+                    </m:IconTabFilter>
+                    <!-- Tab 2: Transferencias Manuales -->
+                    <m:IconTabFilter
+                        key="tab2"
+                        text="{i18n>tabTransferenciasManual}"
+                        >
+                        <m:VBox class="sapUiSmallMargin">
+                            <m:Text text="{i18n>placeholderTransManual}" />
+                        </m:VBox>
+                    </m:IconTabFilter>
+                    <!-- Tab 3: Transferencias Automáticas -->
+                    <m:IconTabFilter
+                        key="tab3"
+                        text="{i18n>tabTransferenciasAuto}"
+                        >
+                        <m:Table
+                            id="TransferenciasTable"
+                            items="{view>/transferencias}">
+                            <m:columns>
+                                <!-- Fecha -->
+                                <m:Column width="10%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colFecha}" />
+                                    </m:header>
+                                </m:Column>
+                                <!-- Datos de Origen -->
+                                <m:Column width="15%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colOrigen}" />
+                                    </m:header>
+                                </m:Column>
+                                <!-- Datos de Destino -->
+                                <m:Column width="15%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colDestino}" />
+                                    </m:header>
+                                </m:Column>
+                                <!-- Saldo Antes -->
+                                <m:Column width="12%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colSaldoAntes}" />
+                                    </m:header>
+                                </m:Column>
+                                <!-- Saldo Programado -->
+                                <m:Column width="12%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colSaldoProgramado}" />
+                                    </m:header>
+                                </m:Column>
+                                <!-- Valor de Transferencia -->
+                                <m:Column width="12%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colValorTransferencia}" />
+                                    </m:header>
+                                </m:Column>
+                                <!-- Status -->
+                                <m:Column width="10%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colStatus}" />
+                                    </m:header>
+                                </m:Column>
+                                <!-- Acciones -->
+                                <m:Column width="14%">
+                                    <m:header>
+                                        <m:Text text="{i18n>colAcciones}" />
+                                    </m:header>
+                                </m:Column>
+                            </m:columns>
+                            <m:items>
+                                <m:ColumnListItem type="Active">
+                                    <!-- Fecha -->
+                                    <m:cells>
+                                        <m:Text text="{view>fecha}" />
+                                        <!-- Datos de Origen -->
+                                        <m:VBox>
+                                            <m:Link class="sapUiTinyMarginTop" text="{view>origen/banco}" />
+                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                <m:Label text="{i18n>lblOficina}" width="60px" />
+                                                <m:Text text="{view>origen/oficina}" />
+                                            </m:HBox>
+                                            <m:HBox class="sapUiTinyMarginBottom">
+                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                <m:Text text="{view>origen/cuenta}" />
+                                            </m:HBox>
+                                        </m:VBox>
+                                        <!-- Datos de Destino -->
+                                        <m:VBox>
+                                            <m:Link class="sapUiTinyMarginTop" text="{view>destino/banco}" />
+                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                <m:Label text="{i18n>lblOficina}" width="60px" />
+                                                <m:Text text="{view>destino/oficina}" />
+                                            </m:HBox>
+                                            <m:HBox class="sapUiTinyMarginBottom">
+                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                <m:Text text="{view>destino/cuenta}" />
+                                            </m:HBox>
+                                        </m:VBox>
+                                        <!-- Saldo Antes -->
+                                        <m:Text text="{view>saldoAntes/monto} {view>saldoAntes/moneda}" />
+                                        <!-- Saldo Programado -->
+                                        <m:Text text="{view>saldoProgramado/monto} {view>saldoProgramado/moneda}" />
+                                        <!-- Valor Transferencia -->
+                                        <m:Text text="{view>valorTransferencia/monto} {view>valorTransferencia/moneda}" />
+                                        <!-- Status -->
+                                        <m:ObjectStatus
+                                            text="{view>status/text}"
+                                            state="{view>status/state}"
+                                        />
+                                        <!-- Botón Descargar Comprobante -->
+                                        <m:Button
+                                            text="{i18n>btnDescargarComprobante}"
+                                            type="Emphasized"
+                                            press=".onDownloadReceipt"
+                                        />
+                                    </m:cells>
+                                </m:ColumnListItem>
+                            </m:items>
+                        </m:Table>
+                    </m:IconTabFilter>
+                    <!-- Tab 4: Aprobaciones (with Table) -->
+                    <m:IconTabFilter
+                        key="tab4"
+                        text="{i18n>tabAprobaciones}"
+                        >
+                        <m:VBox class="sapUiSmallMargin">
+                            <m:Text text="{i18n>placeholderAprobaciones}" />
+                        </m:VBox>
+                    </m:IconTabFilter>
+                </m:items>
+            </m:IconTabBar>
+        </f:content>
+    </f:DynamicPage>
+</mvc:View>
