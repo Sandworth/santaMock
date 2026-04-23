@@ -93,13 +93,10 @@
                                 </m:Column>
                                 <!-- Acciones -->
                                 <m:Column width="14%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colAcciones}" />
-                                    </m:header>
                                 </m:Column>
                             </m:columns>
                             <m:items>
-                                <m:ColumnListItem type="Active">
+                                <m:ColumnListItem type="None">
                                     <!-- Fecha -->
                                     <m:cells>
                                         <m:Text text="{view>fecha}" />
@@ -141,7 +138,9 @@
                                         <!-- Botón Descargar Comprobante -->
                                         <m:Button
                                             text="{i18n>btnDescargarComprobante}"
-                                            type="Emphasized"
+                                            type="Transparent"
+                                            icon="sap-icon://download"
+                                            inconFirst="true"
                                             press=".onDownloadReceipt"
                                         />
                                     </m:cells>
