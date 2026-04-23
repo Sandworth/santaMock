@@ -98,7 +98,7 @@
                                 </m:Column>
                             </m:columns>
                             <m:items>
-                                <m:ColumnListItem type="None">
+                                <m:ColumnListItem type="Inactive">
                                     <!-- Fecha -->
                                     <m:cells>
                                         <m:Text text="{view>fecha}" />
@@ -172,7 +172,6 @@
                                             text="{i18n>btnDescargarComprobante}"
                                             type="Transparent"
                                             icon="sap-icon://download"
-                                            inconFirst="true"
                                             press=".onDownloadReceipt"
                                         />
                                     </m:cells>
