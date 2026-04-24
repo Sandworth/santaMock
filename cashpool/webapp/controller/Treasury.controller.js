@@ -175,7 +175,8 @@ sap.ui.define([
 
         _openWizardDialog() {
             const oWizardModel = new JSONModel({
-                selectedHorario: 0,
+                selectedHorario: null,
+                selectedSaldoType: null,
                 dias: { lunes: false, martes: false, miercoles: false, jueves: false, viernes: false, sabado: false, domingo: false },
                 empresas: [
                     { razonSocial: "Empresa Alpha S.A.", cnpj: "12.345.678/0001-90" },
@@ -198,7 +199,8 @@ sap.ui.define([
                     { nombre: "Cuenta Central EUR", oficina: "002", cuentaCorriente: "8888-1" }
                 ],
                 _cuentasCentralAll: null,
-                review: { razonSocial: "", cnpj: "", cuentasSeleccionadas: "", cuentaCentralNombre: "", cuentaCentralCuenta: "", horario: "", dias: "" }
+                review: { razonSocial: "", cnpj: "", cuentasSeleccionadas: "", cuentaCentralNombre: "", cuentaCentralCuenta: "", horario: "", dias: "", saldoAdicionalData: "" },
+                nav: { backVisible: false, nextVisible: true, nextEnabled: false, acceptVisible: false }
             });
 
             // Store full lists for filtering
@@ -271,8 +273,9 @@ sap.ui.define([
             const oSelectedCuenta = aCuentaItems.find((oItem) => oItem.getSelected());
             if (oSelectedCuenta) {
                 const oCtx = oSelectedCuenta.getBindingContext("wizard");
-                oModel.setProperty("/review/cuentaCentralNombre", oCtx.getProperty("nombre"));
-                oModel.setProperty("/review/cuentaCentralCuenta", oCtx.getProperty("cuentaCorriente"));
+                //oModel.setProperty("/review/cuentaCentralNombre", oCtx.getProperty("nombre"));
+                oModel.setProperty("/review/cuentaCentralNombre", "Santander");
+                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().nombre}\nOficina: ${oCtx.getObject().oficina}\nCuenta: ${oCtx.getObject().cuentaCorriente}`);
             }
 
             // Horario
@@ -292,7 +295,14 @@ sap.ui.define([
                         return oCtx ? oCtx.getObject() : null;
                     })
                     .filter((o) => o && o.cuentaCorriente);
-                oModel.setProperty("/review/cuentasSeleccionadas", aCuentas.map((c) => c.cuentaCorriente).join(", ") || "-");
+                oModel.setProperty("/review/cuentasSeleccionadas", aCuentas.map((c) => c.nombre).join(", ") || "-");
+            }
+
+            // Saldo adicional
+            const oSaldoGroup = this.byId("saldoGroup");
+            if (oSaldoGroup) {
+                const oSelectedSaldo = oSaldoGroup.getSelectedButton();
+                oModel.setProperty("/review/saldoAdicionalData", oSelectedSaldo ? oSelectedSaldo.getText() : "");
             }
 
             // Días
@@ -339,10 +349,87 @@ sap.ui.define([
             oModel.setProperty("/cuentasCentralizadoras", aFiltered);
         },
 
+        onWizardDialogAfterOpen() {
+            const oWizard = this.byId("configWizard");
+            const sCurrentId = oWizard.getCurrentStep();
+            const aSteps = oWizard.getSteps();
+            const iIndex = aSteps.findIndex((s) => s.getId() === sCurrentId);
+            this._updateNavState(Math.max(0, iIndex));
+        },
+
+        _updateNavState(iIndex) {
+            const oModel = this.getView().getModel("wizard");
+            const oWizard = this.byId("configWizard");
+            const aSteps = oWizard ? oWizard.getSteps() : [];
+            const bIsLast = iIndex === aSteps.length - 1;
+            const bCurrentValid = aSteps[iIndex] ? aSteps[iIndex].getValidated() : false;
+
+            oModel.setProperty("/nav/backVisible", iIndex > 0);
+            oModel.setProperty("/nav/nextVisible", !bIsLast);
+            oModel.setProperty("/nav/nextEnabled", bCurrentValid);
+            oModel.setProperty("/nav/acceptVisible", bIsLast);
+            this._iCurrentStepIndex = iIndex;
+        },
+
+        onWizardNavChange(oEvent) {
+            const oWizard = this.byId("configWizard");
+            const oStep = oEvent.getParameter("step");
+            const iIndex = oWizard.getSteps().indexOf(oStep);
+            this._updateNavState(iIndex);
+        },
+
+        onWizardNext() {
+            const oWizard = this.byId("configWizard");
+            const iNext = this._iCurrentStepIndex + 1;
+            oWizard.goToStep(oWizard.getSteps()[iNext]);
+            oWizard.setCurrentStep(oWizard.getSteps()[iNext]);
+            this._updateNavState(iNext);
+        },
+
+        onWizardBack() {
+            const oWizard = this.byId("configWizard");
+            const iPrev = this._iCurrentStepIndex - 1;
+            oWizard.goToStep(oWizard.getSteps()[iPrev]);
+            oWizard.setCurrentStep(oWizard.getSteps()[iPrev]);
+            this._updateNavState(iPrev);
+        },
+
+        onEmpresaSelectionChange() {
+            const oWizard = this.byId("configWizard");
+            const bValid = this.byId("empresaTable").getItems().some((i) => i.getSelected());
+            bValid ? oWizard.validateStep(this.byId("wizardStep1")) : oWizard.invalidateStep(this.byId("wizardStep1"));
+            this._updateNavState(this._iCurrentStepIndex);
+        },
+
+        onCuentasSelectionChange() {
+            const oWizard = this.byId("configWizard");
+            const bValid = this.byId("cuentasTreeTable").getSelectedIndices().length > 0;
+            bValid ? oWizard.validateStep(this.byId("wizardStep2")) : oWizard.invalidateStep(this.byId("wizardStep2"));
+            this._updateNavState(this._iCurrentStepIndex);
+        },
+
+        onCuentaCentralSelectionChange() {
+            const oWizard = this.byId("configWizard");
+            const bValid = this.byId("cuentaCentralTable").getItems().some((i) => i.getSelected());
+            bValid ? oWizard.validateStep(this.byId("wizardStep3")) : oWizard.invalidateStep(this.byId("wizardStep3"));
+            this._updateNavState(this._iCurrentStepIndex);
+        },
+
+        onSaldoSelectionChange() {
+            const oWizard = this.byId("configWizard");
+            const bValid = !!this.byId("saldoGroup").getSelectedButton();
+            bValid ? oWizard.validateStep(this.byId("wizardStep5")) : oWizard.invalidateStep(this.byId("wizardStep5"));
+            this._updateNavState(this._iCurrentStepIndex);
+        },
+
         onEditStep(oEvent) {
             const sStep = oEvent.getSource().data("step");
             const oWizard = this.byId("configWizard");
-            if (oWizard) { oWizard.goToStep(this.byId("wizardStep" + sStep)); }
+            if (oWizard) { 
+                oWizard.goToStep(this.byId("wizardStep" + sStep)); 
+                //oWizard.setCurrentStep(this.byId("wizardStep" + sStep)); 
+                //this._updateNavState(parseInt(sStep, 10));
+            }
         },
 
         onCloseDialog() {

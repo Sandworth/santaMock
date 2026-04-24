@@ -6,15 +6,18 @@
     <Dialog id="wizardDialog"
             title="{i18n>wizardDialogTitle}"
             contentWidth="1420px"
+            afterOpen=".onWizardDialogAfterOpen"
             afterClose=".onWizardDialogAfterClose">
         <content>
             <Wizard id="configWizard"
                     renderMode="Page"
-                    showNextButton="true"
+                    showNextButton="false"
+                    navigationChange=".onWizardNavChange"
                     width="100%">
                 <!-- Step 1: Empresa -->
                 <WizardStep id="wizardStep1"
-                            title="{i18n>wizardStep1Title}">
+                            title="{i18n>wizardStep1Title}"
+                            validated="false">
                     <VBox width="80%" class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField 
                                     placeholder="{i18n>wizardSearchPlaceholder}"
@@ -24,6 +27,7 @@
                         <Table id="empresaTable"
                                 items="{wizard>/empresas}"
                                 mode="SingleSelectLeft"
+                                selectionChange=".onEmpresaSelectionChange"
                                 fixedLayout="false">
                             <columns>
                                 <Column>
@@ -50,7 +54,8 @@
                 </WizardStep>
                 <!-- Step 2: Cuentas -->
                 <WizardStep id="wizardStep2"
-                            title="{i18n>wizardStep2Title}">
+                            title="{i18n>wizardStep2Title}"
+                            validated="false">
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField width="100%"
                                      placeholder="{i18n>wizardSearchPlaceholder}"
@@ -62,6 +67,7 @@
                                      selectionMode="MultiToggle"
                                      visibleRowCount="8"
                                      enableSelectAll="false"
+                                     rowSelectionChange=".onCuentasSelectionChange"
                                      width="100%">
                             <t:columns>
                                 <t:Column width="40%">
@@ -94,7 +100,8 @@
                 </WizardStep>
                 <!-- Step 3: Cuenta Centralizadora -->
                 <WizardStep id="wizardStep3"
-                            title="{i18n>wizardStep3Title}">
+                            title="{i18n>wizardStep3Title}"
+                            validated="false">
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField width="100%"
                                      placeholder="{i18n>wizardSearchPlaceholder}"
@@ -104,6 +111,7 @@
                         <Table id="cuentaCentralTable"
                                items="{wizard>/cuentasCentralizadoras}"
                                mode="SingleSelectLeft"
+                               selectionChange=".onCuentaCentralSelectionChange"
                                fixedLayout="false">
                             <columns>
                                 <Column width="40%">
@@ -136,7 +144,8 @@
                 </WizardStep>
                 <!-- Step 4: Configuración -->
                 <WizardStep id="wizardStep4"
-                            title="{i18n>wizardStep4Title}">
+                            title="{i18n>wizardStep4Title}"
+                            validated="true">
                     <VBox class="sapUiSmallMarginBeginEnd sapUiMediumMarginTop sapUiContentPadding">
                         <Title text="{i18n>wizardQuestion1}" level="H5" class="sapUiSmallMarginBottom"/>
                         <RadioButtonGroup id="horarioGroup"
@@ -160,19 +169,28 @@
                         </HBox>
                     </VBox>
                 </WizardStep>
-                <!-- Step 5: Placeholder -->
+                <!-- Step 5: Adicional -->
                 <WizardStep id="wizardStep5"
-                            title="{i18n>wizardStep5Title}">
-                    <VBox alignItems="Center" justifyContent="Center" height="350px">
-                        <IllustratedMessage illustrationType="NoData"
-                                            title="{i18n>wizardStep5PlaceholderTitle}"
-                                            description="{i18n>wizardStep5PlaceholderDesc}"
-                                            enableDefaultTitleAndDescription="false"/>
+                            title="{i18n>wizardStep5Title}"
+                            validated="false">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiMediumMarginTop sapUiContentPadding">
+                        <Title text="{i18n>wizardQuestion3}" level="H5" class="sapUiSmallMarginBottom"/>
+                        <RadioButtonGroup id="saldoGroup"
+                                          columns="1"
+                                          selectedIndex="{wizard>/selectedSaldoType}"
+                                          select=".onSaldoSelectionChange">
+                            <buttons>
+                                <RadioButton text="{i18n>wizardSaldo1}"/>
+                                <RadioButton text="{i18n>wizardSaldo2}"/>
+                                <RadioButton text="{i18n>wizardSaldo3}"/>
+                            </buttons>
+                        </RadioButtonGroup>
                     </VBox>
                 </WizardStep>
                 <!-- Step 6: Revisión -->
                 <WizardStep id="wizardStep6"
                             title="{i18n>wizardStep6Title}"
+                            validated="true"
                             activate=".onReviewStepActivate">
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <!-- 1. Empresa -->
@@ -226,7 +244,7 @@
                                              labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
                                              adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
                                 <form:content>
-                                    <Label text="{i18n>colNombre}"/>
+                                    <Label text="{i18n>colBanco}"/>
                                     <Text text="{wizard>/review/cuentaCentralNombre}"/>
                                     <Label text="{i18n>colCuentaCorriente}"/>
                                     <Text text="{wizard>/review/cuentaCentralCuenta}"/>
@@ -266,8 +284,8 @@
                                              labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
                                              adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
                                 <form:content>
-                                    <Label text="{i18n>wizardStep5PlaceholderTitle}"/>
-                                    <Text text="{i18n>wizardStep5PlaceholderDesc}"/>
+                                    <Label text="{i18n>wizardQuestion3Short}"/>
+                                    <Text text="{wizard>/review/saldoAdicionalData}"/>
                                 </form:content>
                             </form:SimpleForm>
                         </Panel>
@@ -276,8 +294,10 @@
             </Wizard>
         </content>
         <buttons>
-            <Button text="{i18n>wizardAcceptBtn}" type="Emphasized" press=".onWizardAccept"/>
             <Button text="{i18n>wizardCancelBtn}" press=".onWizardCancel"/>
+            <Button text="{i18n>wizardBackBtn}" visible="{wizard>/nav/backVisible}" press=".onWizardBack"/>
+            <Button text="{i18n>wizardNextBtn}" type="Emphasized" visible="{wizard>/nav/nextVisible}" enabled="{wizard>/nav/nextEnabled}" press=".onWizardNext"/>
+            <Button text="{i18n>wizardAcceptBtn}" type="Emphasized" visible="{wizard>/nav/acceptVisible}" press=".onWizardAccept"/>
         </buttons>
     </Dialog>
 </core:FragmentDefinition>
