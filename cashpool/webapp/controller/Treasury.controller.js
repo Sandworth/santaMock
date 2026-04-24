@@ -255,37 +255,30 @@ sap.ui.define([
         },
 
         onReviewStepActivate() {
-            const oModel = this.getView().getModel("wizard");
+            this._updateReviewEmpresa();
+            this._updateReviewCuentas();
+            this._updateReviewCuentaCentral();
+            this._updateReviewHorario();
+            this._updateReviewDias();
+            this._updateReviewSaldo();
+        },
 
-            // Empresa
+        _updateReviewEmpresa() {
+            const oModel = this.getView().getModel("wizard");
             const oEmpresaTable = this.byId("empresaTable");
-            const aEmpresaItems = oEmpresaTable ? oEmpresaTable.getItems() : [];
-            const oSelectedEmpresa = aEmpresaItems.find((oItem) => oItem.getSelected());
-            if (oSelectedEmpresa) {
-                const oCtx = oSelectedEmpresa.getBindingContext("wizard");
+            const oSelected = oEmpresaTable ? oEmpresaTable.getItems().find((i) => i.getSelected()) : null;
+            if (oSelected) {
+                const oCtx = oSelected.getBindingContext("wizard");
                 oModel.setProperty("/review/razonSocial", oCtx.getProperty("razonSocial"));
                 oModel.setProperty("/review/cnpj", oCtx.getProperty("cnpj"));
+            } else {
+                oModel.setProperty("/review/razonSocial", "");
+                oModel.setProperty("/review/cnpj", "");
             }
+        },
 
-            // Cuenta Centralizadora
-            const oCuentaTable = this.byId("cuentaCentralTable");
-            const aCuentaItems = oCuentaTable ? oCuentaTable.getItems() : [];
-            const oSelectedCuenta = aCuentaItems.find((oItem) => oItem.getSelected());
-            if (oSelectedCuenta) {
-                const oCtx = oSelectedCuenta.getBindingContext("wizard");
-                //oModel.setProperty("/review/cuentaCentralNombre", oCtx.getProperty("nombre"));
-                oModel.setProperty("/review/cuentaCentralNombre", "Santander");
-                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().nombre}\nOficina: ${oCtx.getObject().oficina}\nCuenta: ${oCtx.getObject().cuentaCorriente}`);
-            }
-
-            // Horario
-            const oHorarioGroup = this.byId("horarioGroup");
-            if (oHorarioGroup) {
-                const oSelectedBtn = oHorarioGroup.getSelectedButton();
-                oModel.setProperty("/review/horario", oSelectedBtn ? oSelectedBtn.getText() : "");
-            }
-
-            // Cuentas (TreeTable — filter out parent bank rows which lack cuentaCorriente)
+        _updateReviewCuentas() {
+            const oModel = this.getView().getModel("wizard");
             const oTreeTable = this.byId("cuentasTreeTable");
             if (oTreeTable) {
                 const aIndices = oTreeTable.getSelectedIndices();
@@ -297,20 +290,47 @@ sap.ui.define([
                     .filter((o) => o && o.cuentaCorriente);
                 oModel.setProperty("/review/cuentasSeleccionadas", aCuentas.map((c) => c.nombre).join(", ") || "-");
             }
+        },
 
-            // Saldo adicional
-            const oSaldoGroup = this.byId("saldoGroup");
-            if (oSaldoGroup) {
-                const oSelectedSaldo = oSaldoGroup.getSelectedButton();
-                oModel.setProperty("/review/saldoAdicionalData", oSelectedSaldo ? oSelectedSaldo.getText() : "");
+        _updateReviewCuentaCentral() {
+            const oModel = this.getView().getModel("wizard");
+            const oCuentaTable = this.byId("cuentaCentralTable");
+            const oSelected = oCuentaTable ? oCuentaTable.getItems().find((i) => i.getSelected()) : null;
+            if (oSelected) {
+                const oCtx = oSelected.getBindingContext("wizard");
+                oModel.setProperty("/review/cuentaCentralNombre", "Santander");
+                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().nombre}\nOficina: ${oCtx.getObject().oficina}\nCuenta: ${oCtx.getObject().cuentaCorriente}`);
+            } else {
+                oModel.setProperty("/review/cuentaCentralNombre", "");
+                oModel.setProperty("/review/cuentaCentralCuenta", "");
             }
+        },
 
-            // Días
+        _updateReviewHorario() {
+            const oModel = this.getView().getModel("wizard");
+            const oHorarioGroup = this.byId("horarioGroup");
+            if (oHorarioGroup) {
+                const oSelected = oHorarioGroup.getSelectedButton();
+                oModel.setProperty("/review/horario", oSelected ? oSelected.getText() : "");
+            }
+        },
+
+        _updateReviewDias() {
+            const oModel = this.getView().getModel("wizard");
             const oDias = oModel.getProperty("/dias");
             const aDiasSeleccionados = Object.entries(oDias)
                 .filter(([, bSelected]) => bSelected)
                 .map(([sDay]) => sDay.charAt(0).toUpperCase() + sDay.slice(1));
             oModel.setProperty("/review/dias", aDiasSeleccionados.join(", ") || "-");
+        },
+
+        _updateReviewSaldo() {
+            const oModel = this.getView().getModel("wizard");
+            const oSaldoGroup = this.byId("saldoGroup");
+            if (oSaldoGroup) {
+                const oSelected = oSaldoGroup.getSelectedButton();
+                oModel.setProperty("/review/saldoAdicionalData", oSelected ? oSelected.getText() : "");
+            }
         },
 
         onEmpresaSearch(oEvent) {
@@ -399,6 +419,7 @@ sap.ui.define([
             const bValid = this.byId("empresaTable").getItems().some((i) => i.getSelected());
             bValid ? oWizard.validateStep(this.byId("wizardStep1")) : oWizard.invalidateStep(this.byId("wizardStep1"));
             this._updateNavState(this._iCurrentStepIndex);
+            this._updateReviewEmpresa();
         },
 
         onCuentasSelectionChange() {
@@ -406,6 +427,7 @@ sap.ui.define([
             const bValid = this.byId("cuentasTreeTable").getSelectedIndices().length > 0;
             bValid ? oWizard.validateStep(this.byId("wizardStep2")) : oWizard.invalidateStep(this.byId("wizardStep2"));
             this._updateNavState(this._iCurrentStepIndex);
+            this._updateReviewCuentas();
         },
 
         onCuentaCentralSelectionChange() {
@@ -413,6 +435,15 @@ sap.ui.define([
             const bValid = this.byId("cuentaCentralTable").getItems().some((i) => i.getSelected());
             bValid ? oWizard.validateStep(this.byId("wizardStep3")) : oWizard.invalidateStep(this.byId("wizardStep3"));
             this._updateNavState(this._iCurrentStepIndex);
+            this._updateReviewCuentaCentral();
+        },
+
+        onHorarioSelectionChange() {
+            this._updateReviewHorario();
+        },
+
+        onDiaSelectionChange() {
+            this._updateReviewDias();
         },
 
         onSaldoSelectionChange() {
@@ -420,6 +451,7 @@ sap.ui.define([
             const bValid = !!this.byId("saldoGroup").getSelectedButton();
             bValid ? oWizard.validateStep(this.byId("wizardStep5")) : oWizard.invalidateStep(this.byId("wizardStep5"));
             this._updateNavState(this._iCurrentStepIndex);
+            this._updateReviewSaldo();
         },
 
         onEditStep(oEvent) {
