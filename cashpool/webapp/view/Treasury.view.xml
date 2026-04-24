@@ -13,6 +13,13 @@
                 <f:heading>
                     <m:Title text="{i18n>treasuryTitle}" level="H1" />
                 </f:heading>
+                <f:actions>
+                    <m:Button
+                        text="{i18n>configureNowBtn}"
+                        type="Emphasized"
+                        icon="sap-icon://settings"
+                        press=".onConfigureNow"/>
+                </f:actions>
             </f:DynamicPageTitle>
         </f:title>
         <!-- Dynamic Page Content with IconTabFilter -->

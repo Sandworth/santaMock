@@ -1,0 +1,283 @@
+<core:FragmentDefinition xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:t="sap.ui.table"
+    xmlns:data="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1">
+    <Dialog id="wizardDialog"
+            title="{i18n>wizardDialogTitle}"
+            contentWidth="1420px"
+            afterClose=".onWizardDialogAfterClose">
+        <content>
+            <Wizard id="configWizard"
+                    renderMode="Page"
+                    showNextButton="true"
+                    width="100%">
+                <!-- Step 1: Empresa -->
+                <WizardStep id="wizardStep1"
+                            title="{i18n>wizardStep1Title}">
+                    <VBox width="80%" class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <SearchField 
+                                    placeholder="{i18n>wizardSearchPlaceholder}"
+                                    search=".onEmpresaSearch"
+                                    liveChange=".onEmpresaSearch"
+                                    class="sapUiSmallMarginBottom"/>
+                        <Table id="empresaTable"
+                                items="{wizard>/empresas}"
+                                mode="SingleSelectLeft"
+                                fixedLayout="false">
+                            <columns>
+                                <Column>
+                                    <header>
+                                        <Text text="{i18n>colRazonSocial}"/>
+                                    </header>
+                                </Column>
+                                <Column>
+                                    <header>
+                                        <Text text="{i18n>colCNPJ}"/>
+                                    </header>
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem type="Active">
+                                    <cells>
+                                        <Text text="{wizard>razonSocial}"/>
+                                        <Text text="{wizard>cnpj}"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 2: Cuentas -->
+                <WizardStep id="wizardStep2"
+                            title="{i18n>wizardStep2Title}">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <SearchField width="100%"
+                                     placeholder="{i18n>wizardSearchPlaceholder}"
+                                     search=".onCuentasSearch"
+                                     liveChange=".onCuentasSearch"
+                                     class="sapUiSmallMarginBottom"/>
+                        <t:TreeTable id="cuentasTreeTable"
+                                     rows="{path: 'wizard>/bancos', parameters: {arrayNames: ['cuentas']}}"
+                                     selectionMode="MultiToggle"
+                                     visibleRowCount="8"
+                                     enableSelectAll="false"
+                                     width="100%">
+                            <t:columns>
+                                <t:Column width="40%">
+                                    <t:label>
+                                        <Label text="{i18n>colNombre}"/>
+                                    </t:label>
+                                    <t:template>
+                                        <Text text="{wizard>nombre}" wrapping="false"/>
+                                    </t:template>
+                                </t:Column>
+                                <t:Column width="30%">
+                                    <t:label>
+                                        <Label text="{i18n>colOficina}"/>
+                                    </t:label>
+                                    <t:template>
+                                        <Text text="{wizard>oficina}" wrapping="false"/>
+                                    </t:template>
+                                </t:Column>
+                                <t:Column width="30%">
+                                    <t:label>
+                                        <Label text="{i18n>colCuentaCorriente}"/>
+                                    </t:label>
+                                    <t:template>
+                                        <Text text="{wizard>cuentaCorriente}" wrapping="false"/>
+                                    </t:template>
+                                </t:Column>
+                            </t:columns>
+                        </t:TreeTable>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 3: Cuenta Centralizadora -->
+                <WizardStep id="wizardStep3"
+                            title="{i18n>wizardStep3Title}">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <SearchField width="100%"
+                                     placeholder="{i18n>wizardSearchPlaceholder}"
+                                     search=".onCuentaCentralSearch"
+                                     liveChange=".onCuentaCentralSearch"
+                                     class="sapUiSmallMarginBottom"/>
+                        <Table id="cuentaCentralTable"
+                               items="{wizard>/cuentasCentralizadoras}"
+                               mode="SingleSelectLeft"
+                               fixedLayout="false">
+                            <columns>
+                                <Column width="40%">
+                                    <header>
+                                        <Text text="{i18n>colNombre}"/>
+                                    </header>
+                                </Column>
+                                <Column width="30%">
+                                    <header>
+                                        <Text text="{i18n>colOficina}"/>
+                                    </header>
+                                </Column>
+                                <Column width="30%">
+                                    <header>
+                                        <Text text="{i18n>colCuentaCorriente}"/>
+                                    </header>
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem type="Active">
+                                    <cells>
+                                        <Text text="{wizard>nombre}"/>
+                                        <Text text="{wizard>oficina}"/>
+                                        <Text text="{wizard>cuentaCorriente}"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 4: Configuración -->
+                <WizardStep id="wizardStep4"
+                            title="{i18n>wizardStep4Title}">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiMediumMarginTop sapUiContentPadding">
+                        <Title text="{i18n>wizardQuestion1}" level="H5" class="sapUiSmallMarginBottom"/>
+                        <RadioButtonGroup id="horarioGroup"
+                                          columns="1"
+                                          selectedIndex="{wizard>/selectedHorario}">
+                            <buttons>
+                                <RadioButton text="{i18n>wizardHorario1}"/>
+                                <RadioButton text="{i18n>wizardHorario2}"/>
+                                <RadioButton text="{i18n>wizardHorario3}"/>
+                            </buttons>
+                        </RadioButtonGroup>
+                        <Title text="{i18n>wizardQuestion2}" level="H5" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
+                        <HBox wrap="Wrap">
+                            <CheckBox text="{i18n>weekdayLunes}"     selected="{wizard>/dias/lunes}"     class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayMartes}"    selected="{wizard>/dias/martes}"    class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayMiercoles}" selected="{wizard>/dias/miercoles}" class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayJueves}"    selected="{wizard>/dias/jueves}"    class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayViernes}"   selected="{wizard>/dias/viernes}"   class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdaySabado}"    selected="{wizard>/dias/sabado}"    class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayDomingo}"   selected="{wizard>/dias/domingo}"   class="sapUiSmallMarginEnd"/>
+                        </HBox>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 5: Placeholder -->
+                <WizardStep id="wizardStep5"
+                            title="{i18n>wizardStep5Title}">
+                    <VBox alignItems="Center" justifyContent="Center" height="350px">
+                        <IllustratedMessage illustrationType="NoData"
+                                            title="{i18n>wizardStep5PlaceholderTitle}"
+                                            description="{i18n>wizardStep5PlaceholderDesc}"
+                                            enableDefaultTitleAndDescription="false"/>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 6: Revisión -->
+                <WizardStep id="wizardStep6"
+                            title="{i18n>wizardStep6Title}"
+                            activate=".onReviewStepActivate">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <!-- 1. Empresa -->
+                        <Panel expandable="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>wizardReviewSection1}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStep" data:step="1"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>colRazonSocial}"/>
+                                    <Text text="{wizard>/review/razonSocial}"/>
+                                    <Label text="{i18n>colCNPJ}"/>
+                                    <Text text="{wizard>/review/cnpj}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                        <!-- 2. Cuentas -->
+                        <Panel expandable="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>wizardReviewSection2}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStep" data:step="2"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>colCuentasSeleccionadas}"/>
+                                    <Text text="{wizard>/review/cuentasSeleccionadas}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                        <!-- 3. Cuenta Centralizadora -->
+                        <Panel expandable="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>wizardReviewSection3}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStep" data:step="3"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>colNombre}"/>
+                                    <Text text="{wizard>/review/cuentaCentralNombre}"/>
+                                    <Label text="{i18n>colCuentaCorriente}"/>
+                                    <Text text="{wizard>/review/cuentaCentralCuenta}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                        <!-- 4. Configuración -->
+                        <Panel expandable="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>wizardReviewSection4}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStep" data:step="4"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>wizardQuestion1Short}"/>
+                                    <Text text="{wizard>/review/horario}"/>
+                                    <Label text="{i18n>wizardQuestion2Short}"/>
+                                    <Text text="{wizard>/review/dias}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                        <!-- 5. Adicional -->
+                        <Panel expandable="false">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>wizardReviewSection5}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStep" data:step="5"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>wizardStep5PlaceholderTitle}"/>
+                                    <Text text="{i18n>wizardStep5PlaceholderDesc}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                    </VBox>
+                </WizardStep>
+            </Wizard>
+        </content>
+        <buttons>
+            <Button text="{i18n>wizardAcceptBtn}" type="Emphasized" press=".onWizardAccept"/>
+            <Button text="{i18n>wizardCancelBtn}" press=".onWizardCancel"/>
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

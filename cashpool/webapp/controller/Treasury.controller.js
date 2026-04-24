@@ -3,8 +3,10 @@ sap.ui.define([
     "sap/ui/model/json/JSONModel",
     "sap/ui/core/Fragment",
     "cashpool/app/cashpool/utils/Formatter",
-    "sap/m/MessageToast"
-], (Controller, JSONModel, Fragment, Formatter, MessageToast) => {
+    "sap/m/MessageToast",
+    "sap/ui/model/Filter",
+    "sap/ui/model/FilterOperator"
+], (Controller, JSONModel, Fragment, Formatter, MessageToast, Filter, FilterOperator) => {
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
@@ -165,8 +167,182 @@ sap.ui.define([
         },
 
         onConfigureNow() {
-            // Handle configure now action
-            MessageToast.show("Configure Now clicked");
+            if (this._configDialog) {
+                this._configDialog.close();
+            }
+            this._openWizardDialog();
+        },
+
+        _openWizardDialog() {
+            const oWizardModel = new JSONModel({
+                selectedHorario: 0,
+                dias: { lunes: false, martes: false, miercoles: false, jueves: false, viernes: false, sabado: false, domingo: false },
+                empresas: [
+                    { razonSocial: "Empresa Alpha S.A.", cnpj: "12.345.678/0001-90" },
+                    { razonSocial: "Beta Corporación Ltda.", cnpj: "98.765.432/0001-11" },
+                    { razonSocial: "Gamma Holding S.A.", cnpj: "11.222.333/0001-44" },
+                    { razonSocial: "Delta Inversiones S.A.", cnpj: "55.666.777/0001-22" }
+                ],
+                _empresasAll: null,
+                bancos: [
+                    { nombre: "Banco Nacional", cuentas: [
+                        { nombre: "Cuenta Operativa", oficina: "001", cuentaCorriente: "0001-1" },
+                        { nombre: "Cuenta Nómina", oficina: "001", cuentaCorriente: "0001-2" }
+                    ]},
+                    { nombre: "Banco Mercantil", cuentas: [
+                        { nombre: "Cuenta Principal", oficina: "042", cuentaCorriente: "1234-5" }
+                    ]}
+                ],
+                cuentasCentralizadoras: [
+                    { nombre: "Cuenta Maestra", oficina: "001", cuentaCorriente: "9999-0" },
+                    { nombre: "Cuenta Central EUR", oficina: "002", cuentaCorriente: "8888-1" }
+                ],
+                _cuentasCentralAll: null,
+                review: { razonSocial: "", cnpj: "", cuentasSeleccionadas: "", cuentaCentralNombre: "", cuentaCentralCuenta: "", horario: "", dias: "" }
+            });
+
+            // Store full lists for filtering
+            oWizardModel.setProperty("/_empresasAll", oWizardModel.getProperty("/empresas").slice());
+            oWizardModel.setProperty("/_cuentasCentralAll", oWizardModel.getProperty("/cuentasCentralizadoras").slice());
+
+            this.getView().setModel(oWizardModel, "wizard");
+
+            if (!this._wizardDialog) {
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "cashpool.app.cashpool.view.fragments.WizardDialog",
+                    controller: this
+                }).then((oDialog) => {
+                    this._wizardDialog = oDialog;
+                    this.getView().addDependent(oDialog);
+                    //this._resetWizard();
+                    oDialog.open();
+                });
+            } else {
+                //this._resetWizard();
+                this._wizardDialog.open();
+            }
+        },
+
+        _resetWizard() {
+            const oWizard = this.byId("configWizard");
+            const oStep1 = this.byId("wizardStep1");
+            if (oWizard && oStep1) {
+                oWizard.setCurrentStep(oStep1);
+                oWizard.discardProgress(oStep1);
+            }
+        },
+
+        onWizardCancel() {
+            if (this._wizardDialog) {
+                this._wizardDialog.close();
+            }
+        },
+
+        onWizardAccept() {
+            const oModel = this.getView().getModel("wizard");
+            const oReview = oModel.getProperty("/review");
+            MessageToast.show(`Configuración guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
+            if (this._wizardDialog) {
+                this._wizardDialog.close();
+            }
+        },
+
+        onWizardDialogAfterClose() {
+            // Cleanup hook
+        },
+
+        onReviewStepActivate() {
+            const oModel = this.getView().getModel("wizard");
+
+            // Empresa
+            const oEmpresaTable = this.byId("empresaTable");
+            const aEmpresaItems = oEmpresaTable ? oEmpresaTable.getItems() : [];
+            const oSelectedEmpresa = aEmpresaItems.find((oItem) => oItem.getSelected());
+            if (oSelectedEmpresa) {
+                const oCtx = oSelectedEmpresa.getBindingContext("wizard");
+                oModel.setProperty("/review/razonSocial", oCtx.getProperty("razonSocial"));
+                oModel.setProperty("/review/cnpj", oCtx.getProperty("cnpj"));
+            }
+
+            // Cuenta Centralizadora
+            const oCuentaTable = this.byId("cuentaCentralTable");
+            const aCuentaItems = oCuentaTable ? oCuentaTable.getItems() : [];
+            const oSelectedCuenta = aCuentaItems.find((oItem) => oItem.getSelected());
+            if (oSelectedCuenta) {
+                const oCtx = oSelectedCuenta.getBindingContext("wizard");
+                oModel.setProperty("/review/cuentaCentralNombre", oCtx.getProperty("nombre"));
+                oModel.setProperty("/review/cuentaCentralCuenta", oCtx.getProperty("cuentaCorriente"));
+            }
+
+            // Horario
+            const oHorarioGroup = this.byId("horarioGroup");
+            if (oHorarioGroup) {
+                const oSelectedBtn = oHorarioGroup.getSelectedButton();
+                oModel.setProperty("/review/horario", oSelectedBtn ? oSelectedBtn.getText() : "");
+            }
+
+            // Cuentas (TreeTable — filter out parent bank rows which lack cuentaCorriente)
+            const oTreeTable = this.byId("cuentasTreeTable");
+            if (oTreeTable) {
+                const aIndices = oTreeTable.getSelectedIndices();
+                const aCuentas = aIndices
+                    .map((idx) => {
+                        const oCtx = oTreeTable.getContextByIndex(idx);
+                        return oCtx ? oCtx.getObject() : null;
+                    })
+                    .filter((o) => o && o.cuentaCorriente);
+                oModel.setProperty("/review/cuentasSeleccionadas", aCuentas.map((c) => c.cuentaCorriente).join(", ") || "-");
+            }
+
+            // Días
+            const oDias = oModel.getProperty("/dias");
+            const aDiasSeleccionados = Object.entries(oDias)
+                .filter(([, bSelected]) => bSelected)
+                .map(([sDay]) => sDay.charAt(0).toUpperCase() + sDay.slice(1));
+            oModel.setProperty("/review/dias", aDiasSeleccionados.join(", ") || "-");
+        },
+
+        onEmpresaSearch(oEvent) {
+            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
+            const oModel = this.getView().getModel("wizard");
+            const aAll = oModel.getProperty("/_empresasAll");
+            const aFiltered = sQuery
+                ? aAll.filter((o) => o.razonSocial.toLowerCase().includes(sQuery) || o.cnpj.toLowerCase().includes(sQuery))
+                : aAll.slice();
+            oModel.setProperty("/empresas", aFiltered);
+        },
+
+        onCuentasSearch(oEvent) {
+            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
+            const oTreeTable = this.byId("cuentasTreeTable");
+            if (!oTreeTable) { return; }
+            const oBinding = oTreeTable.getBinding("rows");
+            if (!oBinding) { return; }
+            if (sQuery) {
+                oBinding.filter([new Filter("nombre", FilterOperator.Contains, sQuery)]);
+            } else {
+                oBinding.filter([]);
+            }
+        },
+
+        onCuentaCentralSearch(oEvent) {
+            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
+            const oModel = this.getView().getModel("wizard");
+            const aAll = oModel.getProperty("/_cuentasCentralAll");
+            const aFiltered = sQuery
+                ? aAll.filter((o) =>
+                    o.nombre.toLowerCase().includes(sQuery) ||
+                    o.oficina.toLowerCase().includes(sQuery) ||
+                    o.cuentaCorriente.toLowerCase().includes(sQuery))
+                : aAll.slice();
+            oModel.setProperty("/cuentasCentralizadoras", aFiltered);
+        },
+
+        onEditStep(oEvent) {
+            const sStep = oEvent.getSource().data("step");
+            const oWizard = this.byId("configWizard");
+            if (oWizard) { oWizard.goToStep(this.byId("wizardStep" + sStep)); }
         },
 
         onCloseDialog() {
