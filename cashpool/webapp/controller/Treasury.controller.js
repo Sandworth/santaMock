@@ -3,10 +3,8 @@ sap.ui.define([
     "sap/ui/model/json/JSONModel",
     "sap/ui/core/Fragment",
     "cashpool/app/cashpool/utils/Formatter",
-    "sap/m/MessageToast",
-    "sap/ui/model/Filter",
-    "sap/ui/model/FilterOperator"
-], (Controller, JSONModel, Fragment, Formatter, MessageToast, Filter, FilterOperator) => {
+    "sap/m/MessageToast"
+], (Controller, JSONModel, Fragment, Formatter, MessageToast) => {
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
@@ -186,18 +184,43 @@ sap.ui.define([
                 ],
                 _empresasAll: null,
                 bancos: [
-                    { nombre: "Banco Nacional", cuentas: [
-                        { nombre: "Cuenta Operativa", oficina: "001", cuentaCorriente: "0001-1" },
-                        { nombre: "Cuenta Nómina", oficina: "001", cuentaCorriente: "0001-2" }
+                    { nombre: "Santander", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "001", cuentaCorriente: "0001-1", saldoSAP: 52000.00, saldoInfoCent: 50000.00, currency: "USD" },
+                        { nombre: "Cuenta 2", oficina: "001", cuentaCorriente: "0001-2", saldoSAP: 48000.00, saldoInfoCent: 49000.00, currency: "EUR" },
+                        { nombre: "Cuenta 3", oficina: "002", cuentaCorriente: "0002-3", saldoSAP: 50000.00, saldoInfoCent: 51000.00, currency: "EUR" },
+                        { nombre: "Cuenta 4", oficina: "002", cuentaCorriente: "0002-4", saldoSAP: 50000.00, saldoInfoCent: 50000.00, currency: "USD" }
                     ]},
-                    { nombre: "Banco Mercantil", cuentas: [
-                        { nombre: "Cuenta Principal", oficina: "042", cuentaCorriente: "1234-5" }
+                    { nombre: "Itaú", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "341", cuentaCorriente: "3410-1", saldoSAP: 61000.00, saldoInfoCent: 60000.00, currency: "BRL" },
+                        { nombre: "Cuenta 2", oficina: "341", cuentaCorriente: "3410-2", saldoSAP: 43000.00, saldoInfoCent: 44500.00, currency: "BRL" },
+                        { nombre: "Cuenta 3", oficina: "342", cuentaCorriente: "3420-1", saldoSAP: 55000.00, saldoInfoCent: 55000.00, currency: "USD" },
+                        { nombre: "Cuenta 4", oficina: "342", cuentaCorriente: "3420-2", saldoSAP: 38000.00, saldoInfoCent: 37500.00, currency: "EUR" },
+                        { nombre: "Cuenta 5", oficina: "343", cuentaCorriente: "3430-1", saldoSAP: 72000.00, saldoInfoCent: 72000.00, currency: "BRL" }
+                    ]},
+                    { nombre: "Bradesco", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "237", cuentaCorriente: "2370-1", saldoSAP: 45000.00, saldoInfoCent: 44000.00, currency: "BRL" },
+                        { nombre: "Cuenta 2", oficina: "237", cuentaCorriente: "2370-2", saldoSAP: 67000.00, saldoInfoCent: 68000.00, currency: "BRL" },
+                        { nombre: "Cuenta 3", oficina: "238", cuentaCorriente: "2380-1", saldoSAP: 33000.00, saldoInfoCent: 33000.00, currency: "USD" },
+                        { nombre: "Cuenta 4", oficina: "238", cuentaCorriente: "2380-2", saldoSAP: 59000.00, saldoInfoCent: 58500.00, currency: "EUR" },
+                        { nombre: "Cuenta 5", oficina: "239", cuentaCorriente: "2390-1", saldoSAP: 41000.00, saldoInfoCent: 41000.00, currency: "BRL" }
+                    ]},
+                    { nombre: "Caixa", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "104", cuentaCorriente: "1040-1", saldoSAP: 80000.00, saldoInfoCent: 79000.00, currency: "BRL" },
+                        { nombre: "Cuenta 2", oficina: "104", cuentaCorriente: "1040-2", saldoSAP: 54000.00, saldoInfoCent: 54000.00, currency: "BRL" },
+                        { nombre: "Cuenta 3", oficina: "105", cuentaCorriente: "1050-1", saldoSAP: 36000.00, saldoInfoCent: 37000.00, currency: "USD" }
+                    ]},
+                    { nombre: "NuBank", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "260", cuentaCorriente: "2600-1", saldoSAP: 28000.00, saldoInfoCent: 28000.00, currency: "BRL" }
+                    ]},
+                    { nombre: "Banco do Brasil", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "001", cuentaCorriente: "0010-1", saldoSAP: 95000.00, saldoInfoCent: 94000.00, currency: "BRL" }
                     ]}
                 ],
                 cuentasCentralizadoras: [
                     { nombre: "Cuenta Maestra", oficina: "001", cuentaCorriente: "9999-0" },
                     { nombre: "Cuenta Central EUR", oficina: "002", cuentaCorriente: "8888-1" }
                 ],
+                _bancosAll: null,
                 _cuentasCentralAll: null,
                 review: { razonSocial: "", cnpj: "", cuentasSeleccionadas: "", cuentaCentralNombre: "", cuentaCentralCuenta: "", horario: "", dias: "", saldoAdicionalData: "" },
                 nav: { backVisible: false, nextVisible: true, nextEnabled: false, acceptVisible: false }
@@ -205,6 +228,7 @@ sap.ui.define([
 
             // Store full lists for filtering
             oWizardModel.setProperty("/_empresasAll", oWizardModel.getProperty("/empresas").slice());
+            oWizardModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oWizardModel.getProperty("/bancos"))));
             oWizardModel.setProperty("/_cuentasCentralAll", oWizardModel.getProperty("/cuentasCentralizadoras").slice());
 
             this.getView().setModel(oWizardModel, "wizard");
@@ -237,6 +261,7 @@ sap.ui.define([
 
         onWizardCancel() {
             if (this._wizardDialog) {
+                this._resetWizard();
                 this._wizardDialog.close();
             }
         },
@@ -279,16 +304,20 @@ sap.ui.define([
 
         _updateReviewCuentas() {
             const oModel = this.getView().getModel("wizard");
-            const oTreeTable = this.byId("cuentasTreeTable");
-            if (oTreeTable) {
-                const aIndices = oTreeTable.getSelectedIndices();
-                const aCuentas = aIndices
-                    .map((idx) => {
-                        const oCtx = oTreeTable.getContextByIndex(idx);
-                        return oCtx ? oCtx.getObject() : null;
-                    })
-                    .filter((o) => o && o.cuentaCorriente);
-                oModel.setProperty("/review/cuentasSeleccionadas", aCuentas.map((c) => c.nombre).join(", ") || "-");
+            const oBancosList = this.byId("bancosListStep2");
+            if (oBancosList) {
+                const aCuentasSeleccionadas = [];
+                oBancosList.getItems().forEach((oCustomItem) => {
+                    const oPanel = oCustomItem.getContent()[0];
+                    const oTable = oPanel ? oPanel.getContent()[0] : null;
+                    if (oTable) {
+                        oTable.getSelectedItems().forEach((oItem) => {
+                            const oCtx = oItem.getBindingContext("wizard");
+                            if (oCtx) { aCuentasSeleccionadas.push(oCtx.getObject()); }
+                        });
+                    }
+                });
+                oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.nombre).join(", ") || "-");
             }
         },
 
@@ -345,15 +374,27 @@ sap.ui.define([
 
         onCuentasSearch(oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
-            const oTreeTable = this.byId("cuentasTreeTable");
-            if (!oTreeTable) { return; }
-            const oBinding = oTreeTable.getBinding("rows");
-            if (!oBinding) { return; }
-            if (sQuery) {
-                oBinding.filter([new Filter("nombre", FilterOperator.Contains, sQuery)]);
-            } else {
-                oBinding.filter([]);
+            const oModel = this.getView().getModel("wizard");
+            const aAll = oModel.getProperty("/_bancosAll");
+            if (!sQuery) {
+                const aReset = JSON.parse(JSON.stringify(aAll)).map((b) => Object.assign(b, { expanded: false }));
+                oModel.setProperty("/bancos", aReset);
+                return;
             }
+            const aFiltered = aAll
+                .map((oBanco) => {
+                    const bBancoMatch = oBanco.nombre.toLowerCase().includes(sQuery);
+                    const aCuentasFiltradas = bBancoMatch
+                        ? oBanco.cuentas
+                        : oBanco.cuentas.filter((c) =>
+                            c.nombre.toLowerCase().includes(sQuery) ||
+                            c.cuentaCorriente.toLowerCase().includes(sQuery));
+                    return aCuentasFiltradas.length > 0
+                        ? Object.assign({}, oBanco, { cuentas: aCuentasFiltradas, expanded: true })
+                        : null;
+                })
+                .filter(Boolean);
+            oModel.setProperty("/bancos", aFiltered);
         },
 
         onCuentaCentralSearch(oEvent) {
@@ -428,7 +469,15 @@ sap.ui.define([
 
         onCuentasSelectionChange() {
             const oWizard = this.byId("configWizard");
-            const bValid = this.byId("cuentasTreeTable").getSelectedIndices().length > 0;
+            const oBancosList = this.byId("bancosListStep2");
+            let bValid = false;
+            if (oBancosList) {
+                bValid = oBancosList.getItems().some((oCustomItem) => {
+                    const oPanel = oCustomItem.getContent()[0];
+                    const oTable = oPanel ? oPanel.getContent()[0] : null;
+                    return oTable ? oTable.getSelectedItems().length > 0 : false;
+                });
+            }
             bValid ? oWizard.validateStep(this.byId("wizardStep2")) : oWizard.invalidateStep(this.byId("wizardStep2"));
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewCuentas();

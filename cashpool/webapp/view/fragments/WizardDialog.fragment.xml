@@ -1,8 +1,8 @@
 <core:FragmentDefinition xmlns="sap.m"
     xmlns:core="sap.ui.core"
     xmlns:form="sap.ui.layout.form"
-    xmlns:t="sap.ui.table"
-    xmlns:data="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1">
+    xmlns:data="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
+    core:require="{Formatter: 'cashpool/app/cashpool/utils/Formatter'}">
     <Dialog id="wizardDialog"
             title="{i18n>wizardDialogTitle}"
             contentWidth="1420px"
@@ -20,9 +20,8 @@
                             validated="false">
                     <VBox width="80%" class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField 
-                                    placeholder="{i18n>wizardSearchPlaceholder}"
+                                    placeholder="{i18n>wizardSearchStep1Placeholder}"
                                     search=".onEmpresaSearch"
-                                    liveChange=".onEmpresaSearch"
                                     class="sapUiSmallMarginBottom"/>
                         <Table id="empresaTable"
                                 items="{wizard>/empresas}"
@@ -58,44 +57,66 @@
                             validated="false">
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField width="100%"
-                                     placeholder="{i18n>wizardSearchPlaceholder}"
-                                     search=".onCuentasSearch"
-                                     liveChange=".onCuentasSearch"
-                                     class="sapUiSmallMarginBottom"/>
-                        <t:TreeTable id="cuentasTreeTable"
-                                     rows="{path: 'wizard>/bancos', parameters: {arrayNames: ['cuentas']}}"
-                                     selectionMode="MultiToggle"
-                                     visibleRowCount="8"
-                                     enableSelectAll="false"
-                                     rowSelectionChange=".onCuentasSelectionChange"
-                                     width="100%">
-                            <t:columns>
-                                <t:Column width="40%">
-                                    <t:label>
-                                        <Label text="{i18n>colNombre}"/>
-                                    </t:label>
-                                    <t:template>
-                                        <Text text="{wizard>nombre}" wrapping="false"/>
-                                    </t:template>
-                                </t:Column>
-                                <t:Column width="30%">
-                                    <t:label>
-                                        <Label text="{i18n>colOficina}"/>
-                                    </t:label>
-                                    <t:template>
-                                        <Text text="{wizard>oficina}" wrapping="false"/>
-                                    </t:template>
-                                </t:Column>
-                                <t:Column width="30%">
-                                    <t:label>
-                                        <Label text="{i18n>colCuentaCorriente}"/>
-                                    </t:label>
-                                    <t:template>
-                                        <Text text="{wizard>cuentaCorriente}" wrapping="false"/>
-                                    </t:template>
-                                </t:Column>
-                            </t:columns>
-                        </t:TreeTable>
+                                     placeholder="{i18n>wizardSearchStep2Placeholder}"
+                                     search=".onCuentasSearch"/>
+                        <List id="bancosListStep2"
+                              items="{wizard>/bancos}"
+                              mode="None"
+                              showSeparators="None">
+                            <CustomListItem>
+                                <Panel expandable="true"
+                                       expanded="{wizard>expanded}"
+                                       headerText="{parts: [{path: 'wizard>nombre'}, {path: 'wizard>cuentas'}], formatter: 'Formatter.formatBankTitle'}"
+                                       class="sapUiSmallMarginBottom">
+                                    <Table items="{wizard>cuentas}"
+                                           mode="MultiSelect"
+                                           selectionChange=".onCuentasSelectionChange"
+                                           fixedLayout="false">
+                                        <columns>
+                                            <Column>
+                                                <header>
+                                                    <Text text="{i18n>colNombre}"/>
+                                                </header>
+                                            </Column>
+                                            <Column>
+                                                <header>
+                                                    <Text text="{i18n>colOficina}"/>
+                                                </header>
+                                            </Column>
+                                            <Column>
+                                                <header>
+                                                    <Text text="{i18n>colCuentaCorriente}"/>
+                                                </header>
+                                            </Column>
+                                            <Column hAlign="End">
+                                                <header>
+                                                    <Text text="{i18n>colSaldoSAP}"/>
+                                                </header>
+                                            </Column>
+                                            <Column hAlign="End">
+                                                <header>
+                                                    <Text text="{i18n>colSaldoInfoCent}"/>
+                                                </header>
+                                            </Column>
+                                        </columns>
+                                        <items>
+                                            <ColumnListItem type="Active">
+                                                <cells>
+                                                    <HBox alignItems="Center">
+                                                        <Text text="{wizard>nombre}" class="sapUiTinyMarginEnd"/>
+                                                        <ObjectStatus inverted="true" text="{i18n>autorizado}"/>
+                                                    </HBox>
+                                                    <Text text="{wizard>oficina}"/>
+                                                    <Text text="{wizard>cuentaCorriente}"/>
+                                                    <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                                    <Text text="{parts: [{path: 'wizard>saldoInfoCent'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                                </cells>
+                                            </ColumnListItem>
+                                        </items>
+                                    </Table>
+                                </Panel>
+                            </CustomListItem>
+                        </List>
                     </VBox>
                 </WizardStep>
                 <!-- Step 3: Cuenta Centralizadora -->
@@ -104,9 +125,8 @@
                             validated="false">
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField width="100%"
-                                     placeholder="{i18n>wizardSearchPlaceholder}"
+                                     placeholder="{i18n>wizardSearchStep3Placeholder}"
                                      search=".onCuentaCentralSearch"
-                                     liveChange=".onCuentaCentralSearch"
                                      class="sapUiSmallMarginBottom"/>
                         <Table id="cuentaCentralTable"
                                items="{wizard>/cuentasCentralizadoras}"

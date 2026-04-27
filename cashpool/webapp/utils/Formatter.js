@@ -10,6 +10,10 @@ sap.ui.define([
                 currencyCode: false
             });
             return oCurrencyFormatter.formatValue([monto, moneda], "string");
+        },
+
+        formatBankTitle: function(sNombre, aCuentas) {
+            return sNombre + " (" + (aCuentas ? aCuentas.length : 0) + ")";
         }
     };
 });
