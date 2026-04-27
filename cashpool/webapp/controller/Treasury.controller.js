@@ -401,16 +401,20 @@ sap.ui.define([
         onWizardNext() {
             const oWizard = this.byId("configWizard");
             const iNext = this._iCurrentStepIndex + 1;
-            oWizard.goToStep(oWizard.getSteps()[iNext]);
-            oWizard.setCurrentStep(oWizard.getSteps()[iNext]);
+            if (iNext < oWizard.getProgress()) {
+                // Step already activated (e.g. navigating forward after editing) — goToStep is safe
+                oWizard.goToStep(oWizard.getSteps()[iNext], true);
+            } else {
+                // Step not yet activated — nextStep() activates it before navigating
+                oWizard.nextStep();
+            }
             this._updateNavState(iNext);
         },
 
         onWizardBack() {
             const oWizard = this.byId("configWizard");
             const iPrev = this._iCurrentStepIndex - 1;
-            oWizard.goToStep(oWizard.getSteps()[iPrev]);
-            oWizard.setCurrentStep(oWizard.getSteps()[iPrev]);
+            oWizard.goToStep(oWizard.getSteps()[iPrev], true);
             this._updateNavState(iPrev);
         },
 
@@ -456,11 +460,11 @@ sap.ui.define([
 
         onEditStep(oEvent) {
             const sStep = oEvent.getSource().data("step");
+            const iIndex = parseInt(sStep, 10) - 1;
             const oWizard = this.byId("configWizard");
-            if (oWizard) { 
-                oWizard.goToStep(this.byId("wizardStep" + sStep)); 
-                //oWizard.setCurrentStep(this.byId("wizardStep" + sStep)); 
-                //this._updateNavState(parseInt(sStep, 10));
+            if (oWizard) {
+                oWizard.goToStep(this.byId("wizardStep" + sStep), true);
+                this._updateNavState(iIndex);
             }
         },
 
