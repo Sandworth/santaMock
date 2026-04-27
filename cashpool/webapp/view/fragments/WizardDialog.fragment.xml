@@ -98,6 +98,11 @@
                                                     <Text text="{i18n>colSaldoInfoCent}"/>
                                                 </header>
                                             </Column>
+                                            <Column hAlign="Center">
+                                                <header>
+                                                    <Text text="{i18n>colOrigenSaldo}"/>
+                                                </header>
+                                            </Column>
                                         </columns>
                                         <items>
                                             <ColumnListItem type="Active">
@@ -110,6 +115,15 @@
                                                     <Text text="{wizard>cuentaCorriente}"/>
                                                     <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
                                                     <Text text="{parts: [{path: 'wizard>saldoInfoCent'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                                    <RadioButtonGroup
+                                                                    templateShareable="true"
+                                                                    columns="2"
+                                                                    select="">
+                                                        <buttons>
+                                                            <RadioButton text="{i18n>colSaldoSAP}"/>
+                                                            <RadioButton text="{i18n>colSaldoInfoCent}"/>
+                                                        </buttons>
+                                                    </RadioButtonGroup>                                                    
                                                 </cells>
                                             </ColumnListItem>
                                         </items>
