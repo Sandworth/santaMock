@@ -192,6 +192,18 @@
                                 <RadioButton text="{i18n>wizardHorario3}"/>
                             </buttons>
                         </RadioButtonGroup>
+                        <VBox
+                            class="sapUiSmallMarginTop"
+                            visible="{= ${wizard>/selectedHorario} === 0 }">
+                            <Label text="{i18n>wizardSelectHorarioLabel}" class="sapUiTinyMarginBottom"/>
+                            <Select
+                                width="12rem"
+                                selectedKey="{wizard>/horarioUnico}"
+                                change=".onHorarioUnicoChange"
+                                items="{wizard>/horariosUnicos}">
+                                <core:Item key="{wizard>key}" text="{wizard>text}"/>
+                            </Select>
+                        </VBox>
                         <Title text="{i18n>wizardQuestion2}" level="H5" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
                         <HBox wrap="Wrap">
                             <CheckBox text="{i18n>weekdayLunes}"     selected="{wizard>/dias/lunes}"     select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>

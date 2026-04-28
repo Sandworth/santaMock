@@ -432,6 +432,15 @@ sap.ui.define([
         _openWizardDialog() {
             const oWizardModel = new JSONModel({
                 selectedHorario: null,
+                horarioUnico: "",
+                horariosUnicos: [
+                    { key: "17:00", text: "17:00" },
+                    { key: "18:00", text: "18:00" },
+                    { key: "19:00", text: "19:00" },
+                    { key: "20:00", text: "20:00" },
+                    { key: "21:00", text: "21:00" },
+                    { key: "22:00", text: "22:00" }
+                ],
                 selectedSaldoType: null,
                 dias: { lunes: false, martes: false, miercoles: false, jueves: false, viernes: false, sabado: false, domingo: false },
                 empresas: [
@@ -598,7 +607,14 @@ sap.ui.define([
             const oHorarioGroup = this.byId("horarioGroup");
             if (oHorarioGroup) {
                 const oSelected = oHorarioGroup.getSelectedButton();
-                oModel.setProperty("/review/horario", oSelected ? oSelected.getText() : "");
+                const sSelectedText = oSelected ? oSelected.getText() : "";
+                const iSelectedIndex = oHorarioGroup.getSelectedIndex();
+                const sHorarioUnico = oModel.getProperty("/horarioUnico") || "";
+                const sReviewHorario = iSelectedIndex === 0 && sHorarioUnico
+                    ? `${sSelectedText} (${sHorarioUnico})`
+                    : sSelectedText;
+
+                oModel.setProperty("/review/horario", sReviewHorario);
             }
         },
 
@@ -750,6 +766,15 @@ sap.ui.define([
         },
 
         onHorarioSelectionChange() {
+            const oModel = this.getView().getModel("wizard");
+            const oHorarioGroup = this.byId("horarioGroup");
+            if (oHorarioGroup && oHorarioGroup.getSelectedIndex() !== 0) {
+                oModel.setProperty("/horarioUnico", "");
+            }
+            this._updateReviewHorario();
+        },
+
+        onHorarioUnicoChange() {
             this._updateReviewHorario();
         },
 
