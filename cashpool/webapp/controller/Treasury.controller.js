@@ -771,6 +771,9 @@ sap.ui.define([
             if (oHorarioGroup && oHorarioGroup.getSelectedIndex() !== 0) {
                 oModel.setProperty("/horarioUnico", "");
             }
+            if (oHorarioGroup.getSelectedIndex() === 0) {
+                oModel.setProperty("/selectedHorario", 0);
+            }
             this._updateReviewHorario();
         },
 
