@@ -54,137 +54,207 @@
                         key="tab3"
                         text="{i18n>tabTransferenciasAuto}"
                         >
-                        <m:Table
-                            id="TransferenciasTable"
-                            items="{view>/transferencias}">
-                            <m:columns>
-                                <!-- Fecha -->
-                                <m:Column width="10%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colFecha}" />
-                                    </m:header>
-                                </m:Column>
-                                <!-- Datos de Origen -->
-                                <m:Column width="15%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colOrigen}" />
-                                    </m:header>
-                                </m:Column>
-                                <!-- Datos de Destino -->
-                                <m:Column width="15%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colDestino}" />
-                                    </m:header>
-                                </m:Column>
-                                <!-- Saldo Antes -->
-                                <m:Column width="12%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colSaldoAntes}" />
-                                    </m:header>
-                                </m:Column>
-                                <!-- Saldo Programado -->
-                                <m:Column width="12%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colSaldoProgramado}" />
-                                    </m:header>
-                                </m:Column>
-                                <!-- Valor de Transferencia -->
-                                <m:Column width="12%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colValorTransferencia}" />
-                                    </m:header>
-                                </m:Column>
-                                <!-- Status -->
-                                <m:Column width="10%">
-                                    <m:header>
-                                        <m:Text text="{i18n>colStatus}" />
-                                    </m:header>
-                                </m:Column>
-                                <!-- Acciones -->
-                                <m:Column width="14%">
-                                </m:Column>
-                            </m:columns>
-                            <m:items>
-                                <m:ColumnListItem type="Inactive">
-                                    <!-- Fecha -->
-                                    <m:cells>
-                                        <m:Text text="{view>fecha}" />
-                                        <!-- Datos de Origen -->
-                                        <m:VBox>
-                                            <m:Link class="sapUiTinyMarginTop" text="{view>origen/banco}" />
-                                            <m:HBox class="sapUiTinyMarginTopBottom">
-                                                <m:Label text="{i18n>lblOficina}" width="60px" />
-                                                <m:Text text="{view>origen/oficina}" />
-                                            </m:HBox>
-                                            <m:HBox class="sapUiTinyMarginBottom">
-                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
-                                                <m:Text text="{view>origen/cuenta}" />
-                                            </m:HBox>
-                                        </m:VBox>
-                                        <!-- Datos de Destino -->
-                                        <m:VBox>
-                                            <m:Link class="sapUiTinyMarginTop" text="{view>destino/banco}" />
-                                            <m:HBox class="sapUiTinyMarginTopBottom">
-                                                <m:Label text="{i18n>lblOficina}" width="60px" />
-                                                <m:Text text="{view>destino/oficina}" />
-                                            </m:HBox>
-                                            <m:HBox class="sapUiTinyMarginBottom">
-                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
-                                                <m:Text text="{view>destino/cuenta}" />
-                                            </m:HBox>
-                                        </m:VBox>
-                                        <!-- Saldo Antes -->
-                                        <m:Text text="{
-                                                        parts: [
-                                                            {path: 'view>saldoAntes/monto'},
-                                                            {path: 'view>saldoAntes/moneda'}
-                                                        ],
-                                                        type: 'Currency',
-                                                        formatOptions: {
-                                                            currencyCode: false,
-                                                            showMeasure: true
-                                                        }
-                                                    }" />
-                                        <!-- Saldo Programado -->
-                                        <m:Text text="{
-                                                        parts: [
-                                                            {path: 'view>saldoProgramado/monto'},
-                                                            {path: 'view>saldoProgramado/moneda'}
-                                                        ],
-                                                        type: 'Currency',
-                                                        formatOptions: {
-                                                            currencyCode: false,
-                                                            showMeasure: true
-                                                        }
-                                                    }" />
-                                        <!-- Valor Transferencia -->
-                                        <m:Text text="{
-                                                        parts: [
-                                                            {path: 'view>valorTransferencia/monto'},
-                                                            {path: 'view>valorTransferencia/moneda'}
-                                                        ],
-                                                        type: 'Currency',
-                                                        formatOptions: {
-                                                            currencyCode: false,
-                                                            showMeasure: true
-                                                        }
-                                                    }" />
-                                        <!-- Status -->
-                                        <m:ObjectStatus
-                                            text="{view>status/text}"
-                                            state="{view>status/state}"
-                                        />
-                                        <!-- Botón Descargar Comprobante -->
-                                        <m:Button
-                                            text="{i18n>btnDescargarComprobante}"
-                                            type="Transparent"
-                                            icon="sap-icon://download"
-                                            press=".onDownloadReceipt"
-                                        />
-                                    </m:cells>
-                                </m:ColumnListItem>
-                            </m:items>
-                        </m:Table>
+                        <m:VBox>
+                            <m:Toolbar class="sapUiTinyMarginTop">
+                                <m:Title text="{i18n>transferHistoryTitle}" level="H3" />
+                                <m:ToolbarSpacer />
+                                <m:SearchField
+                                    width="16rem"
+                                    placeholder="{i18n>searchByCnpjPlaceholder}"
+                                    liveChange=".onTransferenciasGroupSearch"
+                                    search=".onTransferenciasGroupSearch" />
+                            </m:Toolbar>
+                            <m:List
+                                items="{view>/transferenciasAgrupadas}"
+                                mode="None"
+                                width="100%"
+                                showSeparators="None"
+                                class="sapUiSmallMarginEnd">
+                                <m:CustomListItem>
+                                    <m:Panel
+                                        expandable="true"
+                                        expanded="{view>expanded}">
+                                        <m:headerToolbar>
+                                            <m:Toolbar>
+                                                <m:Title text="{= ${view>razonSocial} + ' - ' + ${view>cnpj} }" level="H5" />
+                                                <m:ToolbarSpacer />
+                                                <m:Text text="{i18n>lblActivo}" class="sapUiTinyMarginEnd" />
+                                                <m:Switch
+                                                    state="{view>activo}"
+                                                    change=".onTransferGroupActivationChange" />
+                                            </m:Toolbar>
+                                        </m:headerToolbar>
+                                        <m:Table
+                                            items="{view>transferencias}"
+                                            mode="MultiSelect"
+                                            selectionChange=".onTransferenciaSelectionChange"
+                                            includeItemInSelection="true">
+                                            <m:headerToolbar>
+                                                <m:Toolbar>
+                                                    <m:DateRangeSelection
+                                                        width="16rem"
+                                                        delimiter=" - "
+                                                        dateValue="{view>filters/dateFrom}"
+                                                        secondDateValue="{view>filters/dateTo}"
+                                                        placeholder="{i18n>filterDateRange}" />
+                                                    <m:Select
+                                                        width="12rem"
+                                                        selectedKey="{view>filters/status}"
+                                                        items="{view>statusOptions}">
+                                                        <core:Item key="{view>key}" text="{view>text}" />
+                                                    </m:Select>
+                                                    <m:Button text="{i18n>btnBuscar}" icon="sap-icon://search" press=".onTransferenciasSearch" />
+                                                    <m:Button text="{i18n>btnLimpiar}" type="Transparent" press=".onTransferenciasClear" />
+                                                    <m:ToolbarSpacer />
+                                                    <m:ToolbarSeparator />
+                                                    <m:Button text="{i18n>btnConsultarConfiguracion}" type="Transparent" press=".onConsultConfiguration" />
+                                                    <m:Button
+                                                        text="{i18n>btnExportarComprobantes}"
+                                                        type="Emphasized"
+                                                        press=".onExportReceipts"
+                                                        enabled="{= ${view>selectedCount} > 0 }"
+                                                        badgeStyle="Default">
+                                                        <m:customData>
+                                                            <m:BadgeCustomData
+                                                                key="badge"
+                                                                value="{view>selectedCount}"
+                                                                visible="{= ${view>selectedCount} > 0 }" />
+                                                        </m:customData>
+                                                    </m:Button>
+                                                </m:Toolbar>
+                                            </m:headerToolbar>
+                                            <m:columns>
+                                                <!-- Fecha -->
+                                                <m:Column width="10%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colFecha}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Datos de Origen -->
+                                                <m:Column width="15%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colOrigen}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Datos de Destino -->
+                                                <m:Column width="15%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colDestino}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Saldo Antes -->
+                                                <m:Column width="12%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colSaldoAntes}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Saldo Programado -->
+                                                <m:Column width="12%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colSaldoProgramado}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Valor de Transferencia -->
+                                                <m:Column width="12%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colValorTransferencia}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Status -->
+                                                <m:Column width="10%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colStatus}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Acciones -->
+                                                <m:Column width="14%">
+                                                </m:Column>
+                                            </m:columns>
+                                            <m:items>
+                                                <m:ColumnListItem type="Inactive">
+                                                    <!-- Fecha -->
+                                                    <m:cells>
+                                                        <m:Text text="{view>fecha}" />
+                                                        <!-- Datos de Origen -->
+                                                        <m:VBox>
+                                                            <m:Link class="sapUiTinyMarginTop" text="{view>origen/banco}" />
+                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                                <m:Label text="{i18n>lblOficina}" width="60px" />
+                                                                <m:Text text="{view>origen/oficina}" />
+                                                            </m:HBox>
+                                                            <m:HBox class="sapUiTinyMarginBottom">
+                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                                <m:Text text="{view>origen/cuenta}" />
+                                                            </m:HBox>
+                                                        </m:VBox>
+                                                        <!-- Datos de Destino -->
+                                                        <m:VBox>
+                                                            <m:Link class="sapUiTinyMarginTop" text="{view>destino/banco}" />
+                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                                <m:Label text="{i18n>lblOficina}" width="60px" />
+                                                                <m:Text text="{view>destino/oficina}" />
+                                                            </m:HBox>
+                                                            <m:HBox class="sapUiTinyMarginBottom">
+                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                                <m:Text text="{view>destino/cuenta}" />
+                                                            </m:HBox>
+                                                        </m:VBox>
+                                                        <!-- Saldo Antes -->
+                                                        <m:Text text="{
+                                                                        parts: [
+                                                                            {path: 'view>saldoAntes/monto'},
+                                                                            {path: 'view>saldoAntes/moneda'}
+                                                                        ],
+                                                                        type: 'Currency',
+                                                                        formatOptions: {
+                                                                            currencyCode: false,
+                                                                            showMeasure: true
+                                                                        }
+                                                                    }" />
+                                                        <!-- Saldo Programado -->
+                                                        <m:Text text="{
+                                                                        parts: [
+                                                                            {path: 'view>saldoProgramado/monto'},
+                                                                            {path: 'view>saldoProgramado/moneda'}
+                                                                        ],
+                                                                        type: 'Currency',
+                                                                        formatOptions: {
+                                                                            currencyCode: false,
+                                                                            showMeasure: true
+                                                                        }
+                                                                    }" />
+                                                        <!-- Valor Transferencia -->
+                                                        <m:Text text="{
+                                                                        parts: [
+                                                                            {path: 'view>valorTransferencia/monto'},
+                                                                            {path: 'view>valorTransferencia/moneda'}
+                                                                        ],
+                                                                        type: 'Currency',
+                                                                        formatOptions: {
+                                                                            currencyCode: false,
+                                                                            showMeasure: true
+                                                                        }
+                                                                    }" />
+                                                        <!-- Status -->
+                                                        <m:ObjectStatus
+                                                            text="{view>status/text}"
+                                                            state="{view>status/state}"
+                                                        />
+                                                        <!-- Botón Descargar Comprobante -->
+                                                        <m:Button
+                                                            text="{i18n>btnDescargarComprobante}"
+                                                            type="Transparent"
+                                                            icon="sap-icon://download"
+                                                            press=".onDownloadReceipt"
+                                                        />
+                                                    </m:cells>
+                                                </m:ColumnListItem>
+                                            </m:items>
+                                        </m:Table>
+                                    </m:Panel>
+                                </m:CustomListItem>
+                            </m:List>
+                        </m:VBox>
                     </m:IconTabFilter>
                     <!-- Tab 4: Aprobaciones (with Table) -->
                     <m:IconTabFilter

@@ -3,14 +3,18 @@ sap.ui.define([
     "sap/ui/model/json/JSONModel",
     "sap/ui/core/Fragment",
     "cashpool/app/cashpool/utils/Formatter",
-    "sap/m/MessageToast"
-], (Controller, JSONModel, Fragment, Formatter, MessageToast) => {
+    "sap/m/MessageToast",
+    "sap/m/Dialog",
+    "sap/m/Button",
+    "sap/m/Text"
+], (Controller, JSONModel, Fragment, Formatter, MessageToast, Dialog, Button, Text) => {
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
         onInit() {
             // Get i18n bundle for translations from component
             const oResourceBundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
+            this._oResourceBundle = oResourceBundle;
 
             // Initialize view model for dynamic data with internationalized content
             const oViewModel = new JSONModel({
@@ -35,6 +39,8 @@ sap.ui.define([
                 ],
                 transferencias: [
                     {
+                        razonSocial: "Empresa Alpha S.A.",
+                        cnpj: "12.345.678/0001-90",
                         fecha: "22/04/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoA"),
@@ -64,6 +70,8 @@ sap.ui.define([
                         }
                     },
                     {
+                        razonSocial: "Empresa Alpha S.A.",
+                        cnpj: "12.345.678/0001-90",
                         fecha: "21/04/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoC"),
@@ -93,6 +101,8 @@ sap.ui.define([
                         }
                     },
                     {
+                        razonSocial: "Beta Corporación Ltda.",
+                        cnpj: "98.765.432/0001-11",
                         fecha: "20/04/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoE"),
@@ -120,11 +130,45 @@ sap.ui.define([
                             text: oResourceBundle.getText("statusRechazada"),
                             state: "Error"
                         }
+                    },
+                    {
+                        razonSocial: "Gamma Holding S.A.",
+                        cnpj: "11.222.333/0001-44",
+                        fecha: "19/04/2026",
+                        origen: {
+                            banco: oResourceBundle.getText("bancoB"),
+                            oficina: "007",
+                            cuenta: "2468135790"
+                        },
+                        destino: {
+                            banco: oResourceBundle.getText("bancoC"),
+                            oficina: "008",
+                            cuenta: "1357924680"
+                        },
+                        saldoAntes: {
+                            monto: 62000.00,
+                            moneda: "USD"
+                        },
+                        saldoProgramado: {
+                            monto: 15000.00,
+                            moneda: "USD"
+                        },
+                        valorTransferencia: {
+                            monto: 4700.00,
+                            moneda: "USD"
+                        },
+                        status: {
+                            text: oResourceBundle.getText("statusPendiente"),
+                            state: "Warning"
+                        }
                     }
-                ]
+                ],
+                transferenciasAgrupadas: [],
+                _transferenciasAgrupadasAll: []
             });
 
             this.getView().setModel(oViewModel, "view");
+            this._buildTransferenciasGroups();
         },
 
         onTabSelect(oEvent) {
@@ -142,6 +186,220 @@ sap.ui.define([
             // Por ahora, mostrar un mensaje
             const sFormattedCurrency = Formatter.formatCurrency(oData.valorTransferencia.monto, oData.valorTransferencia.moneda);
             MessageToast.show(`Descargando comprobante de transferencia del ${oData.fecha} por el importe de ${sFormattedCurrency}`);
+        },
+
+        _buildTransferenciasGroups() {
+            const oModel = this.getView().getModel("view");
+            const aTransferencias = oModel.getProperty("/transferencias") || [];
+            const oGroupsByKey = new Map();
+
+            aTransferencias.forEach((oTransferencia) => {
+                const sGroupKey = `${oTransferencia.razonSocial}|${oTransferencia.cnpj}`;
+                if (!oGroupsByKey.has(sGroupKey)) {
+                    oGroupsByKey.set(sGroupKey, {
+                        razonSocial: oTransferencia.razonSocial,
+                        cnpj: oTransferencia.cnpj,
+                        expanded: false,
+                        selectedCount: 0,
+                        filters: {
+                            dateFrom: null,
+                            dateTo: null,
+                            status: "ALL"
+                        },
+                        statusOptions: [
+                            { key: "ALL", text: this._oResourceBundle.getText("allStatusesOption") },
+                            { key: "Warning", text: this._oResourceBundle.getText("statusPendiente") },
+                            { key: "Success", text: this._oResourceBundle.getText("statusAprobada") },
+                            { key: "Error", text: this._oResourceBundle.getText("statusRechazada") }
+                        ],
+                        transferencias: [],
+                        _allTransferencias: []
+                    });
+                }
+
+                const oGroup = oGroupsByKey.get(sGroupKey);
+                oGroup.transferencias.push(oTransferencia);
+                oGroup._allTransferencias.push(oTransferencia);
+            });
+
+            const aGroups = Array.from(oGroupsByKey.values());
+            aGroups.forEach((oGroup, iIndex) => {
+                oGroup.activo = iIndex === 0;
+            });
+            oModel.setProperty("/_transferenciasAgrupadasAll", aGroups);
+            oModel.setProperty("/transferenciasAgrupadas", aGroups.slice());
+        },
+
+        onTransferenciasGroupSearch(oEvent) {
+            const sRawQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").trim();
+            const sNormalizedQuery = this._normalizeCnpjSearch(sRawQuery);
+            const oModel = this.getView().getModel("view");
+            const aAllGroups = oModel.getProperty("/_transferenciasAgrupadasAll") || [];
+
+            if (!sNormalizedQuery) {
+                oModel.setProperty("/transferenciasAgrupadas", aAllGroups.slice());
+                return;
+            }
+
+            const aFilteredGroups = aAllGroups.filter((oGroup) =>
+                this._normalizeCnpjSearch(oGroup.cnpj).includes(sNormalizedQuery)
+            );
+
+            oModel.setProperty("/transferenciasAgrupadas", aFilteredGroups);
+        },
+
+        _normalizeCnpjSearch(sValue) {
+            return (sValue || "").replace(/\D/g, "");
+        },
+
+        onTransferGroupActivationChange(oEvent) {
+            const bNextState = oEvent.getParameter("state");
+            const oSwitch = oEvent.getSource();
+            const oContext = oSwitch.getBindingContext("view");
+            if (!oContext || !bNextState) {
+                return;
+            }
+
+            const oDialog = new Dialog({
+                type: "Message",
+                state: "Information",
+                title: this._oResourceBundle.getText("activateTransferGroupTitle"),
+                content: [
+                    new Text({
+                        text: this._oResourceBundle.getText("activateTransferGroupMessage")
+                    })
+                ],
+                beginButton: new Button({
+                    text: this._oResourceBundle.getText("activateDialogAccept"),
+                    press: () => {
+                        oDialog.close();
+                    }
+                }),
+                endButton: new Button({
+                    text: this._oResourceBundle.getText("activateDialogCancel"),
+                    press: () => {
+                        this.getView().getModel("view").setProperty(`${oContext.getPath()}/activo`, false);
+                        oSwitch.setState(false);
+                        oDialog.close();
+                    }
+                }),
+                afterClose: () => {
+                    oDialog.destroy();
+                }
+            });
+
+            this.getView().addDependent(oDialog);
+            oDialog.open();
+        },
+
+        onTransferenciasSearch(oEvent) {
+            const oContext = oEvent.getSource().getBindingContext("view");
+            if (!oContext) {
+                return;
+            }
+
+            const sPath = oContext.getPath();
+            const oModel = this.getView().getModel("view");
+            const oGroup = oModel.getProperty(sPath);
+            const oFilters = oGroup.filters || {};
+
+            const aFiltered = (oGroup._allTransferencias || []).filter((oTransferencia) => {
+                const oTransferDate = this._parseTransferDate(oTransferencia.fecha);
+                const oFromDate = this._normalizeDate(oFilters.dateFrom);
+                const oToDate = this._normalizeDate(oFilters.dateTo);
+
+                const bMatchesFrom = !oFromDate || (oTransferDate && oTransferDate >= oFromDate);
+                const bMatchesTo = !oToDate || (oTransferDate && oTransferDate <= oToDate);
+                const bMatchesStatus = oFilters.status === "ALL" || oTransferencia.status.state === oFilters.status;
+
+                return bMatchesFrom && bMatchesTo && bMatchesStatus;
+            });
+
+            oModel.setProperty(`${sPath}/transferencias`, aFiltered);
+            oModel.setProperty(`${sPath}/selectedCount`, 0);
+        },
+
+        onTransferenciasClear(oEvent) {
+            const oContext = oEvent.getSource().getBindingContext("view");
+            if (!oContext) {
+                return;
+            }
+
+            const sPath = oContext.getPath();
+            const oModel = this.getView().getModel("view");
+
+            oModel.setProperty(`${sPath}/filters/dateFrom`, null);
+            oModel.setProperty(`${sPath}/filters/dateTo`, null);
+            oModel.setProperty(`${sPath}/filters/status`, "ALL");
+
+            const aAllTransferencias = oModel.getProperty(`${sPath}/_allTransferencias`) || [];
+            oModel.setProperty(`${sPath}/transferencias`, aAllTransferencias);
+            oModel.setProperty(`${sPath}/selectedCount`, 0);
+        },
+
+        onTransferenciaSelectionChange(oEvent) {
+            const oTable = oEvent.getSource();
+            const iSelectedCount = oTable.getSelectedItems().length;
+            const oContext = oTable.getBindingContext("view");
+
+            if (!oContext) {
+                return;
+            }
+
+            this.getView().getModel("view").setProperty(`${oContext.getPath()}/selectedCount`, iSelectedCount);
+        },
+
+        onConsultConfiguration() {
+            this._openWizardDialog();
+        },
+
+        onExportReceipts(oEvent) {
+            const oPanel = this._getParentPanel(oEvent.getSource());
+            const oTable = oPanel && oPanel.getContent().find((oContent) => oContent.isA("sap.m.Table"));
+            const iSelected = oTable ? oTable.getSelectedItems().length : 0;
+
+            if (!iSelected) {
+                MessageToast.show(this._oResourceBundle.getText("msgSelectAtLeastOne"));
+                return;
+            }
+
+            MessageToast.show(this._oResourceBundle.getText("msgExportReceipts", [iSelected]));
+        },
+
+        _getParentPanel(oControl) {
+            let oParent = oControl;
+            while (oParent && !oParent.isA("sap.m.Panel")) {
+                oParent = oParent.getParent();
+            }
+            return oParent;
+        },
+
+        _parseTransferDate(sDate) {
+            if (!sDate) {
+                return null;
+            }
+
+            const aDateParts = sDate.split("/");
+            if (aDateParts.length !== 3) {
+                return null;
+            }
+
+            const iDay = parseInt(aDateParts[0], 10);
+            const iMonth = parseInt(aDateParts[1], 10) - 1;
+            const iYear = parseInt(aDateParts[2], 10);
+
+            const oDate = new Date(iYear, iMonth, iDay);
+            return this._normalizeDate(oDate);
+        },
+
+        _normalizeDate(oDate) {
+            if (!(oDate instanceof Date)) {
+                return null;
+            }
+
+            const oNormalizedDate = new Date(oDate.getTime());
+            oNormalizedDate.setHours(0, 0, 0, 0);
+            return oNormalizedDate;
         },
 
         onAfterRendering() {
