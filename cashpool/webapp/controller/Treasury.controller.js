@@ -40,29 +40,29 @@ sap.ui.define([
                 transferencias: [
                     {
                         razonSocial: "Empresa Alpha S.A.",
-                        cnpj: "12.345.678/0001-90",
+                        cif: "12345678A",
                         fecha: "22/04/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoA"),
-                            oficina: "001",
-                            cuenta: "0123456789"
+                            oficina: "0049",
+                            cuenta: "00491555-10-1234567890"
                         },
                         destino: {
                             banco: oResourceBundle.getText("bancoB"),
-                            oficina: "002",
-                            cuenta: "9876543210"
+                            oficina: "2080",
+                            cuenta: "20800970-10-1234512345"
                         },
                         saldoAntes: {
                             monto: 100000.00,
-                            moneda: "USD"
+                            moneda: "EUR"
                         },
                         saldoProgramado: {
                             monto: 0.00,
-                            moneda: "USD"
+                            moneda: "EUR"
                         },
                         valorTransferencia: {
                             monto: 10000.00,
-                            moneda: "USD"
+                            moneda: "EUR"
                         },
                         status: {
                             text: oResourceBundle.getText("statusPendiente"),
@@ -71,29 +71,29 @@ sap.ui.define([
                     },
                     {
                         razonSocial: "Empresa Alpha S.A.",
-                        cnpj: "12.345.678/0001-90",
+                        cif: "12345678A",
                         fecha: "21/04/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoC"),
-                            oficina: "003",
-                            cuenta: "5555666677"
+                            oficina: "2100",
+                            cuenta: "21006428-10-1234567890"
                         },
                         destino: {
                             banco: oResourceBundle.getText("bancoD"),
-                            oficina: "004",
-                            cuenta: "1111222233"
+                            oficina: "0281",
+                            cuenta: "02815678-10-1234567890"
                         },
                         saldoAntes: {
                             monto: 50000.00,
-                            moneda: "USD"
+                            moneda: "EUR"
                         },
                         saldoProgramado: {
                             monto: 0.00,
-                            moneda: "USD"
+                            moneda: "EUR"
                         },
                         valorTransferencia: {
                             monto: 5000.00,
-                            moneda: "USD"
+                            moneda: "EUR"
                         },
                         status: {
                             text: oResourceBundle.getText("statusAprobada"),
@@ -102,29 +102,29 @@ sap.ui.define([
                     },
                     {
                         razonSocial: "Beta Corporación Ltda.",
-                        cnpj: "98.765.432/0001-11",
+                        cif: "98765432B",
                         fecha: "20/04/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoE"),
-                            oficina: "005",
-                            cuenta: "7777888899"
+                            oficina: "0128",
+                            cuenta: "01289414-10-1234567890"
                         },
                         destino: {
                             banco: oResourceBundle.getText("bancoF"),
-                            oficina: "006",
-                            cuenta: "3333444455"
+                            oficina: "0182",
+                            cuenta: "01822357-14-627550077"
                         },
                         saldoAntes: {
                             monto: 75000.00,
-                            moneda: "EUR"
+                            moneda: "GBP"
                         },
                         saldoProgramado: {
                             monto: 0.00,
-                            moneda: "EUR"
+                            moneda: "GBP"
                         },
                         valorTransferencia: {
                             monto: 5000.00,
-                            moneda: "EUR"
+                            moneda: "GBP"
                         },
                         status: {
                             text: oResourceBundle.getText("statusRechazada"),
@@ -133,17 +133,17 @@ sap.ui.define([
                     },
                     {
                         razonSocial: "Gamma Holding S.A.",
-                        cnpj: "11.222.333/0001-44",
+                        cif: "11222333C",
                         fecha: "19/04/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoB"),
-                            oficina: "007",
-                            cuenta: "2468135790"
+                            oficina: "20800970",
+                            cuenta: "2080-20-9876598765"
                         },
                         destino: {
                             banco: oResourceBundle.getText("bancoC"),
-                            oficina: "008",
-                            cuenta: "1357924680"
+                            oficina: "2100",
+                            cuenta: "21002151-41-2233355555"
                         },
                         saldoAntes: {
                             monto: 62000.00,
@@ -194,11 +194,11 @@ sap.ui.define([
             const oGroupsByKey = new Map();
 
             aTransferencias.forEach((oTransferencia) => {
-                const sGroupKey = `${oTransferencia.razonSocial}|${oTransferencia.cnpj}`;
+                const sGroupKey = `${oTransferencia.razonSocial}|${oTransferencia.cif}`;
                 if (!oGroupsByKey.has(sGroupKey)) {
                     oGroupsByKey.set(sGroupKey, {
                         razonSocial: oTransferencia.razonSocial,
-                        cnpj: oTransferencia.cnpj,
+                        cif: oTransferencia.cif,
                         expanded: false,
                         selectedCount: 0,
                         filters: {
@@ -232,7 +232,7 @@ sap.ui.define([
 
         onTransferenciasGroupSearch(oEvent) {
             const sRawQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").trim();
-            const sNormalizedQuery = this._normalizeCnpjSearch(sRawQuery);
+            const sNormalizedQuery = this._normalizeNifSearch(sRawQuery);
             const oModel = this.getView().getModel("view");
             const aAllGroups = oModel.getProperty("/_transferenciasAgrupadasAll") || [];
 
@@ -242,14 +242,15 @@ sap.ui.define([
             }
 
             const aFilteredGroups = aAllGroups.filter((oGroup) =>
-                this._normalizeCnpjSearch(oGroup.cnpj).includes(sNormalizedQuery)
+                this._normalizeNifSearch(oGroup.cif).includes(sNormalizedQuery) ||
+                this._normalizeNifSearch(oGroup.razonSocial).includes(sNormalizedQuery)
             );
 
             oModel.setProperty("/transferenciasAgrupadas", aFilteredGroups);
         },
 
-        _normalizeCnpjSearch(sValue) {
-            return (sValue || "").replace(/\D/g, "");
+        _normalizeNifSearch(sValue) {
+            return (sValue || "").toLowerCase().trim();
         },
 
         onTransferGroupActivationChange(oEvent) {
@@ -444,52 +445,53 @@ sap.ui.define([
                 selectedSaldoType: null,
                 dias: { lunes: false, martes: false, miercoles: false, jueves: false, viernes: false, sabado: false, domingo: false },
                 empresas: [
-                    { razonSocial: "Empresa Alpha S.A.", cnpj: "12.345.678/0001-90" },
-                    { razonSocial: "Beta Corporación Ltda.", cnpj: "98.765.432/0001-11" },
-                    { razonSocial: "Gamma Holding S.A.", cnpj: "11.222.333/0001-44" },
-                    { razonSocial: "Delta Inversiones S.A.", cnpj: "55.666.777/0001-22" }
+                    { razonSocial: "Empresa Alpha S.A.", cif: "12345678A" },
+                    { razonSocial: "Beta Corporación Ltda.", cif: "98765432B" },
+                    { razonSocial: "Gamma Holding S.A.", cif: "11222333C" },
+                    { razonSocial: "Delta Inversiones S.A.", cif: "55666777D" }
                 ],
                 _empresasAll: null,
                 bancos: [
                     { nombre: "Santander", expanded: false, cuentas: [
-                        { nombre: "Cuenta 1", oficina: "001", cuentaCorriente: "0001-1", saldoSAP: 52000.00, saldoInfoCent: 50000.00, currency: "USD" },
-                        { nombre: "Cuenta 2", oficina: "001", cuentaCorriente: "0001-2", saldoSAP: 48000.00, saldoInfoCent: 49000.00, currency: "EUR" },
-                        { nombre: "Cuenta 3", oficina: "002", cuentaCorriente: "0002-3", saldoSAP: 50000.00, saldoInfoCent: 51000.00, currency: "EUR" },
-                        { nombre: "Cuenta 4", oficina: "002", cuentaCorriente: "0002-4", saldoSAP: 50000.00, saldoInfoCent: 50000.00, currency: "USD" }
+                        { nombre: `Cuenta 1`, oficina: "0049", cuentaCorriente: "00491555-11-0123456789", saldoSAP: 52000.00, saldoInfoCent: 50000.00, currency: "EUR" },
+                        { nombre: "Cuenta 2", oficina: "0049", cuentaCorriente: "00492205-20-9876543210", saldoSAP: 48000.00, saldoInfoCent: 49000.00, currency: "EUR" },
+                        { nombre: "Cuenta 3", oficina: "0049", cuentaCorriente: "00491206-30-1122334455", saldoSAP: 50000.00, saldoInfoCent: 51000.00, currency: "EUR" },
+                        { nombre: "Cuenta 4", oficina: "0049", cuentaCorriente: "00493033-40-5544332211", saldoSAP: 50000.00, saldoInfoCent: 50000.00, currency: "EUR" }
                     ]},
-                    { nombre: "Itaú", expanded: false, cuentas: [
-                        { nombre: "Cuenta 1", oficina: "341", cuentaCorriente: "3410-1", saldoSAP: 61000.00, saldoInfoCent: 60000.00, currency: "BRL" },
-                        { nombre: "Cuenta 2", oficina: "341", cuentaCorriente: "3410-2", saldoSAP: 43000.00, saldoInfoCent: 44500.00, currency: "BRL" },
-                        { nombre: "Cuenta 3", oficina: "342", cuentaCorriente: "3420-1", saldoSAP: 55000.00, saldoInfoCent: 55000.00, currency: "USD" },
-                        { nombre: "Cuenta 4", oficina: "342", cuentaCorriente: "3420-2", saldoSAP: 38000.00, saldoInfoCent: 37500.00, currency: "EUR" },
-                        { nombre: "Cuenta 5", oficina: "343", cuentaCorriente: "3430-1", saldoSAP: 72000.00, saldoInfoCent: 72000.00, currency: "BRL" }
+                    { nombre: "Abanca", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "2080", cuentaCorriente: "20800970-05-1234554321", saldoSAP: 61000.00, saldoInfoCent: 60000.00, currency: "EUR" },
+                        { nombre: "Cuenta 2", oficina: "2080", cuentaCorriente: "20801880-20-9876598765", saldoSAP: 43000.00, saldoInfoCent: 44500.00, currency: "EUR" },
+                        { nombre: "Cuenta 3", oficina: "2080", cuentaCorriente: "20802252-30-5555555555", saldoSAP: 55000.00, saldoInfoCent: 55000.00, currency: "EUR" },
+                        { nombre: "Cuenta 4", oficina: "2080", cuentaCorriente: "20809910-40-1111111111", saldoSAP: 38000.00, saldoInfoCent: 37500.00, currency: "EUR" },
+                        { nombre: "Cuenta 5", oficina: "2080", cuentaCorriente: "20802202-50-6666666666", saldoSAP: 72000.00, saldoInfoCent: 72000.00, currency: "EUR" }
                     ]},
-                    { nombre: "Bradesco", expanded: false, cuentas: [
-                        { nombre: "Cuenta 1", oficina: "237", cuentaCorriente: "2370-1", saldoSAP: 45000.00, saldoInfoCent: 44000.00, currency: "BRL" },
-                        { nombre: "Cuenta 2", oficina: "237", cuentaCorriente: "2370-2", saldoSAP: 67000.00, saldoInfoCent: 68000.00, currency: "BRL" },
-                        { nombre: "Cuenta 3", oficina: "238", cuentaCorriente: "2380-1", saldoSAP: 33000.00, saldoInfoCent: 33000.00, currency: "USD" },
-                        { nombre: "Cuenta 4", oficina: "238", cuentaCorriente: "2380-2", saldoSAP: 59000.00, saldoInfoCent: 58500.00, currency: "EUR" },
-                        { nombre: "Cuenta 5", oficina: "239", cuentaCorriente: "2390-1", saldoSAP: 41000.00, saldoInfoCent: 41000.00, currency: "BRL" }
+                    { nombre: "CaixaBank", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "2100", cuentaCorriente: "21002151-41-2233355555", saldoSAP: 67000.00, saldoInfoCent: 68000.00, currency: "USD" },
+                        { nombre: "Cuenta 2", oficina: "2100", cuentaCorriente: "21006428-22-6678764260", saldoSAP: 45000.00, saldoInfoCent: 44000.00, currency: "EUR" },
+                        { nombre: "Cuenta 3", oficina: "2100", cuentaCorriente: "21002151-30-1122334455", saldoSAP: 33000.00, saldoInfoCent: 33000.00, currency: "EUR" },
+                        { nombre: "Cuenta 4", oficina: "2100", cuentaCorriente: "21002207-40-5544332211", saldoSAP: 59000.00, saldoInfoCent: 58500.00, currency: "EUR" },
+                        { nombre: "Cuenta 5", oficina: "2100", cuentaCorriente: "21001880-42-2231235555", saldoSAP: 41000.00, saldoInfoCent: 41000.00, currency: "USD" }
                     ]},
-                    { nombre: "Caixa", expanded: false, cuentas: [
-                        { nombre: "Cuenta 1", oficina: "104", cuentaCorriente: "1040-1", saldoSAP: 80000.00, saldoInfoCent: 79000.00, currency: "BRL" },
-                        { nombre: "Cuenta 2", oficina: "104", cuentaCorriente: "1040-2", saldoSAP: 54000.00, saldoInfoCent: 54000.00, currency: "BRL" },
-                        { nombre: "Cuenta 3", oficina: "105", cuentaCorriente: "1050-1", saldoSAP: 36000.00, saldoInfoCent: 37000.00, currency: "USD" }
+                    { nombre: "Banco Sabadell", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "0281", cuentaCorriente: "02812200-10-1234567890", saldoSAP: 80000.00, saldoInfoCent: 79000.00, currency: "EUR" },
+                        { nombre: "Cuenta 2", oficina: "0281", cuentaCorriente: "02817856-20-9876543210", saldoSAP: 54000.00, saldoInfoCent: 54000.00, currency: "EUR" },
+                        { nombre: "Cuenta 3", oficina: "0281", cuentaCorriente: "02812389-30-1122334455", saldoSAP: 36000.00, saldoInfoCent: 37000.00, currency: "EUR" }
                     ]},
-                    { nombre: "NuBank", expanded: false, cuentas: [
-                        { nombre: "Cuenta 1", oficina: "260", cuentaCorriente: "2600-1", saldoSAP: 28000.00, saldoInfoCent: 28000.00, currency: "BRL" }
+                    { nombre: "Bankinter", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "0128", cuentaCorriente: "01289414-86-1111222233", saldoSAP: 28000.00, saldoInfoCent: 28000.00, currency: "EUR" }
                     ]},
-                    { nombre: "Banco do Brasil", expanded: false, cuentas: [
-                        { nombre: "Cuenta 1", oficina: "001", cuentaCorriente: "0010-1", saldoSAP: 95000.00, saldoInfoCent: 94000.00, currency: "BRL" }
+                    { nombre: "BBVA", expanded: false, cuentas: [
+                        { nombre: "Cuenta 1", oficina: "0182", cuentaCorriente: "01822357-14-627550077", saldoSAP: 95000.00, saldoInfoCent: 94000.00, currency: "GBP" },
+                        { nombre: "Cuenta 2", oficina: "0182", cuentaCorriente: "01824213-48-1941353530", saldoSAP: 95000.00, saldoInfoCent: 94000.00, currency: "EUR" }
                     ]}
                 ],
                 cuentasCentralizadoras: [
-                    { nombre: "Cuenta Maestra", oficina: "001", cuentaCorriente: "9999-0" },
-                    { nombre: "Cuenta Central EUR", oficina: "002", cuentaCorriente: "8888-1" }
+                    { nombre: "Cuenta Maestra", oficina: "0049", cuentaCorriente: "00491555-11-0123456789" },
+                    { nombre: "Cuenta Central EUR", oficina: "0049", cuentaCorriente: "00491522-12-9876598765" }
                 ],
                 _bancosAll: null,
                 _cuentasCentralAll: null,
-                review: { razonSocial: "", cnpj: "", cuentasSeleccionadas: "", cuentaCentralNombre: "", cuentaCentralCuenta: "", horario: "", dias: "", saldoAdicionalData: "" },
+                review: { razonSocial: "", cif: "", cuentasSeleccionadas: "", cuentaCentralNombre: "", cuentaCentralCuenta: "", horario: "", dias: "", saldoAdicionalData: "" },
                 nav: { backVisible: false, nextVisible: true, nextEnabled: false, acceptVisible: false }
             });
 
@@ -538,6 +540,7 @@ sap.ui.define([
             const oReview = oModel.getProperty("/review");
             MessageToast.show(`Configuración guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
             if (this._wizardDialog) {
+                this._resetWizard();
                 this._wizardDialog.close();
             }
         },
@@ -562,10 +565,10 @@ sap.ui.define([
             if (oSelected) {
                 const oCtx = oSelected.getBindingContext("wizard");
                 oModel.setProperty("/review/razonSocial", oCtx.getProperty("razonSocial"));
-                oModel.setProperty("/review/cnpj", oCtx.getProperty("cnpj"));
+                oModel.setProperty("/review/cif", oCtx.getProperty("cif"));
             } else {
                 oModel.setProperty("/review/razonSocial", "");
-                oModel.setProperty("/review/cnpj", "");
+                oModel.setProperty("/review/cif", "");
             }
         },
 
@@ -632,7 +635,17 @@ sap.ui.define([
             const oSaldoGroup = this.byId("saldoGroup");
             if (oSaldoGroup) {
                 const oSelected = oSaldoGroup.getSelectedButton();
-                oModel.setProperty("/review/saldoAdicionalData", oSelected ? oSelected.getText() : "");
+                const sSelectedText = oSelected ? oSelected.getText() : "";
+                const iSelectedIndex = oSaldoGroup.getSelectedIndex();
+                let sReviewSaldo = sSelectedText;
+                if (iSelectedIndex === 2) {
+                    const oConsiderGroup = this.byId("saldoConsiderGroup");
+                    const oConsiderSelected = oConsiderGroup ? oConsiderGroup.getSelectedButton() : null;
+                    if (oConsiderSelected) {
+                        sReviewSaldo = `${sSelectedText} (${oConsiderSelected.getText()})`;
+                    }
+                }
+                oModel.setProperty("/review/saldoAdicionalData", sReviewSaldo);
             }
         },
 
@@ -641,7 +654,7 @@ sap.ui.define([
             const oModel = this.getView().getModel("wizard");
             const aAll = oModel.getProperty("/_empresasAll");
             const aFiltered = sQuery
-                ? aAll.filter((o) => o.razonSocial.toLowerCase().includes(sQuery) || o.cnpj.toLowerCase().includes(sQuery))
+                ? aAll.filter((o) => o.razonSocial.toLowerCase().includes(sQuery) || o.cif.toLowerCase().includes(sQuery))
                 : aAll.slice();
             oModel.setProperty("/empresas", aFiltered);
         },
@@ -790,6 +803,10 @@ sap.ui.define([
             const bValid = !!this.byId("saldoGroup").getSelectedButton();
             bValid ? oWizard.validateStep(this.byId("wizardStep5")) : oWizard.invalidateStep(this.byId("wizardStep5"));
             this._updateNavState(this._iCurrentStepIndex);
+            this._updateReviewSaldo();
+        },
+
+        onSaldoConsiderChange() {
             this._updateReviewSaldo();
         },
 

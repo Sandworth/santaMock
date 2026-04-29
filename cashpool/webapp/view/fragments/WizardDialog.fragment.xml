@@ -36,7 +36,7 @@
                                 </Column>
                                 <Column>
                                     <header>
-                                        <Text text="{i18n>colCNPJ}"/>
+                                        <Text text="{i18n>colCIF}"/>
                                     </header>
                                 </Column>
                             </columns>
@@ -44,7 +44,7 @@
                                 <ColumnListItem type="Active">
                                     <cells>
                                         <Text text="{wizard>razonSocial}"/>
-                                        <Text text="{wizard>cnpj}"/>
+                                        <Text text="{wizard>cif}"/>
                                     </cells>
                                 </ColumnListItem>
                             </items>
@@ -98,11 +98,6 @@
                                                     <Text text="{i18n>colSaldoInfoCent}"/>
                                                 </header>
                                             </Column>
-                                            <Column hAlign="Center">
-                                                <header>
-                                                    <Text text="{i18n>colOrigenSaldo}"/>
-                                                </header>
-                                            </Column>
                                         </columns>
                                         <items>
                                             <ColumnListItem type="Active">
@@ -115,15 +110,6 @@
                                                     <Text text="{wizard>cuentaCorriente}"/>
                                                     <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
                                                     <Text text="{parts: [{path: 'wizard>saldoInfoCent'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
-                                                    <RadioButtonGroup
-                                                                    templateShareable="true"
-                                                                    columns="2"
-                                                                    select="">
-                                                        <buttons>
-                                                            <RadioButton text="{i18n>colSaldoSAP}"/>
-                                                            <RadioButton text="{i18n>colSaldoInfoCent}"/>
-                                                        </buttons>
-                                                    </RadioButtonGroup>                                                    
                                                 </cells>
                                             </ColumnListItem>
                                         </items>
@@ -232,6 +218,19 @@
                                 <RadioButton text="{i18n>wizardSaldo3}"/>
                             </buttons>
                         </RadioButtonGroup>
+                        <VBox visible="{= ${wizard>/selectedSaldoType} === 2 }"
+                              class="sapUiSmallMarginTop">
+                            <Label text="{i18n>wizardSaldo0Consider}" class="sapUiTinyMarginTopBottom"/>
+                            <RadioButtonGroup id="saldoConsiderGroup"
+                                              templateShareable="true"
+                                              columns="2"
+                                              select=".onSaldoConsiderChange">
+                                <buttons>
+                                    <RadioButton text="{i18n>colSaldoSAP}"/>
+                                    <RadioButton text="{i18n>colSaldoInfoCent}"/>
+                                </buttons>
+                            </RadioButtonGroup>
+                        </VBox>
                     </VBox>
                 </WizardStep>
                 <!-- Step 6: Revisión -->
@@ -255,8 +254,8 @@
                                 <form:content>
                                     <Label text="{i18n>colRazonSocial}"/>
                                     <Text text="{wizard>/review/razonSocial}"/>
-                                    <Label text="{i18n>colCNPJ}"/>
-                                    <Text text="{wizard>/review/cnpj}"/>
+                                    <Label text="{i18n>colCIF}"/>
+                                    <Text text="{wizard>/review/cif}"/>
                                 </form:content>
                             </form:SimpleForm>
                         </Panel>

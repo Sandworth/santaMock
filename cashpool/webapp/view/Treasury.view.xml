@@ -76,7 +76,7 @@
                                         expanded="{view>expanded}">
                                         <m:headerToolbar>
                                             <m:Toolbar>
-                                                <m:Title text="{= ${view>razonSocial} + ' - ' + ${view>cnpj} }" level="H5" />
+                                                <m:Title text="{= ${view>razonSocial} + ' - ' + ${view>cif} }" level="H5" />
                                                 <m:ToolbarSpacer />
                                                 <m:Text text="{i18n>lblActivo}" class="sapUiTinyMarginEnd" />
                                                 <m:Switch
