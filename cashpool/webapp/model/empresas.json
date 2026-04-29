@@ -1,0 +1,64 @@
+{
+    "empresas": [
+        {
+            "razonSocial": "Industrias Galán S.A.",
+            "cif": "A28345671",
+            "balance": 1340500.00,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Tecnologías Vega S.L.",
+            "cif": "B81234567",
+            "balance": 980750.50,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Distribuciones Montero S.A.",
+            "cif": "A46789012",
+            "balance": 2150300.75,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Grupo Construcciones Ibérica S.L.",
+            "cif": "B08654321",
+            "balance": 1075000.00,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Servicios Financieros Roca S.A.",
+            "cif": "A91234568",
+            "balance": 1620400.30,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Exportaciones del Sur S.L.",
+            "cif": "B41567890",
+            "balance": 830600.80,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Editorial Castellana S.A.",
+            "cif": "A79012345",
+            "balance": 1195000.25,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Farmacéutica Navarra S.L.",
+            "cif": "B31890123",
+            "balance": 1980000.00,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Logística Atlántico S.A.",
+            "cif": "A15678901",
+            "balance": 2090000.60,
+            "currency": "EUR"
+        },
+        {
+            "razonSocial": "Energías Renovables Celta S.L.",
+            "cif": "B36012345",
+            "balance": 1455750.40,
+            "currency": "EUR"
+        }
+    ]
+}

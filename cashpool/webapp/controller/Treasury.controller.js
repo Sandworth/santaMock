@@ -6,8 +6,10 @@ sap.ui.define([
     "sap/m/MessageToast",
     "sap/m/Dialog",
     "sap/m/Button",
-    "sap/m/Text"
-], (Controller, JSONModel, Fragment, Formatter, MessageToast, Dialog, Button, Text) => {
+    "sap/m/Text",
+    "sap/viz/ui5/format/ChartFormatter",
+    "sap/viz/ui5/api/env/Format"
+], (Controller, JSONModel, Fragment, Formatter, MessageToast, Dialog, Button, Text, ChartFormatter, Format) => {
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
@@ -168,6 +170,34 @@ sap.ui.define([
             });
 
             this.getView().setModel(oViewModel, "view");
+
+            const oEmpresasModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/empresas.json"));
+            this.getView().setModel(oEmpresasModel, "empresas");
+
+            Format.numericFormatter(ChartFormatter.getInstance());
+            const formatPattern = ChartFormatter.DefaultPattern;
+            const oVizFrame = this.getView().byId("saldosVizFrame");
+            if (oVizFrame) {
+                oVizFrame.setVizProperties({
+                    title: { visible: false },
+                    legend: { visible: false },
+                    plotArea: {
+                        dataLabel: {
+                            visible: true,
+                            rotation: 0,
+                            formatString: formatPattern.SHORTFLOAT
+                        }
+                    },
+                    valueAxis: {
+                        label: { formatString: formatPattern.SHORTFLOAT },
+                        title: { visible: false }
+                    },
+                    categoryAxis: {
+                        title: { visible: false }
+                    }
+                });
+            }
+
             this._buildTransferenciasGroups();
         },
 
@@ -453,7 +483,7 @@ sap.ui.define([
                 _empresasAll: null,
                 bancos: [
                     { nombre: "Santander", expanded: false, cuentas: [
-                        { nombre: `Cuenta 1`, oficina: "0049", cuentaCorriente: "00491555-11-0123456789", saldoSAP: 52000.00, saldoInfoCent: 50000.00, currency: "EUR" },
+                        { nombre: "Cuenta 1", oficina: "0049", cuentaCorriente: "00491555-11-0123456789", saldoSAP: 52000.00, saldoInfoCent: 50000.00, currency: "EUR" },
                         { nombre: "Cuenta 2", oficina: "0049", cuentaCorriente: "00492205-20-9876543210", saldoSAP: 48000.00, saldoInfoCent: 49000.00, currency: "EUR" },
                         { nombre: "Cuenta 3", oficina: "0049", cuentaCorriente: "00491206-30-1122334455", saldoSAP: 50000.00, saldoInfoCent: 51000.00, currency: "EUR" },
                         { nombre: "Cuenta 4", oficina: "0049", cuentaCorriente: "00493033-40-5544332211", saldoSAP: 50000.00, saldoInfoCent: 50000.00, currency: "EUR" }

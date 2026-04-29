@@ -36,9 +36,7 @@
                         key="tab1"
                         text="{i18n>tabConsultaSaldos}"
                         >
-                        <m:VBox class="sapUiSmallMargin">
-                            <m:Text text="{i18n>placeholderSaldos}" />
-                        </m:VBox>
+                        <core:Fragment fragmentName="cashpool.app.cashpool.view.fragments.ConsultaSaldos" type="XML"/>
                     </m:IconTabFilter>
                     <!-- Tab 2: Transferencias Manuales -->
                     <m:IconTabFilter
