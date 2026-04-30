@@ -1,1 +1,4 @@
 /* Enter your custom styles here */
+header:not(header[aria-label="Treasury"]) {
+    width: 100%;
+}

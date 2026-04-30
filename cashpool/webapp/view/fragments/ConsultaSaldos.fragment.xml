@@ -9,81 +9,90 @@
 
     <f:DynamicPage fitContent="true">
 
-        <!-- DynamicPage Title -->
-        <f:title>
-            <f:DynamicPageTitle>
-                <f:heading>
-                    <Title text=""/>
-                </f:heading>
-            </f:DynamicPageTitle>
+            <!-- DynamicPage Title -->
+            <f:title>
+                <f:DynamicPageTitle>
+                    <f:heading>
+                        <Title text=""/>
+                    </f:heading>
+                </f:DynamicPageTitle>
         </f:title>
 
         <!-- DynamicPage Header — VizFrame column chart (hidden on collapse) -->
-        <f:header>
-            <f:DynamicPageHeader pinnable="true">
-                <viz:VizFrame
+            <f:header>
+                <f:DynamicPageHeader pinnable="false">
+                    <viz:VizFrame
                     id="saldosVizFrame"
                     vizType="column"
-                    width="100%"
-                    height="250px">
-                    <viz:dataset>
-                        <viz.data:FlattenedDataset data="{empresas>/empresas}">
-                            <viz.data:dimensions>
-                                <viz.data:DimensionDefinition
+                    height="220px"
+                    width="100%">
+                        <viz:dataset>
+                            <viz.data:FlattenedDataset data="{empresas>/empresas}">
+                                <viz.data:dimensions>
+                                    <viz.data:DimensionDefinition
                                     name="razonSocial"
                                     value="{razonSocial}"/>
-                            </viz.data:dimensions>
-                            <viz.data:measures>
-                                <viz.data:MeasureDefinition
+                                </viz.data:dimensions>
+                                <viz.data:measures>
+                                    <viz.data:MeasureDefinition
                                     name="balance"
                                     value="{balance}"/>
-                            </viz.data:measures>
-                        </viz.data:FlattenedDataset>
-                    </viz:dataset>
-                    <viz:feeds>
-                        <viz.feeds:FeedItem
+                                </viz.data:measures>
+                            </viz.data:FlattenedDataset>
+                        </viz:dataset>
+                        <viz:feeds>
+                            <viz.feeds:FeedItem
                             uid="categoryAxis"
                             type="Dimension"
                             values="razonSocial"/>
-                        <viz.feeds:FeedItem
+                            <viz.feeds:FeedItem
                             uid="valueAxis"
                             type="Measure"
                             values="balance"/>
-                    </viz:feeds>
-                </viz:VizFrame>
-            </f:DynamicPageHeader>
-        </f:header>
+                        </viz:feeds>
+                    </viz:VizFrame>
+                </f:DynamicPageHeader>
+            </f:header>
 
         <!-- DynamicPage Content — Empresas list -->
-        <f:content>
-            <List
-                headerText="Empresas"
+            <f:content>
+                <List
+                backgroundDesign="Transparent"
+                class="sapUiContentPadding"
+                showSeparators="None"
+                width="100%"
                 items="{empresas>/empresas}">
-                <CustomListItem>
-                    <HBox justifyContent="SpaceBetween">
-                        <VBox class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom">
-                            <Title text="{empresas>razonSocial}"/>
-                            <Label text="CIF: {empresas>cif}"/>
-                        </VBox>
-                        <VBox alignItems="End" class="sapUiSmallMarginEnd sapUiSmallMarginTopBottom">
-                            <Label text="Total Balance"/>
-                            <Title text="{
-                                            parts: [
-                                                {path: 'empresas>balance'},
-                                                {path: 'empresas>currency'}
-                                            ],
-                                            type: 'Currency',
-                                            formatOptions: {
-                                                currencyCode: false,
-                                                showMeasure: true
-                                            }
-                                        }"/>
-                        </VBox>
-                    </HBox>
-                </CustomListItem>
-            </List>
-        </f:content>
+                    <CustomListItem type="Inactive">
+                        <Panel class="sapUiTinyMargin">
+                            <HBox justifyContent="SpaceBetween" width="100%">
+                                <VBox justifyContent="SpaceBetween" class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom">
+                                    <HBox alignItems="Center">
+                                        <Title text="{empresas>razonSocial}" titleStyle="H3" class="sapUiSmallMarginEnd sapUiTinyMarginTop"/>
+                                        <Button icon="sap-icon://edit" type="Transparent"/>
+                                    </HBox>
+                                    <Label text="CIF: {empresas>cif}"/>
+                                </VBox>
+                                <VBox alignItems="End" class="sapUiSmallMarginEnd sapUiSmallMarginTopBottom">
+                                    <Label text="Total Balance"/>
+                                    <Title text="{
+                                                parts: [
+                                                    {path: 'empresas>balance'},
+                                                    {path: 'empresas>currency'}
+                                                ],
+                                                type: 'Currency',
+                                                formatOptions: {
+                                                    currencyCode: false,
+                                                    showMeasure: true
+                                                }
+                                            }"
+                                            titleStyle="H3"/>
+                                </VBox>
+                            </HBox>
+                        </Panel>
+                    </CustomListItem>
+                </List>
+            </f:content>
 
-    </f:DynamicPage>
+        </f:DynamicPage>
 
 </core:FragmentDefinition>
