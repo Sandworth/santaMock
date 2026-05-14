@@ -8,14 +8,21 @@
 		"start": "fiori run --config ./ui5-mock.yaml --open \"index.html\"",
 		"start-mock": "fiori run --config ./ui5-mock.yaml --open \"index.html\"",
 		"build": "ui5 build --config=ui5.yaml --clean-dest --dest dist",
-		"lint": "eslint ./"
+		"lint": "eslint ./",
+		"build:cf": "ui5 build preload --clean-dest --config ui5-deploy.yaml --include-task=generateCachebusterInfo",
+		"build:mta": "rimraf resources mta_archives && mbt build",
+		"deploy": "fiori cfDeploy",
+		"undeploy": "cf undeploy customdeposits --delete-services --delete-service-keys --delete-service-brokers"
 	},
 	"devDependencies": {
 		"@sap-ux/eslint-plugin-fiori-tools": "^10.0.3",
 		"@sap-ux/ui5-middleware-fe-mockserver": "2",
 		"@sap/ux-ui5-tooling": "^1.24.0",
 		"@ui5/cli": "^4.0.33",
-		"eslint": "^9"
+		"eslint": "^9",
+		"ui5-task-zipper": "^3.4.x",
+		"rimraf": "^5.0.5",
+		"mbt": "^1.2.29"
 	},
 	"sapuxLayer": "CUSTOMER_BASE",
 	"sapux": true

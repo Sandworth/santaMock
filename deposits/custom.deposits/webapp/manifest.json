@@ -1,125 +1,133 @@
 {
-	"_version": "2.0.0",
-
-	"sap.app": {
-		"id": "custom.deposits",
-		"type": "application",
-		"i18n": {
-			"bundleUrl": "i18n/i18n.properties",
-			"supportedLocales": ["en", "es"],
-			"fallbackLocale": "en"
-		},
-		"title": "{{appTitle}}",
-		"description": "{{appDescription}}",
-		"applicationVersion": {
-			"version": "1.0.0"
-		},
-		"dataSources": {
-			"mainService": {
-				"uri": "/here/goes/your/serviceurl/",
-				"type": "OData",
-				"settings": {
-					"odataVersion": "4.0"
-				}
-			}
-		}
-	},
-
-	"sap.ui": {
-		"technology": "UI5",
-		"icons": {},
-		"deviceTypes": {
-			"desktop": true,
-			"tablet": true,
-			"phone": false
-		}
-	},
-
-	"sap.ui5": {
-		"rootView": {
-			"viewName": "custom.deposits.view.App",
-			"type": "XML",
-			"id": "app"
-		},
-
-		"dependencies": {
-			"minUI5Version": "1.147.2",
-			"libs": {
-				"sap.ui.core": {},
-				"sap.m": {},
-				"sap.f": {},
-				"sap.uxap": {},
-				"sap.ui.comp": {},
-				"sap.ui.fl": {},
-				"sap.ui.mdc": {}
-			}
-		},
-
-		"contentDensities": {
-			"compact": true,
-			"cozy": true
-		},
-
-		"models": {
-			"i18n": {
-				"type": "sap.ui.model.resource.ResourceModel",
-				"settings": {
-					"bundleName": "custom.deposits.i18n.i18n",
-					"supportedLocales": ["en", "es"],
-					"fallbackLocale": "en"
-				}
-			},
-			"mainService": {
-				"dataSource": "mainService",
-				"preload": true,
-				"settings": {
-					"autoExpandSelect": true,
-					"earlyRequests": true,
-					"operationMode": "Server"
-				}
-			}
-		},
-
-		"routing": {
-			"config": {
-				"routerClass": "sap.f.routing.Router",
-				"path": "custom.deposits.view",
-				"controlId": "flexibleColumnLayout",
-				"flexibleColumnLayout": {
-					"defaultTwoColumnLayoutType": "TwoColumnsBeginExpanded",
-					"limitFCLToTwoColumns": true
-				}
-			},
-			"routes": [
-				{
-					"pattern": ":layout:",
-					"name": "DepositsList",
-					"target": ["DepositsList"]
-				},
-				{
-					"pattern": "Deposits/{key}/{layout}",
-					"name": "DepositDetail",
-					"target": ["DepositsList", "DepositDetail"]
-				}
-			],
-			"targets": {
-				"DepositsList": {
-					"type": "View",
-					"viewType": "XML",
-					"level": 1,
-					"id": "DepositsList",
-					"name": "DepositsList",
-					"controlAggregation": "beginColumnPages"
-				},
-				"DepositDetail": {
-					"type": "View",
-					"viewType": "XML",
-					"level": 2,
-					"id": "DepositDetail",
-					"name": "DepositDetail",
-					"controlAggregation": "midColumnPages"
-				}
-			}
-		}
-	}
+  "_version": "2.0.0",
+  "sap.app": {
+    "id": "custom.deposits",
+    "type": "application",
+    "i18n": {
+      "bundleUrl": "i18n/i18n.properties",
+      "supportedLocales": [
+        "en",
+        "es"
+      ],
+      "fallbackLocale": "en"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/here/goes/your/serviceurl/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {},
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": false
+    }
+  },
+  "sap.ui5": {
+    "rootView": {
+      "viewName": "custom.deposits.view.App",
+      "type": "XML",
+      "id": "app"
+    },
+    "dependencies": {
+      "minUI5Version": "1.147.2",
+      "libs": {
+        "sap.ui.core": {},
+        "sap.m": {},
+        "sap.f": {},
+        "sap.uxap": {},
+        "sap.ui.comp": {},
+        "sap.ui.fl": {},
+        "sap.ui.mdc": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "custom.deposits.i18n.i18n",
+          "supportedLocales": [
+            "en",
+            "es"
+          ],
+          "fallbackLocale": "en"
+        }
+      },
+      "mainService": {
+        "dataSource": "mainService",
+        "preload": true,
+        "settings": {
+          "autoExpandSelect": true,
+          "earlyRequests": true,
+          "operationMode": "Server"
+        }
+      }
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.f.routing.Router",
+        "path": "custom.deposits.view",
+        "controlId": "flexibleColumnLayout",
+        "flexibleColumnLayout": {
+          "defaultTwoColumnLayoutType": "TwoColumnsBeginExpanded",
+          "limitFCLToTwoColumns": true
+        }
+      },
+      "routes": [
+        {
+          "pattern": ":layout:",
+          "name": "DepositsList",
+          "target": [
+            "DepositsList"
+          ]
+        },
+        {
+          "pattern": "Deposits/{key}/{layout}",
+          "name": "DepositDetail",
+          "target": [
+            "DepositsList",
+            "DepositDetail"
+          ]
+        }
+      ],
+      "targets": {
+        "DepositsList": {
+          "type": "View",
+          "viewType": "XML",
+          "level": 1,
+          "id": "DepositsList",
+          "name": "DepositsList",
+          "controlAggregation": "beginColumnPages"
+        },
+        "DepositDetail": {
+          "type": "View",
+          "viewType": "XML",
+          "level": 2,
+          "id": "DepositDetail",
+          "name": "DepositDetail",
+          "controlAggregation": "midColumnPages"
+        }
+      }
+    }
+  },
+  "sap.cloud": {
+    "public": true,
+    "service": "customdeposits"
+  }
 }
