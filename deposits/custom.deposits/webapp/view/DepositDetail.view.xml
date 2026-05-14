@@ -1,0 +1,230 @@
+<mvc:View
+	controllerName="custom.deposits.controller.DepositDetail"
+	height="100%"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:uxap="sap.uxap"
+	xmlns:layout="sap.ui.layout.form"
+	xmlns:l="sap.ui.layout"
+	xmlns:core="sap.ui.core"
+	core:require="{
+		Float: 'sap/ui/model/type/Float',
+		Formatter: 'custom/deposits/model/formatter'
+	}">
+	<uxap:ObjectPageLayout
+		id="objectPageLayout"
+		showTitleInHeaderContent="false"
+		alwaysShowContentHeader="false"
+		preserveHeaderStateOnScroll="false"
+		upperCaseAnchorBar="false"
+		backgroundDesignAnchorBar="Transparent"
+		showFooter="true">
+		<!-- =========================================================== -->
+		<!-- HEADER TITLE                                                 -->
+		<!-- =========================================================== -->
+		<uxap:headerTitle>
+			<uxap:ObjectPageDynamicHeaderTitle>
+				<uxap:heading>
+					<Title text="{mainService>Name}" />
+				</uxap:heading>
+				<uxap:snappedContent>
+					<Label text="{
+						path: 'mainService>Rate',
+						type: 'Float',
+						formatOptions: { decimals: 2, maxFractionDigits: 2 }
+					} %" design="Bold" />
+				</uxap:snappedContent>
+				<uxap:expandedContent>
+					<ObjectStatus
+						title="{i18n>colRate}"
+						text="{
+							path: 'mainService>Rate',
+							type: 'Float',
+							formatOptions: { decimals: 2, maxFractionDigits: 2 }
+						}"
+						state="Information" />
+				</uxap:expandedContent>
+				<uxap:actions>
+					<OverflowToolbarButton
+						id="btnFullscreen"
+						icon="sap-icon://full-screen"
+						text="{i18n>navFullscreen}"
+						press=".handleFullScreen"
+						visible="{= ${/actionButtonsInfo/midColumn/fullScreen} !== null }" />
+					<OverflowToolbarButton
+						id="btnExitFullscreen"
+						icon="sap-icon://exit-full-screen"
+						text="{i18n>navExitFullscreen}"
+						press=".handleExitFullScreen"
+						visible="{= ${/actionButtonsInfo/midColumn/exitFullScreen} !== null}" />
+					<OverflowToolbarButton
+						id="btnClose"
+						icon="sap-icon://decline"
+						text="{i18n>navClose}"
+						press=".handleClose" 
+                        visible="{= ${/actionButtonsInfo/midColumn/closeColumn} !== null }" />
+				</uxap:actions>
+			</uxap:ObjectPageDynamicHeaderTitle>
+		</uxap:headerTitle>
+		<!-- =========================================================== -->
+		<!-- HEADER CONTENT — Suitability                                -->
+		<!-- =========================================================== -->
+		<uxap:headerContent>
+			<HBox >
+				<VBox>
+					<Label text="{i18n>lblSuitability}" />
+					<RatingIndicator
+					value="{mainService>Suitability}"
+					maxValue="5"
+					editable="false" />
+				</VBox>
+				<l:VerticalLayout class="sapUiLargeMarginBegin">
+					<ObjectStatus title="{i18n>lblCancelable}"  text="{mainService>Cancelable}" />
+					<ObjectStatus title="{i18n>lblDuration}" text="{mainService>to_TenorCode/Description}"/>
+					<ObjectStatus title="{i18n>lblCurrency}" text="{mainService>to_CurrencyCode/Description}"/>
+				</l:VerticalLayout>
+			</HBox>
+		</uxap:headerContent>
+		<!-- =========================================================== -->
+		<!-- SECTIONS                                                     -->
+		<!-- =========================================================== -->
+		<uxap:sections>
+			<!-- Simulation -->
+			<uxap:ObjectPageSection titleUppercase="false" title="{i18n>secSimulation}">
+				<uxap:subSections>
+					<uxap:ObjectPageSubSection showTitle="false">
+						<uxap:blocks>
+							<VBox class="sapUiSmallMarginTopBottom">
+								<HBox alignItems="End">
+									<VBox>
+										<Label text="{i18n>simAmountLabel}" required="true" />
+										<Input
+											id="simAmountInput"
+											width="18rem"
+											placeholder="{i18n>simAmountPlaceholder}"
+											value="{
+												path: 'simulation>/amount',
+												type: 'Float',
+												formatOptions: {
+													groupingEnabled: true,
+													decimals: 2,
+													maxFractionDigits: 2
+												},
+												constraints: { minimum: 0.01 }
+											}"
+											valueStateText="{i18n>simInvalidAmount}"
+											liveChange=".onAmountLiveChange"
+											submit=".onSimulate" />
+									</VBox>
+									<Button
+										class="sapUiSmallMarginBegin"
+										text="{i18n>simCalculate}"
+										type="Emphasized"
+										press=".onSimulate" />
+								</HBox>
+								<Panel
+									class="sapUiMediumMarginTop"
+									headerText="{i18n>simResultTitle}">
+									<content>
+										<layout:SimpleForm
+											editable="false"
+											layout="ResponsiveGridLayout"
+											labelSpanL="4"
+											labelSpanM="4"
+											emptySpanL="4"
+											emptySpanM="4"
+											columnsL="1"
+											columnsM="1">
+											<layout:content>
+												<Label text="{i18n>simInterestLabel}" />
+												<ObjectNumber
+													number="{
+														path: 'simulation>/interest',
+														formatter: 'Formatter.formatFloat'
+													}"
+													unit="{simulation>/currency}"
+													state="Success"
+													emptyIndicatorMode="On" />
+												<Label text="{i18n>simTotalLabel}" />
+												<ObjectNumber
+													emphasized="true"
+													number="{
+														path: 'simulation>/total',
+														formatter: 'Formatter.formatFloat'
+													}"
+													unit="{simulation>/currency}"
+													state="Success"
+													emptyIndicatorMode="On" />
+											</layout:content>
+										</layout:SimpleForm>
+									</content>
+								</Panel>
+							</VBox>
+						</uxap:blocks>
+					</uxap:ObjectPageSubSection>
+				</uxap:subSections>
+			</uxap:ObjectPageSection>
+			<!-- Request Deposit -->
+			<uxap:ObjectPageSection titleUppercase="false" title="{i18n>secRequest}">
+				<uxap:subSections>
+					<uxap:ObjectPageSubSection showTitle="false">
+						<uxap:blocks>
+							<VBox class="sapUiSmallMarginTopBottom">
+								<Label text="{i18n>reqAccountLabel}" required="true" />
+								<ComboBox
+										id="reqAccountComboBox"
+										width="24rem"
+										showSecondaryValues="true"
+										selectedKey="{request>/cuentaOrigen}"
+										items="{
+											path: 'request>/cuentasFiltradas',
+											sorter: { path: 'banco', descending: false, group: true }
+										}">
+									<core:ListItem
+											key="{request>cuentaCorriente}"
+											text="{request>nombre} - {request>cuentaCorriente}"
+										additionalText="{
+											parts: [
+												{ path: 'request>saldoInfoCent' },
+												{ path: 'request>currency' }
+											],
+											formatter: 'Formatter.formatCurrency'
+										}" />
+								</ComboBox>
+								<Label text="{i18n>reqAmountLabel}" required="true" class="sapUiSmallMarginTop" />
+								<Input
+										id="reqAmountInput"
+										width="18rem"
+										placeholder="{i18n>reqAmountPlaceholder}"
+										value="{
+											path: 'request>/importeSolicitud',
+											type: 'Float',
+											formatOptions: {
+												groupingEnabled: true,
+												decimals: 2,
+												maxFractionDigits: 2
+											},
+											constraints: { minimum: 0.01 }
+										}"
+										liveChange=".onReqAmountLiveChange" />
+							</VBox>
+						</uxap:blocks>
+					</uxap:ObjectPageSubSection>
+				</uxap:subSections>
+			</uxap:ObjectPageSection>
+		</uxap:sections>
+		<uxap:footer>
+			<OverflowToolbar>
+				<ToolbarSpacer/>
+				<Button
+					id="btnRequestDeposit"
+					icon="sap-icon://request"
+					text="{i18n>depositRequest}"
+					type="Emphasized"
+					enabled="{= !!${request>/cuentaOrigen} &amp;&amp; ${request>/importeSolicitud} > 0 }"
+					press=".onRequestDeposit" />
+			</OverflowToolbar>
+		</uxap:footer>
+	</uxap:ObjectPageLayout>
+</mvc:View>

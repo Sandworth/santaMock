@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/UI.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.UI.v1" Alias="UI" />
+    </edmx:Reference>
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Common.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common" />
+    </edmx:Reference>
+    <edmx:Reference Uri="https://oasis-tcs.github.io/odata-vocabularies/vocabularies/Org.OData.Core.V1.xml">
+        <edmx:Include Namespace="Org.OData.Core.V1" Alias="Core" />
+    </edmx:Reference>
+    
+    <edmx:DataServices>
+        <Schema Namespace="DepositService" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+            
+            <!-- ============================================================ -->
+            <!--  Entity Types                                                 -->
+            <!-- ============================================================ -->
+            
+            <EntityType Name="Deposit">
+                <Key>
+                    <PropertyRef Name="UUID" />
+                </Key>
+                <Property Name="UUID"       Type="Edm.Guid"    Nullable="false" />
+                <Property Name="Name"       Type="Edm.String"  MaxLength="100"  Nullable="false" />
+                <Property Name="Rate"       Type="Edm.Decimal" Precision="5"    Scale="2"  Nullable="false" />
+                <Property Name="Duration"   Type="Edm.String"  MaxLength="3"    Nullable="false" />
+                <Property Name="Currency"   Type="Edm.String"  MaxLength="3"    Nullable="false" />
+                <Property Name="Cancelable"   Type="Edm.Boolean"                  Nullable="false" />
+                <Property Name="Suitability" Type="Edm.Decimal" Precision="3"    Scale="1"  Nullable="false" />
+                <NavigationProperty Name="to_TenorCode" Type="DepositService.TenorCode" Nullable="true">
+                    <ReferentialConstraint Property="Duration" ReferencedProperty="Code" />
+                </NavigationProperty>
+                <NavigationProperty Name="to_CurrencyCode" Type="DepositService.CurrencyCode" Nullable="true">
+                    <ReferentialConstraint Property="Currency" ReferencedProperty="Code" />
+                </NavigationProperty>
+            </EntityType>
+            
+            <EntityType Name="TenorCode">
+                <Key>
+                    <PropertyRef Name="Code" />
+                </Key>
+                <Property Name="Code"        Type="Edm.String" MaxLength="3"   Nullable="false" />
+                <Property Name="Description" Type="Edm.String" MaxLength="100" Nullable="true"  />
+            </EntityType>
+            
+            <EntityType Name="CurrencyCode">
+                <Key>
+                    <PropertyRef Name="Code" />
+                </Key>
+                <Property Name="Code"        Type="Edm.String" MaxLength="3"   Nullable="false" />
+                <Property Name="Description" Type="Edm.String" MaxLength="100" Nullable="true"  />
+            </EntityType>
+            
+            <!-- ============================================================ -->
+            <!--  Entity Container                                             -->
+            <!-- ============================================================ -->
+            
+            <EntityContainer Name="EntityContainer">
+                <EntitySet Name="Deposits" EntityType="DepositService.Deposit">
+                    <NavigationPropertyBinding Path="to_TenorCode" Target="TenorCodes" />
+                    <NavigationPropertyBinding Path="to_CurrencyCode" Target="CurrencyCodes" />
+                </EntitySet>
+                <EntitySet Name="TenorCodes"    EntityType="DepositService.TenorCode"    />
+                <EntitySet Name="CurrencyCodes" EntityType="DepositService.CurrencyCode" />
+            </EntityContainer>
+            
+            <!-- ============================================================ -->
+            <!--  Annotations — Deposit entity properties                     -->
+            <!-- ============================================================ -->
+            
+            <Annotations Target="DepositService.Deposit/UUID">
+                <Annotation Term="Core.Computed"    Bool="true" />
+                <Annotation Term="Common.Label"     String="UUID" />
+            </Annotations>
+            
+            <Annotations Target="DepositService.Deposit/Name">
+                <Annotation Term="Common.Label" String="Name" />
+            </Annotations>
+            
+            <Annotations Target="DepositService.Deposit/Rate">
+                <Annotation Term="Common.Label" String="Rate (%)" />
+            </Annotations>
+            
+            <Annotations Target="DepositService.Deposit/Duration">
+                <Annotation Term="Common.Label" String="Duration" />
+                <Annotation Term="Common.ValueListWithFixedValues" Bool="true" />
+                <Annotation Term="Common.ValueList">
+                    <Record Type="Common.ValueListType">
+                        <PropertyValue Property="CollectionPath" String="TenorCodes" />
+                        <PropertyValue Property="Parameters">
+                            <Collection>
+                                <Record Type="Common.ValueListParameterOut">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Duration" />
+                                    <PropertyValue Property="ValueListProperty" String="Code" />
+                                </Record>
+                                <Record Type="Common.ValueListParameterDisplayOnly">
+                                    <PropertyValue Property="ValueListProperty" String="Description" />
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            
+            <Annotations Target="DepositService.Deposit/Currency">
+                <Annotation Term="Common.Label" String="Currency" />
+                <Annotation Term="Common.ValueListWithFixedValues" Bool="true" />
+                <Annotation Term="Common.ValueList">
+                    <Record Type="Common.ValueListType">
+                        <PropertyValue Property="CollectionPath" String="CurrencyCodes" />
+                        <PropertyValue Property="Parameters">
+                            <Collection>
+                                <Record Type="Common.ValueListParameterOut">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Currency" />
+                                    <PropertyValue Property="ValueListProperty" String="Code" />
+                                </Record>
+                                <Record Type="Common.ValueListParameterDisplayOnly">
+                                    <PropertyValue Property="ValueListProperty" String="Description" />
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            
+            <Annotations Target="DepositService.Deposit/Cancelable">
+                <Annotation Term="Common.Label" String="Cancelable" />
+            </Annotations>
+                        
+            <!-- Header Info + DataPoints -->
+            <Annotations Target="DepositService.Deposit">
+                <Annotation Term="UI.DataPoint" Qualifier="Suitability">
+                    <Record Type="UI.DataPointType">
+                        <PropertyValue Property="Value"         Path="Suitability" />
+                        <PropertyValue Property="Title"         String="Suitability" />
+                        <PropertyValue Property="TargetValue"   Decimal="5" />
+                        <PropertyValue Property="Visualization" EnumMember="UI.VisualizationType/Rating" />
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.HeaderInfo">
+                    <Record Type="UI.HeaderInfoType">
+                        <PropertyValue Property="TypeName"       String="Deposit" />
+                        <PropertyValue Property="TypeNamePlural" String="Deposits" />
+                        <PropertyValue Property="Title">
+                            <Record Type="UI.DataField">
+                                <PropertyValue Property="Value" Path="Name" />
+                            </Record>
+                        </PropertyValue>
+                        <PropertyValue Property="Description">
+                            <Record Type="UI.DataField">
+                                <PropertyValue Property="Value" Path="Rate" />
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

@@ -1,0 +1,265 @@
+<mvc:View
+	controllerName="custom.deposits.controller.DepositsList"
+	height="100%"
+	xmlns:mvc="sap.ui.core.mvc"
+	core:require="{
+		Float: 'sap/ui/model/type/Float',
+		Formatter: 'custom/deposits/model/formatter'
+	}"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:fb="sap.ui.comp.filterbar"
+	xmlns:svm="sap.ui.comp.smartvariants"
+	xmlns:vm="sap.ui.fl.variants"
+	xmlns:plugins="sap.m.plugins"
+	xmlns:columnmenu="sap.m.table.columnmenu"
+	xmlns:dnd="sap.ui.core.dnd"
+	xmlns:core="sap.ui.core"
+	xmlns:app="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1">
+
+	<f:DynamicPage id="listPage" headerExpanded="true">
+
+		<!-- =========================================================== -->
+		<!-- TITLE — SmartVariantManagement for FilterBar                -->
+		<!-- =========================================================== -->
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<svm:SmartVariantManagement id="svm" showExecuteOnSelection="true" />
+				</f:heading>
+				<f:expandedContent>
+					<Label id="expandedLabel" text="{i18n>noFiltersActive}" />
+				</f:expandedContent>
+				<f:snappedContent>
+					<Label id="snappedLabel" text="{i18n>noFiltersActive}" />
+				</f:snappedContent>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<!-- =========================================================== -->
+		<!-- HEADER — FilterBar                                          -->
+		<!-- =========================================================== -->
+		<f:header>
+			<f:DynamicPageHeader pinnable="true">
+				<f:content>
+					<fb:FilterBar
+						id="filterBar"
+						persistencyKey="customDepositsPersKey"
+						useToolbar="false"
+						search=".onSearch"
+                        showClearOnFB="true"
+                        clear=".onClearFilters"
+						filterChange=".onFilterChange"
+						afterVariantLoad=".onAfterVariantLoad">
+						<fb:filterGroupItems>
+
+							<!-- Duration -->
+							<fb:FilterGroupItem
+								name="Duration"
+								label="{i18n>filterDuration}"
+								groupName="Group1"
+								visibleInFilterBar="true">
+								<fb:control>
+									<MultiComboBox
+										id="filterDuration"
+										selectionChange=".onSelectionChange">
+										<core:ListItem key="1M"  text="{i18n>tenorCode_1M}"  additionalText="1M" />
+										<core:ListItem key="3M"  text="{i18n>tenorCode_3M}"  additionalText="3M" />
+										<core:ListItem key="6M"  text="{i18n>tenorCode_6M}"  additionalText="6M" />
+										<core:ListItem key="12M" text="{i18n>tenorCode_12M}" additionalText="12M" />
+										<core:ListItem key="24M" text="{i18n>tenorCode_24M}" additionalText="24M" />
+									</MultiComboBox>
+								</fb:control>
+							</fb:FilterGroupItem>
+
+							<!-- Currency -->
+							<fb:FilterGroupItem
+								name="Currency"
+								label="{i18n>filterCurrency}"
+								groupName="Group1"
+								visibleInFilterBar="true">
+								<fb:control>
+									<MultiComboBox
+										id="filterCurrency"
+										selectionChange=".onSelectionChange">
+										<core:ListItem key="GBP" text="GBP - British Pound" />
+										<core:ListItem key="EUR" text="EUR - Euro" />
+										<core:ListItem key="USD" text="USD - US Dollar" />
+									</MultiComboBox>
+								</fb:control>
+							</fb:FilterGroupItem>
+
+							<!-- Rate -->
+							<fb:FilterGroupItem
+								name="Rate"
+								label="{i18n>filterRate}"
+								groupName="Group1"
+							visibleInFilterBar="true">
+								<fb:control>
+								<Input id="filterRate" showValueHelp="true" valueHelpOnly="true"
+										   valueHelpRequest=".onRateValueHelpRequest" />
+								</fb:control>
+							</fb:FilterGroupItem>
+
+							<!-- Cancelable -->
+							<fb:FilterGroupItem
+								name="Cancelable"
+								label="{i18n>filterCancelable}"
+								groupName="Group1"
+								visibleInFilterBar="true">
+								<fb:control>
+									<Select id="filterCancelable" change=".onSelectionChange">
+										<core:ListItem key=""    text="{i18n>cancelableAll}" />
+										<core:ListItem key="true"  text="{i18n>cancelableYes}" />
+										<core:ListItem key="false" text="{i18n>cancelableNo}" />
+									</Select>
+								</fb:control>
+							</fb:FilterGroupItem>
+
+						</fb:filterGroupItems>
+					</fb:FilterBar>
+				</f:content>
+			</f:DynamicPageHeader>
+		</f:header>
+
+		<!-- =========================================================== -->
+		<!-- CONTENT — Table with p13n                                   -->
+		<!-- =========================================================== -->
+		<f:content>
+			<Table
+				id="depositsTable"
+				inset="false"
+				growing="true"
+				growingThreshold="20"
+				sticky="ColumnHeaders,HeaderToolbar"
+				autoPopinMode="true"
+				fixedLayout="Strict"
+				popinLayout="GridSmall"
+				ariaLabelledBy="tableTitle"
+				updateFinished=".onTableUpdateFinished"
+                width="100%"
+			items="{
+					path: 'mainService>/Deposits',
+					parameters: { $count: true, $expand: 'to_TenorCode,to_CurrencyCode' }
+				}">
+
+				<!-- Header Toolbar -->
+				<headerToolbar>
+					<OverflowToolbar>
+						<Title id="tableTitle" text="{i18n>listTitle}" />
+						<ToolbarSeparator />
+						<vm:VariantManagement id="tableVm" for="depositsTable" visible="false"/>
+						<ToolbarSpacer />
+						<Button
+							icon="sap-icon://customer-order-entry"
+                            text="{i18n>newDeposit}"
+							tooltip="{i18n>newDepositTooltip}"
+                            type="Ghost"
+							press=".onOpenCustomReq" />
+						<Button
+							icon="sap-icon://action-settings"
+							tooltip="{i18n>settingsTooltip}"
+							press=".onOpenSettings" />
+					</OverflowToolbar>
+				</headerToolbar>
+
+				<!-- Info toolbar (active filters indicator) -->
+				<infoToolbar>
+					<OverflowToolbar id="filterInfo" visible="false" design="Info" active="true" press=".onFilterInfoPress">
+						<Text id="filterInfoText" wrapping="false" text="" />
+						<ToolbarSpacer />
+						<Button
+							tooltip="{i18n>cancelableAll}"
+							icon="sap-icon://decline"
+							type="Transparent"
+							press=".onClearFilters" />
+					</OverflowToolbar>
+				</infoToolbar>
+
+				<!-- p13n plugins -->
+				<dependents>
+					<plugins:ColumnResizer columnResize=".onColumnResize" />
+					<columnmenu:Menu id="columnMenu" beforeOpen=".onBeforeOpenColumnMenu" showTableSettingsButton="true" tableSettingsPressed=".onOpenSettings">
+						<columnmenu:QuickSort change=".onSort">
+							<columnmenu:items>
+								<columnmenu:QuickSortItem />
+							</columnmenu:items>
+						</columnmenu:QuickSort>
+						<columnmenu:QuickGroup change=".onGroup">
+							<columnmenu:items>
+								<columnmenu:QuickGroupItem />
+							</columnmenu:items>
+						</columnmenu:QuickGroup>
+					</columnmenu:Menu>
+				</dependents>
+
+				<!-- Column drag-drop -->
+				<dragDropConfig>
+					<dnd:DragDropInfo
+						sourceAggregation="columns"
+						targetAggregation="columns"
+						dropPosition="Between"
+						drop=".onColumnMove" />
+				</dragDropConfig>
+
+				<noData>
+					<IllustratedMessage />
+				</noData>
+
+				<!-- Columns -->
+				<columns>
+					<Column app:p13nKey="name_col" headerMenu="columnMenu">
+						<header><Text text="{i18n>colName}" /></header>
+					</Column>
+					<Column app:p13nKey="duration_col" headerMenu="columnMenu">
+						<header><Text text="{i18n>colDuration}" /></header>
+					</Column>
+					<Column app:p13nKey="currency_col" headerMenu="columnMenu">
+						<header><Text text="{i18n>colCurrency}" /></header>
+					</Column>
+					<Column app:p13nKey="rate_col" hAlign="End" headerMenu="columnMenu">
+						<header><Text text="{i18n>colRate}" /></header>
+					</Column>
+					<Column app:p13nKey="cancelable_col" hAlign="Center" headerMenu="columnMenu">
+						<header><Text text="{i18n>colCancelable}" /></header>
+					</Column>
+					<Column app:p13nKey="suitability_col" headerMenu="columnMenu">
+						<header><Text text="{i18n>colSuitability}" /></header>
+					</Column>
+				</columns>
+
+				<!-- Row template -->
+				<items>
+					<ColumnListItem type="Navigation" press=".onListItemPress">
+						<cells>
+							<ObjectIdentifier title="{mainService>Name}" />
+							<Text text="{mainService>to_TenorCode/Description}" />
+							<Text text="{mainService>to_CurrencyCode/Description}" />
+							<ObjectNumber
+								number="{
+									path: 'mainService>Rate',
+									type: 'sap.ui.model.type.Float',
+									formatOptions: { decimals: 2 }
+								}"
+								unit="%" />
+						<Text text="{mainService>Cancelable}" />
+							<!-- <CheckBox selected="{mainService>Cancelable}" enabled="false" /> -->
+							<RatingIndicator
+								value="{
+									parts: [
+										{ path: 'mainService>Rate' },
+										{ path: 'mainService>to_TenorCode/Code' }
+									],
+									formatter: 'Formatter.formatSuitability'
+								}"
+								maxValue="5"
+								editable="false" />
+						</cells>
+					</ColumnListItem>
+				</items>
+
+			</Table>
+		</f:content>
+
+	</f:DynamicPage>
+</mvc:View>

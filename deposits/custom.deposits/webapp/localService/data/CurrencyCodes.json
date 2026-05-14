@@ -1,0 +1,5 @@
+[
+  { "Code": "GBP", "Description": "British Pound" },
+  { "Code": "EUR", "Description": "Euro"          },
+  { "Code": "USD", "Description": "US Dollar"     }
+]

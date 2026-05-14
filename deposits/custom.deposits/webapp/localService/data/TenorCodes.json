@@ -1,0 +1,7 @@
+[
+  { "Code": "1M",  "Description": "1 Mes"   },
+  { "Code": "3M",  "Description": "3 Meses"  },
+  { "Code": "6M",  "Description": "6 Meses"  },
+  { "Code": "12M", "Description": "12 Meses" },
+  { "Code": "24M", "Description": "24 Meses" }
+]
