@@ -1,5 +1,5 @@
 [
-  { "Code": "GBP", "Description": "British Pound" },
-  { "Code": "EUR", "Description": "Euro"          },
-  { "Code": "USD", "Description": "US Dollar"     }
+  { "Code": "EUR", "Description": "Euro",         "order": 1 },
+  { "Code": "USD", "Description": "US Dollar",    "order": 2 },
+  { "Code": "GBP", "Description": "British Pound", "order": 3 }
 ]

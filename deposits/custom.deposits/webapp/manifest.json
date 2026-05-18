@@ -16,15 +16,7 @@
     "applicationVersion": {
       "version": "1.0.0"
     },
-    "dataSources": {
-      "mainService": {
-        "uri": "/here/goes/your/serviceurl/",
-        "type": "OData",
-        "settings": {
-          "odataVersion": "4.0"
-        }
-      }
-    }
+    "dataSources": {}
   },
   "sap.ui": {
     "technology": "UI5",
@@ -70,13 +62,8 @@
         }
       },
       "mainService": {
-        "dataSource": "mainService",
-        "preload": true,
-        "settings": {
-          "autoExpandSelect": true,
-          "earlyRequests": true,
-          "operationMode": "Server"
-        }
+        "type": "sap.ui.model.json.JSONModel",
+        "uri": "model/data/Deposits.json"
       }
     },
     "routing": {

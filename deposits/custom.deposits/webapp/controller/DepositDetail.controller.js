@@ -11,7 +11,7 @@ sap.ui.define([
 	return BaseController.extend("custom.deposits.controller.DepositDetail", {
 
 		onInit: function () {
-			this._DURATION_MONTHS = { "1M": 1, "3M": 3, "6M": 6, "12M": 12, "24M": 24 };
+			this._DURATION_MONTHS = { "1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6, "7M": 7, "8M": 8, "9M": 9, "10M": 10, "11M": 11, "12M": 12 };
 			this.oOwnerComponent = this.getOwnerComponent();
 			this.oRouter = this.getRouter();
 			this.oModel = this.oOwnerComponent.getModel(); // layout JSON model
@@ -88,22 +88,12 @@ sap.ui.define([
 			this._resetSimulation();
 			this._resetRequest();
 
-			this.getView().bindElement({
-				model: "mainService",
-				path: "/Deposits(" + sKey + ")",
-				parameters: {
-					$expand: "to_TenorCode,to_CurrencyCode"
-				},
-				events: {
-					dataRequested: function () {
-						this.getView().setBusy(true);
-					}.bind(this),
-					dataReceived: function () {
-						this.getView().setBusy(false);
-						this._filterAccountsByCurrency();
-					}.bind(this)
-				}
-			});
+			const aDeposits = this.getOwnerComponent().getModel("mainService").getProperty("/value");
+			const iIdx = aDeposits ? aDeposits.findIndex(function (d) { return d.UUID === sKey; }) : -1;
+			if (iIdx >= 0) {
+				this.getView().bindElement({ model: "mainService", path: "/value/" + iIdx });
+			}
+			this._filterAccountsByCurrency();
 		},
 
 		onSimulate: function () {

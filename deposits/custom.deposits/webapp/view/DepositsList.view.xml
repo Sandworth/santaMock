@@ -53,6 +53,23 @@
 						afterVariantLoad=".onAfterVariantLoad">
 						<fb:filterGroupItems>
 
+						<!-- Currency -->
+							<fb:FilterGroupItem
+								name="Currency"
+								label="{i18n>filterCurrency}"
+								groupName="Group1"
+								visibleInFilterBar="true">
+								<fb:control>
+									<MultiComboBox
+										id="filterCurrency"
+										selectionChange=".onSelectionChange">
+										<core:ListItem key="EUR" text="EUR - Euro" />
+										<core:ListItem key="USD" text="USD - US Dollar" />
+										<core:ListItem key="GBP" text="GBP - British Pound" />
+									</MultiComboBox>
+								</fb:control>
+							</fb:FilterGroupItem>
+
 							<!-- Duration -->
 							<fb:FilterGroupItem
 								name="Duration"
@@ -64,27 +81,17 @@
 										id="filterDuration"
 										selectionChange=".onSelectionChange">
 										<core:ListItem key="1M"  text="{i18n>tenorCode_1M}"  additionalText="1M" />
+										<core:ListItem key="2M"  text="{i18n>tenorCode_2M}"  additionalText="2M" />
 										<core:ListItem key="3M"  text="{i18n>tenorCode_3M}"  additionalText="3M" />
+										<core:ListItem key="4M"  text="{i18n>tenorCode_4M}"  additionalText="4M" />
+										<core:ListItem key="5M"  text="{i18n>tenorCode_5M}"  additionalText="5M" />
 										<core:ListItem key="6M"  text="{i18n>tenorCode_6M}"  additionalText="6M" />
+										<core:ListItem key="7M"  text="{i18n>tenorCode_7M}"  additionalText="7M" />
+										<core:ListItem key="8M"  text="{i18n>tenorCode_8M}"  additionalText="8M" />
+										<core:ListItem key="9M"  text="{i18n>tenorCode_9M}"  additionalText="9M" />
+										<core:ListItem key="10M" text="{i18n>tenorCode_10M}" additionalText="10M" />
+										<core:ListItem key="11M" text="{i18n>tenorCode_11M}" additionalText="11M" />
 										<core:ListItem key="12M" text="{i18n>tenorCode_12M}" additionalText="12M" />
-										<core:ListItem key="24M" text="{i18n>tenorCode_24M}" additionalText="24M" />
-									</MultiComboBox>
-								</fb:control>
-							</fb:FilterGroupItem>
-
-							<!-- Currency -->
-							<fb:FilterGroupItem
-								name="Currency"
-								label="{i18n>filterCurrency}"
-								groupName="Group1"
-								visibleInFilterBar="true">
-								<fb:control>
-									<MultiComboBox
-										id="filterCurrency"
-										selectionChange=".onSelectionChange">
-										<core:ListItem key="GBP" text="GBP - British Pound" />
-										<core:ListItem key="EUR" text="EUR - Euro" />
-										<core:ListItem key="USD" text="USD - US Dollar" />
 									</MultiComboBox>
 								</fb:control>
 							</fb:FilterGroupItem>
@@ -98,21 +105,6 @@
 								<fb:control>
 								<Input id="filterRate" showValueHelp="true" valueHelpOnly="true"
 										   valueHelpRequest=".onRateValueHelpRequest" />
-								</fb:control>
-							</fb:FilterGroupItem>
-
-							<!-- Cancelable -->
-							<fb:FilterGroupItem
-								name="Cancelable"
-								label="{i18n>filterCancelable}"
-								groupName="Group1"
-								visibleInFilterBar="true">
-								<fb:control>
-									<Select id="filterCancelable" change=".onSelectionChange">
-										<core:ListItem key=""    text="{i18n>cancelableAll}" />
-										<core:ListItem key="true"  text="{i18n>cancelableYes}" />
-										<core:ListItem key="false" text="{i18n>cancelableNo}" />
-									</Select>
 								</fb:control>
 							</fb:FilterGroupItem>
 
@@ -138,9 +130,12 @@
 				ariaLabelledBy="tableTitle"
 				updateFinished=".onTableUpdateFinished"
                 width="100%"
-			items="{
-					path: 'mainService>/Deposits',
-					parameters: { $count: true, $expand: 'to_TenorCode,to_CurrencyCode' }
+				items="{
+					path: 'mainService>/value',
+					sorter: [
+						{ path: 'to_CurrencyCode/order' },
+						{ path: 'to_TenorCode/order' }
+					]
 				}">
 
 				<!-- Header Toolbar -->
@@ -169,7 +164,6 @@
 						<Text id="filterInfoText" wrapping="false" text="" />
 						<ToolbarSpacer />
 						<Button
-							tooltip="{i18n>cancelableAll}"
 							icon="sap-icon://decline"
 							type="Transparent"
 							press=".onClearFilters" />
@@ -220,9 +214,6 @@
 					<Column app:p13nKey="rate_col" hAlign="End" headerMenu="columnMenu">
 						<header><Text text="{i18n>colRate}" /></header>
 					</Column>
-					<Column app:p13nKey="cancelable_col" hAlign="Center" headerMenu="columnMenu">
-						<header><Text text="{i18n>colCancelable}" /></header>
-					</Column>
 					<Column app:p13nKey="suitability_col" headerMenu="columnMenu">
 						<header><Text text="{i18n>colSuitability}" /></header>
 					</Column>
@@ -238,12 +229,11 @@
 							<ObjectNumber
 								number="{
 									path: 'mainService>Rate',
-									type: 'sap.ui.model.type.Float',
+									type: 'Float',
 									formatOptions: { decimals: 2 }
 								}"
 								unit="%" />
-						<Text text="{mainService>Cancelable}" />
-							<!-- <CheckBox selected="{mainService>Cancelable}" enabled="false" /> -->
+
 							<RatingIndicator
 								value="{
 									parts: [

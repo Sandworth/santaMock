@@ -37,15 +37,15 @@ sap.ui.define(["sap/ui/core/format/NumberFormat"], function (NumberFormat) {
 				return 0;
 			}
 
-			var mDays = { 1: 30, 3: 91, 6: 182, 12: 365, 24: 730 };
-			var iDays = mDays[iDuration];
+			var mDays = { 1: 31, 2: 61, 3: 91, 4: 122, 5: 152, 6: 182, 7: 213, 8: 243, 9: 273, 10: 304, 11: 334, 12: 365 };
+			var iDays = mDays[parseInt(iDuration, 10)]; // handles "1M", "2M", etc.
 			if (!iDays) { return 0; }
 
 			// Reference min/max total-return values across all products
-			// min: 1M @ lowest rate (2.45) → 2.45×30/365
-			// max: 24M @ highest rate (4.55) → 4.55×730/365
-			var fMin = 2.45 * 30 / 365;   // ≈ 0.2014
-			var fMax = 4.55 * 730 / 365;   // ≈ 9.1000
+			// min: 1M @ lowest rate (2.45) → 2.45×31/365
+			// max: 12M @ highest rate (4.05) → 4.05×365/365
+			var fMin = 2.45 * 31 / 365;   // ≈ 0.2099
+			var fMax = 4.05 * 365 / 365;   // = 4.05
 
 			var fTotalReturn = fRate * iDays / 365;
 

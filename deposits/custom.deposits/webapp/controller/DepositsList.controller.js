@@ -13,6 +13,11 @@ sap.ui.define([
 	"sap/ui/comp/valuehelpdialog/ValueHelpDialog",
 	"sap/ui/model/type/Float",
 	"sap/m/Token",
+	"sap/m/ColumnListItem",
+	"sap/m/ObjectIdentifier",
+	"sap/m/ObjectNumber",
+	"sap/m/Text",
+	"sap/m/RatingIndicator",
 	"../model/formatter"
 ], function (
 	BaseController,
@@ -29,6 +34,11 @@ sap.ui.define([
 	ValueHelpDialog,
 	FloatType,
 	Token,
+	ColumnListItem,
+	ObjectIdentifier,
+	ObjectNumber,
+	MText,
+	RatingIndicator,
 	Formatter
 ) {
 	"use strict";
@@ -65,6 +75,12 @@ sap.ui.define([
 
 			// ----- p13n Engine setup -----
 			this._registerForP13n();
+
+			// Default sort: EUR → USD → GBP, then by tenor order
+			this._aDefaultSorters = [
+				new Sorter("to_CurrencyCode/order"),
+				new Sorter("to_TenorCode/order")
+			];
 
 			// Router
 			this.oRouter = this.getRouter();
@@ -159,12 +175,12 @@ sap.ui.define([
 		onSearch: function () {
 			const aTableFilters = [];
 
-			// Duration (MultiComboBox)
+			// Duration (MultiComboBox — filters on to_TenorCode/Code)
 			const oDurationCtrl = this.oView.byId("filterDuration");
 			const aDurations = oDurationCtrl ? oDurationCtrl.getSelectedKeys() : [];
 			if (aDurations.length > 0) {
 				const aDurFilters = aDurations.map(function (sKey) {
-					return new Filter("Duration", FilterOperator.EQ, sKey);
+					return new Filter("to_TenorCode/Code", FilterOperator.EQ, sKey);
 				});
 				aTableFilters.push(new Filter({ filters: aDurFilters, and: false }));
 			}
@@ -199,15 +215,6 @@ sap.ui.define([
 					: new Filter({ filters: aRateFilters, and: false }));
 			}
 
-			// Cancelable (Select)
-			const oCancelableCtrl = this.oView.byId("filterCancelable");
-			const sCancelable = oCancelableCtrl ? oCancelableCtrl.getSelectedKey() : "";
-			if (sCancelable === "true") {
-				aTableFilters.push(new Filter("Cancelable", FilterOperator.EQ, true));
-			} else if (sCancelable === "false") {
-				aTableFilters.push(new Filter("Cancelable", FilterOperator.EQ, false));
-			}
-
 			this.oTable.getBinding("items").filter(aTableFilters);
 			this.oTable.setShowOverlay(false);
 			this._updateLabelsAndTable(false);
@@ -231,8 +238,6 @@ sap.ui.define([
 			const oRateCtrl = this.oView.byId("filterRate");
 			if (oRateCtrl) { oRateCtrl.setValue(""); }
 			this._aRateTokens = [];
-			const oCancelableCtrl = this.oView.byId("filterCancelable");
-			if (oCancelableCtrl) { oCancelableCtrl.setSelectedKey(""); }
 
 			this.oTable.getBinding("items").filter([]);
 			this.oTable.setShowOverlay(false);
@@ -366,7 +371,6 @@ sap.ui.define([
 				{ key: "duration_col",    label: "Duration",    path: "to_TenorCode/Description" },
 				{ key: "currency_col",    label: "Currency",    path: "to_CurrencyCode/Description" },
 				{ key: "rate_col",        label: "Rate (%)",    path: "Rate" },
-				{ key: "cancelable_col",  label: "Cancelable",  path: "Cancelable" },
 				{ key: "suitability_col", label: "Suitability", path: "Suitability" }
 			]);
 
@@ -440,19 +444,20 @@ sap.ui.define([
 		onColumnMove: function (oEvent) {
 			const oDragged = oEvent.getParameter("draggedControl");
 			const oDropped = oEvent.getParameter("droppedControl");
+
+			if (oDragged === oDropped) { return; }
+
+			const oTable = this.oTable;
 			const sDropPosition = oEvent.getParameter("dropPosition");
-			const oTable  = this.oTable;
-			const aColumns = oTable.getColumns();
-			const iDraggedIndex = aColumns.indexOf(oDragged);
-			const iDroppedIndex = aColumns.indexOf(oDropped);
-			var iNewIndex = sDropPosition === "Before" ? iDroppedIndex : iDroppedIndex + 1;
-			if (iNewIndex > iDraggedIndex) { iNewIndex--; }
+			const iDraggedIndex = oTable.indexOfColumn(oDragged);
+			const iDroppedIndex = oTable.indexOfColumn(oDropped);
+			const iNewPos = iDroppedIndex + (sDropPosition === "Before" ? 0 : 1) + (iDraggedIndex < iDroppedIndex ? -1 : 0);
+			const sKey = this._getKey(oDragged);
 
 			Engine.getInstance().retrieveState(oTable).then(function (oState) {
-				const aColumns2 = oState.Columns.slice();
-				const oMoved = aColumns2.splice(iDraggedIndex, 1)[0];
-				aColumns2.splice(iNewIndex, 0, oMoved);
-				Engine.getInstance().applyState(oTable, { Columns: aColumns2 });
+				const oCol = oState.Columns.find(function (o) { return o.key === sKey; }) || { key: sKey };
+				oCol.position = iNewPos;
+				Engine.getInstance().applyState(oTable, { Columns: [oCol] });
 			});
 		},
 
@@ -463,14 +468,8 @@ sap.ui.define([
 
 			if (!oState || !oHelper) { return; }
 
-			// Column visibility
 			if (oState.Columns) {
-				const mVisibleKeys = {};
-				oState.Columns.forEach(function (o) { mVisibleKeys[o.key] = true; });
-				oTable.getColumns().forEach(function (oCol) {
-					var sKey = oCol.data("p13nKey");
-					oCol.setVisible(!!mVisibleKeys[sKey]);
-				});
+				this._applyColumnsVisual(oState.Columns);
 			}
 
 			// Sorting
@@ -479,7 +478,7 @@ sap.ui.define([
 					var oInfo = oHelper.getProperty(oSortState.key);
 					return new Sorter(oInfo.path, oSortState.descending);
 				});
-				oTable.getBinding("items").sort(aSorters);
+				oTable.getBinding("items").sort(aSorters.length > 0 ? aSorters : this._aDefaultSorters);
 			}
 
 			// Grouping
@@ -493,8 +492,83 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Physically reorders columns to match aColumns (array of {key} objects),
+		 * then rebuilds and rebinds the row template so cells follow the new column order.
+		 */
+		_applyColumnsVisual: function (aColumns) {
+			var oTable = this.oTable;
+
+			// 1. Hide all columns
+			oTable.getColumns().forEach(function (oCol) { oCol.setVisible(false); });
+
+			// 2. Show and physically move each visible column into its new position
+			aColumns.forEach(function (oProp, iIndex) {
+				var oCol = oTable.getColumns().find(function (c) { return c.data("p13nKey") === oProp.key; });
+				if (!oCol) { return; }
+				oCol.setVisible(true);
+				oTable.removeColumn(oCol);
+				oTable.insertColumn(oCol, iIndex);
+			});
+
+			// 3. Rebind items — cells must follow the new column order (cell[i] maps to column[i])
+			var oCurrentBinding = oTable.getBinding("items");
+			var aSorters = oCurrentBinding ? (oCurrentBinding.aSorters || []) : [];
+			if (aSorters.length === 0) { aSorters = this._aDefaultSorters; }
+			var aFilters = oCurrentBinding ? (oCurrentBinding.aFilters || []) : [];
+			var aAllKeys = oTable.getColumns().map(function (oCol) { return oCol.data("p13nKey"); });
+			oTable.bindItems({
+				model: "mainService",
+				path: "/value",
+				templateShareable: false,
+				sorter: aSorters,
+				filters: aFilters,
+				template: this._buildRowTemplate(aAllKeys)
+			});
+		},
+
 		_getKey: function (oColumn) {
 			return oColumn.data("p13nKey");
+		},
+
+		/**
+		 * Builds a ColumnListItem template with cells ordered to match the given column key array.
+		 * Must match the order of columns in the table aggregation (cell[i] ↔ column[i]).
+		 */
+		_buildRowTemplate: function (aColumnKeys) {
+			var that = this;
+			var aCells = aColumnKeys.map(function (sKey) {
+				switch (sKey) {
+					case "name_col":
+						return new ObjectIdentifier({ title: "{mainService>Name}" });
+					case "duration_col":
+						return new MText({ text: "{mainService>to_TenorCode/Description}" });
+					case "currency_col":
+						return new MText({ text: "{mainService>to_CurrencyCode/Description}" });
+					case "rate_col":
+						return new ObjectNumber({
+							number: { path: "mainService>Rate", type: new FloatType({ decimals: 2, maxFractionDigits: 2 }) },
+							unit: "%"
+						});
+
+					case "suitability_col":
+						return new RatingIndicator({
+							value: {
+								parts: [{ path: "mainService>Rate" }, { path: "mainService>to_TenorCode/Code" }],
+								formatter: Formatter.formatSuitability
+							},
+							maxValue: 5,
+							editable: false
+						});
+					default:
+						return new MText();
+				}
+			});
+			return new ColumnListItem({
+				type: "Navigation",
+				press: [that.onListItemPress, that],
+				cells: aCells
+			});
 		},
 
 		onExit: function () {

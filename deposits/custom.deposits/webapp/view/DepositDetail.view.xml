@@ -80,7 +80,6 @@
 					editable="false" />
 				</VBox>
 				<l:VerticalLayout class="sapUiLargeMarginBegin">
-					<ObjectStatus title="{i18n>lblCancelable}"  text="{mainService>Cancelable}" />
 					<ObjectStatus title="{i18n>lblDuration}" text="{mainService>to_TenorCode/Description}"/>
 					<ObjectStatus title="{i18n>lblCurrency}" text="{mainService>to_CurrencyCode/Description}"/>
 				</l:VerticalLayout>
