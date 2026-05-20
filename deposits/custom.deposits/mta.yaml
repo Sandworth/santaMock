@@ -17,6 +17,10 @@ modules:
     parameters:
       service-key:
         name: customdeposits-uaa-key
+  - name: ui5-flexibility-keyuser
+    parameters:
+      service-key:
+        name: customdeposits-ui5-flexibility-keyuser-key
   parameters:
     content:
       instance:
@@ -89,6 +93,12 @@ resources:
     service: html5-apps-repo
     service-name: customdeposits-html5-service
     service-plan: app-host
+- name: ui5-flexibility-keyuser
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: ui5-flexibility-keyuser
+    service-plan: keyuser
+    service-name: customdeposits-ui5-flexibility-keyuser
 parameters:
   deploy_mode: html5-repo
   enable-parallel-deployments: true

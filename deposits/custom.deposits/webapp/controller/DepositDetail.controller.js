@@ -129,16 +129,6 @@ sap.ui.define([
 			});
 		},
 
-		onAmountLiveChange: function (oEvent) {
-			const oInput = oEvent.getSource();
-			const sValue = oEvent.getParameter("value");
-			// Allow only digits and locale decimal/grouping separators (dot and comma)
-			const sFiltered = sValue.replace(/[^0-9.,]/g, "");
-			if (sFiltered !== sValue) {
-				oInput.setValue(sFiltered);
-			}
-		},
-
 		_resetSimulation: function () {
 			const oSimModel = this.getModel("simulation");
 			if (oSimModel) {
@@ -181,15 +171,6 @@ sap.ui.define([
 					});
 			});
 			this.getModel("request").setProperty("/cuentasFiltradas", aCuentasFiltradas);
-		},
-
-		onReqAmountLiveChange: function (oEvent) {
-			const oInput = oEvent.getSource();
-			const sValue = oEvent.getParameter("value");
-			const sFiltered = sValue.replace(/[^0-9.,]/g, "");
-			if (sFiltered !== sValue) {
-				oInput.setValue(sFiltered);
-			}
 		},
 
 		onRequestDeposit: function () {

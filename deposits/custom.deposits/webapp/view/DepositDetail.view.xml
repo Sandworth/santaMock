@@ -119,7 +119,7 @@
 									<Button
 										class="sapUiSmallMarginBegin"
 										text="{i18n>simCalculate}"
-										type="Emphasized"
+										icon="sap-icon://simulate"
 										press=".onSimulate" />
 								</HBox>
 								<Panel

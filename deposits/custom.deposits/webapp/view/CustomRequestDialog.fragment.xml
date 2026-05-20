@@ -1,0 +1,155 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:forms="sap.ui.layout.form"
+	core:require="{
+		Float: 'sap/ui/model/type/Float',
+		Formatter: 'custom/deposits/model/formatter'
+	}"    >
+    <Dialog
+		id="customRequestDialog"
+		title="{i18n>customReqDialogTitle}"
+		resizable="false"
+		draggable="true"
+		contentWidth="600px"
+		showHeader="true">
+        <content>
+            <forms:SimpleForm
+					editable="true"
+					layout="ResponsiveGridLayout"
+					labelSpanL="3"
+					labelSpanM="3"
+					labelSpanS="12"
+					emptySpanL="4"
+					emptySpanM="4"
+					emptySpanS="0"
+					columnsL="1"
+					columnsM="1">
+                <!-- PASO 1: Seleccionar Moneda -->
+                <forms:content>
+                    <Label text="{i18n>customReqStep1Label}" />
+                    <ComboBox
+							id="customReqCurrencyCombo"
+							selectedKey="{customRequest>/currency}"
+							enabled="{customRequest>/step1Enabled}"
+							selectionChange=".onStep1CurrencyChanged">
+                        <core:Item key="EUR" text="EUR - Euro" />
+                        <core:Item key="USD" text="USD - US Dollar" />
+                        <core:Item key="GBP" text="GBP - British Pound" />
+                    </ComboBox>
+                </forms:content>
+                <!-- PASO 2: Rango de Fechas -->
+                <forms:content>
+                    <Label text="{i18n>customReqStep2Label}" />
+                    <DateRangeSelection
+							id="customReqDateRange"
+							dateValue="{customRequest>/dateFrom}"
+							secondDateValue="{customRequest>/dateTo}"
+							enabled="{customRequest>/step2Enabled}"
+							change=".onStep2DateRangeChanged"
+							displayFormat="short" />
+                </forms:content>
+                <!-- PASO 3: Interés Aplicable (readonly) -->
+                <forms:content>
+                    <Label text="{i18n>customReqStep3Label}" />
+                    <ObjectNumber
+							number="{
+								path: 'customRequest>/rateInterpolated',
+								type: 'Float',
+								formatOptions: { decimals: 2 }
+							}"
+							unit="%"
+							state="Information"/>
+                </forms:content>
+                <!-- PASO 4: Selector de Cuenta -->
+                <forms:content>
+                    <Label text="{i18n>customReqStep4Label}" />
+                    <ComboBox
+							id="customReqAccountCombo"
+							selectedKey="{customRequest>/account}"
+							enabled="{customRequest>/step4Enabled}"
+							selectionChange=".onStep4AccountChanged"
+							items="{
+                                        path: 'customRequest>/accountsFiltered',
+                                        sorter: { path: 'banco', descending: false, group: true }
+                                    }"
+							showSecondaryValues="true">
+                        <core:ListItem
+								key="{customRequest>cuentaCorriente}"
+								text="{customRequest>nombre} - {customRequest>cuentaCorriente}"
+								additionalText="{
+											parts: [
+												{ path: 'customRequest>saldoInfoCent' },
+												{ path: 'customRequest>currency' }
+											],
+											formatter: 'Formatter.formatCurrency'
+										}" />
+                    </ComboBox>
+                </forms:content>
+                <!-- PASO 5: Importe + Botón Calcular -->
+                <forms:content>
+                    <Label text="{i18n>reqAmountLabel}" />
+                    <HBox>
+                        <Input
+								id="customReqAmountInput"
+								value="{
+												path: 'customRequest>/amount',
+												type: 'Float',
+												formatOptions: {
+													groupingEnabled: true,
+													decimals: 2,
+													maxFractionDigits: 2
+												},
+												constraints: { minimum: 0.01 }
+											}"
+                                placeholder="{i18n>simAmountPlaceholder}"
+								enabled="{customRequest>/step5Enabled}"
+								liveChange=".onAmountLiveChange"
+                                submit=".onStep5Calculate" />
+                        <Button
+                                class="sapUiSmallMarginBegin"
+								text="{i18n>simCalculate}"
+								icon="sap-icon://simulate"
+								enabled="{customRequest>/step5Enabled}"
+								press=".onStep5Calculate" />
+                    </HBox>
+                </forms:content>
+                <!-- SECCIÓN: Retorno Esperado -->
+                <forms:content>
+                    <Label text="{i18n>simInterestLabel}" />
+                    <ObjectNumber
+                            number="{
+                                path: 'customRequest>/expectedReturn',
+                                formatter: 'Formatter.formatFloat'
+                            }"
+                            unit="{customRequest>/currency}"
+                            state="Success"
+                            emptyIndicatorMode="On" />
+                    <Label text="{i18n>simTotalLabel}" />
+                    <ObjectNumber
+                            emphasized="true"
+                            number="{
+                                path: 'customRequest>/expectedTotal',
+                                formatter: 'Formatter.formatFloat'
+                            }"
+                            unit="{customRequest>/currency}"
+                            state="Success"
+                            emptyIndicatorMode="On" />
+                </forms:content>
+            </forms:SimpleForm>
+        </content>
+        <beginButton>
+            <Button
+				text="{i18n>customReqCancelBtn}"
+				press=".onCancelCustomRequest" />
+        </beginButton>
+        <endButton>
+            <Button
+				text="{i18n>customReqSubmitBtn}"
+				type="Emphasized"
+				enabled="{= ${customRequest>/expectedReturn} > 0}"
+				press=".onSubmitCustomRequest" />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
