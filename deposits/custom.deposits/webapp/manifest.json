@@ -16,7 +16,22 @@
     "applicationVersion": {
       "version": "1.0.0"
     },
-    "dataSources": {}
+    "dataSources": {},
+    "crossNavigation": {
+      "inbounds": {
+        "Deposits-display": {
+          "semanticObject": "Deposits",
+          "action": "display",
+          "title": "{{Deposits-display.flpTitle}}",
+          "subTitle": "{{Deposits-display.flpSubtitle}}",
+          "icon": "sap-icon://loan",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      }
+    }
   },
   "sap.ui": {
     "technology": "UI5",
