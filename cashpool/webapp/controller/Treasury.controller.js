@@ -43,16 +43,16 @@ sap.ui.define([
                     {
                         razonSocial: "Empresa Alpha S.A.",
                         cif: "12345678A",
-                        fecha: "22/04/2026",
+                        fecha: "11/05/2026",
                         origen: {
                             banco: oResourceBundle.getText("bancoA"),
                             oficina: "0049",
-                            cuenta: "00491555-10-1234567890"
+                            cuenta: "00491555-11-0123456789"
                         },
                         destino: {
-                            banco: oResourceBundle.getText("bancoB"),
-                            oficina: "2080",
-                            cuenta: "20800970-10-1234512345"
+                            banco: oResourceBundle.getText("bancoA"),
+                            oficina: "0049",
+                            cuenta: "00491522-12-9876598765"
                         },
                         saldoAntes: {
                             monto: 100000.00,
@@ -103,7 +103,7 @@ sap.ui.define([
                         }
                     },
                     {
-                        razonSocial: "Beta Corporación Ltda.",
+                        razonSocial: "Beta Corporació Ltda.",
                         cif: "98765432B",
                         fecha: "20/04/2026",
                         origen: {
@@ -212,10 +212,11 @@ sap.ui.define([
             const oBindingContext = oSource.getBindingContext("view");
             const oData = oBindingContext.getObject();
 
-            // Aquí se implementaría la lógica para descargar el comprobante
+            // Aquí­ se implementaría la lógica para descargar el comprobante
             // Por ahora, mostrar un mensaje
             const sFormattedCurrency = Formatter.formatCurrency(oData.valorTransferencia.monto, oData.valorTransferencia.moneda);
-            MessageToast.show(`Descargando comprobante de transferencia del ${oData.fecha} por el importe de ${sFormattedCurrency}`);
+            //MessageToast.show(`Descargando comprobante de transferencia del ${oData.fecha} por el importe de ${sFormattedCurrency}`);
+            MessageToast.show(this._oResourceBundle.getText("msgDownloadExtract", [oData.fecha, sFormattedCurrency]));
         },
 
         _buildTransferenciasGroups() {
@@ -476,7 +477,7 @@ sap.ui.define([
                 dias: { lunes: false, martes: false, miercoles: false, jueves: false, viernes: false, sabado: false, domingo: false },
                 empresas: [
                     { razonSocial: "Empresa Alpha S.A.", cif: "12345678A" },
-                    { razonSocial: "Beta Corporación Ltda.", cif: "98765432B" },
+                    { razonSocial: "Beta Corporació Ltda.", cif: "98765432B" },
                     { razonSocial: "Gamma Holding S.A.", cif: "11222333C" },
                     { razonSocial: "Delta Inversiones S.A.", cif: "55666777D" }
                 ],
@@ -568,7 +569,8 @@ sap.ui.define([
         onWizardAccept() {
             const oModel = this.getView().getModel("wizard");
             const oReview = oModel.getProperty("/review");
-            MessageToast.show(`Configuración guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
+            //MessageToast.show(`Configuració guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
+            MessageToast.show(this._oResourceBundle.getText("msgSavedConfig", [oReview.razonSocial, oReview.cuentaCentralNombre, oReview.horario]));
             if (this._wizardDialog) {
                 this._resetWizard();
                 this._wizardDialog.close();
@@ -666,16 +668,16 @@ sap.ui.define([
             if (oSaldoGroup) {
                 const oSelected = oSaldoGroup.getSelectedButton();
                 const sSelectedText = oSelected ? oSelected.getText() : "";
-                const iSelectedIndex = oSaldoGroup.getSelectedIndex();
-                let sReviewSaldo = sSelectedText;
-                if (iSelectedIndex === 2) {
-                    const oConsiderGroup = this.byId("saldoConsiderGroup");
-                    const oConsiderSelected = oConsiderGroup ? oConsiderGroup.getSelectedButton() : null;
-                    if (oConsiderSelected) {
-                        sReviewSaldo = `${sSelectedText} (${oConsiderSelected.getText()})`;
-                    }
-                }
-                oModel.setProperty("/review/saldoAdicionalData", sReviewSaldo);
+                // const iSelectedIndex = oSaldoGroup.getSelectedIndex();
+                // let sReviewSaldo = sSelectedText;
+                // if (iSelectedIndex === 2) {
+                //     const oConsiderGroup = this.byId("saldoConsiderGroup");
+                //     const oConsiderSelected = oConsiderGroup ? oConsiderGroup.getSelectedButton() : null;
+                //     if (oConsiderSelected) {
+                //         sReviewSaldo = `${sSelectedText} (${oConsiderSelected.getText()})`;
+                //     }
+                // }
+                oModel.setProperty("/review/saldoAdicionalData", sSelectedText);
             }
         },
 
@@ -760,10 +762,10 @@ sap.ui.define([
             const oWizard = this.byId("configWizard");
             const iNext = this._iCurrentStepIndex + 1;
             if (iNext < oWizard.getProgress()) {
-                // Step already activated (e.g. navigating forward after editing) — goToStep is safe
+                // Step already activated (e.g. navigating forward after editing) â€” goToStep is safe
                 oWizard.goToStep(oWizard.getSteps()[iNext], true);
             } else {
-                // Step not yet activated — nextStep() activates it before navigating
+                // Step not yet activated â€” nextStep() activates it before navigating
                 oWizard.nextStep();
             }
             this._updateNavState(iNext);
