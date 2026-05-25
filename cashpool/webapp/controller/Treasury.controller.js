@@ -465,6 +465,8 @@ sap.ui.define([
             const oWizardModel = new JSONModel({
                 selectedHorario: null,
                 horarioUnico: "",
+                horariosPersonalizadosPorBanco: [],
+                horariosPersonalizadosPorCuenta: [],
                 horariosUnicos: [
                     { key: "17:00", text: "17:00" },
                     { key: "18:00", text: "18:00" },
@@ -644,10 +646,29 @@ sap.ui.define([
                 const oSelected = oHorarioGroup.getSelectedButton();
                 const sSelectedText = oSelected ? oSelected.getText() : "";
                 const iSelectedIndex = oHorarioGroup.getSelectedIndex();
-                const sHorarioUnico = oModel.getProperty("/horarioUnico") || "";
-                const sReviewHorario = iSelectedIndex === 0 && sHorarioUnico
-                    ? `${sSelectedText} (${sHorarioUnico})`
-                    : sSelectedText;
+                let sReviewHorario = sSelectedText;
+
+                if (iSelectedIndex === 0) {
+                    // Opción 1: Horario único
+                    const sHorarioUnico = oModel.getProperty("/horarioUnico") || "";
+                    sReviewHorario = sHorarioUnico ? `${sSelectedText} (${sHorarioUnico})` : sSelectedText;
+                } else if (iSelectedIndex === 1) {
+                    // Opción 2: Horario por banco
+                    const aBancos = oModel.getProperty("/horariosPersonalizadosPorBanco") || [];
+                    const aBancosConHorario = aBancos.filter((b) => b.selectedHorario);
+                    if (aBancosConHorario.length > 0) {
+                        const aResumen = aBancosConHorario.map((b) => `${b.nombre}: ${b.selectedHorario}`).join(", ");
+                        sReviewHorario = `${sSelectedText} - ${aResumen}`;
+                    }
+                } else if (iSelectedIndex === 2) {
+                    // Opción 3: Horario por cuenta
+                    const aCuentas = oModel.getProperty("/horariosPersonalizadosPorCuenta") || [];
+                    const aCuentasConHorario = aCuentas.filter((c) => c.selectedHorario);
+                    if (aCuentasConHorario.length > 0) {
+                        const aResumen = aCuentasConHorario.map((c) => `${c.banco} - ${c.nombre}: ${c.selectedHorario}`).join(", ");
+                        sReviewHorario = `${sSelectedText} - ${aResumen}`;
+                    }
+                }
 
                 oModel.setProperty("/review/horario", sReviewHorario);
             }
@@ -762,10 +783,10 @@ sap.ui.define([
             const oWizard = this.byId("configWizard");
             const iNext = this._iCurrentStepIndex + 1;
             if (iNext < oWizard.getProgress()) {
-                // Step already activated (e.g. navigating forward after editing) â€” goToStep is safe
+                // Step already activated (e.g. navigating forward after editing) - goToStep is safe
                 oWizard.goToStep(oWizard.getSteps()[iNext], true);
             } else {
-                // Step not yet activated â€” nextStep() activates it before navigating
+                // Step not yet activated - nextStep() activates it before navigating
                 oWizard.nextStep();
             }
             this._updateNavState(iNext);
@@ -819,10 +840,95 @@ sap.ui.define([
             if (oHorarioGroup.getSelectedIndex() === 0) {
                 oModel.setProperty("/selectedHorario", 0);
             }
+            this._buildHorariosEspecificos();
             this._updateReviewHorario();
         },
 
         onHorarioUnicoChange() {
+            this._updateReviewHorario();
+        },
+
+        _buildHorariosEspecificos() {
+            const oModel = this.getView().getModel("wizard");
+            const iSelectedHorarioIndex = oModel.getProperty("/selectedHorario");
+            const oBancosList = this.byId("bancosListStep2");
+            
+            // Reset if not building for options 2 or 3
+            if (!oBancosList || iSelectedHorarioIndex === 0 || iSelectedHorarioIndex === null) {
+                oModel.setProperty("/horariosPersonalizadosPorBanco", []);
+                oModel.setProperty("/horariosPersonalizadosPorCuenta", []);
+                return;
+            }
+
+            const aHorariosPorBanco = [];
+            const aHorariosPorCuenta = [];
+            const aHorariosDisponibles = oModel.getProperty("/horariosUnicos");
+
+            oBancosList.getItems().forEach((oCustomItem) => {
+                const oPanel = oCustomItem.getContent()[0];
+                const oTable = oPanel ? oPanel.getContent()[0] : null;
+                
+                if (oTable) {
+                    const aSelectedItems = oTable.getSelectedItems();
+                    if (aSelectedItems.length > 0) {
+                        const oBancoContext = oPanel.getBindingContext("wizard");
+                        const sBancoNombre = oBancoContext ? oBancoContext.getProperty("nombre") : "";
+
+                        if (iSelectedHorarioIndex === 1) {
+                            // Opción 2: Horario por banco (agregar una sola vez por banco)
+                            const bBancoYaAgregado = aHorariosPorBanco.some((b) => b.nombre === sBancoNombre);
+                            if (!bBancoYaAgregado) {
+                                aHorariosPorBanco.push({
+                                    nombre: sBancoNombre,
+                                    selectedHorario: "",
+                                    horariosUnicos: aHorariosDisponibles
+                                });
+                            }
+                        } else if (iSelectedHorarioIndex === 2) {
+                            // Opción 3: Horario por cuenta
+                            aSelectedItems.forEach((oItem) => {
+                                const oCtx = oItem.getBindingContext("wizard");
+                                if (oCtx) {
+                                    aHorariosPorCuenta.push({
+                                        banco: sBancoNombre,
+                                        nombre: oCtx.getProperty("nombre"),
+                                        cuentaCorriente: oCtx.getProperty("cuentaCorriente"),
+                                        selectedHorario: "",
+                                        horariosUnicos: aHorariosDisponibles
+                                    });
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+
+            oModel.setProperty("/horariosPersonalizadosPorBanco", aHorariosPorBanco);
+            oModel.setProperty("/horariosPersonalizadosPorCuenta", aHorariosPorCuenta);
+        },
+
+        onHorarioEspecificoChange(oEvent) {
+            const sSelectedKey = oEvent.getParameter("selectedItem").getKey();
+            const oSource = oEvent.getSource();
+            const sDataKey = oSource.data("key");
+            const oModel = this.getView().getModel("wizard");
+            const iSelectedHorarioIndex = oModel.getProperty("/selectedHorario");
+
+            if (iSelectedHorarioIndex === 1) {
+                // Opción 2: por banco
+                const aBancos = oModel.getProperty("/horariosPersonalizadosPorBanco");
+                const iBancoIndex = aBancos.findIndex((b) => `banco_${b.nombre}` === sDataKey);
+                if (iBancoIndex >= 0) {
+                    oModel.setProperty(`/horariosPersonalizadosPorBanco/${iBancoIndex}/selectedHorario`, sSelectedKey);
+                }
+            } else if (iSelectedHorarioIndex === 2) {
+                // Opción 3: por cuenta
+                const aCuentas = oModel.getProperty("/horariosPersonalizadosPorCuenta");
+                const iCuentaIndex = aCuentas.findIndex((c) => `cuenta_${c.cuentaCorriente}` === sDataKey);
+                if (iCuentaIndex >= 0) {
+                    oModel.setProperty(`/horariosPersonalizadosPorCuenta/${iCuentaIndex}/selectedHorario`, sSelectedKey);
+                }
+            }
             this._updateReviewHorario();
         },
 
