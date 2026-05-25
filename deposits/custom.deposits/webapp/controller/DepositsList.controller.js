@@ -770,7 +770,7 @@ sap.ui.define([
 			
 			// Calculate tenor in days and months
 			const iTenorDays = this._convertDateRangeToDays(oDateFrom, oDateTo);
-			const fTenorMonths = iTenorDays / 30.5;
+			const fTenorMonths = iTenorDays / 30;
 			
 			// Save dates and tenor values
 			oModel.setProperty("/dateFrom", oDateFrom);
@@ -830,6 +830,7 @@ sap.ui.define([
 					(fRateUpper - fRateLower) * 
 					(fTenorMonths - iTenorLowerMonths) / 
 					(iTenorUpperMonths - iTenorLowerMonths);
+				console.log("Interpolating rate: lower=" + fRateLower + " at " + iTenorLowerMonths + " months, upper=" + fRateUpper + " at " + iTenorUpperMonths + " months, target tenor=" + fTenorMonths + " months => interpolated rate=" + fInterpolatedRate);	
 			} else if (oDepositPair.single) {
 				// Only one deposit exists (at or closest to tenor)
 				fInterpolatedRate = oDepositPair.single.Rate;

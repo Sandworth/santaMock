@@ -229,10 +229,15 @@ sap.ui.define([
 		},
 
 		_getKey: function () {
+			// For JSON model with key in format EntitySet/key, extract the key value
+			const sKey	= this.getView().getBindingContext("mainService").getProperty('UUID');
+			return sKey;
+			
+			// For OData service with key in format EntitySet(key), extract the key value
 			const sPath = this.getView().getBindingContext("mainService").getPath();
 			return sPath.split("(")[1].slice(0, -1);
 		},
-
+		
 		onExit: function () {
 			this.oRouter.getRoute("DepositDetail").detachPatternMatched(this._onDepositMatched, this);
 		}
