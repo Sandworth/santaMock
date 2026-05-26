@@ -57,7 +57,7 @@ sap.ui.define([
 
         onTabSelect(oEvent) {
             const oSelectedKey = oEvent.getParameter("selectedKey");
-            this.getView().getModel("view").setProperty("/selectedTab", oSelectedKey);
+            this._getViewModel().setProperty("/selectedTab", oSelectedKey);
         },
 
         _applyViewModelI18n(oViewModel) {
@@ -98,7 +98,7 @@ sap.ui.define([
         },
 
         _buildTransferenciasGroups() {
-            const oModel = this.getView().getModel("view");
+            const oModel = this._getViewModel();
             const aTransferencias = oModel.getProperty("/transferencias") || [];
             const oGroupsByKey = new Map();
 
@@ -142,7 +142,7 @@ sap.ui.define([
         onTransferenciasGroupSearch(oEvent) {
             const sRawQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").trim();
             const sNormalizedQuery = this._normalizeNifSearch(sRawQuery);
-            const oModel = this.getView().getModel("view");
+            const oModel = this._getViewModel();
             const aAllGroups = oModel.getProperty("/_transferenciasAgrupadasAll") || [];
 
             if (!sNormalizedQuery) {
@@ -188,7 +188,7 @@ sap.ui.define([
                 endButton: new Button({
                     text: this._oResourceBundle.getText("activateDialogCancel"),
                     press: () => {
-                        this.getView().getModel("view").setProperty(`${oContext.getPath()}/activo`, false);
+                        this._getViewModel().setProperty(`${oContext.getPath()}/activo`, false);
                         oSwitch.setState(false);
                         oDialog.close();
                     }
@@ -209,7 +209,7 @@ sap.ui.define([
             }
 
             const sPath = oContext.getPath();
-            const oModel = this.getView().getModel("view");
+            const oModel = this._getViewModel();
             const oGroup = oModel.getProperty(sPath);
             const oFilters = oGroup.filters || {};
 
@@ -236,7 +236,7 @@ sap.ui.define([
             }
 
             const sPath = oContext.getPath();
-            const oModel = this.getView().getModel("view");
+            const oModel = this._getViewModel();
 
             oModel.setProperty(`${sPath}/filters/dateFrom`, null);
             oModel.setProperty(`${sPath}/filters/dateTo`, null);
@@ -256,7 +256,7 @@ sap.ui.define([
                 return;
             }
 
-            this.getView().getModel("view").setProperty(`${oContext.getPath()}/selectedCount`, iSelectedCount);
+            this._getViewModel().setProperty(`${oContext.getPath()}/selectedCount`, iSelectedCount);
         },
 
         onConsultConfiguration() {
@@ -343,9 +343,12 @@ sap.ui.define([
             const oWizardModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardData.json"));
             oWizardModel.attachRequestCompleted(() => {
                 // Store full lists for filtering
-                oWizardModel.setProperty("/_empresasAll", oWizardModel.getProperty("/empresas").slice());
-                oWizardModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oWizardModel.getProperty("/bancos"))));
-                oWizardModel.setProperty("/_cuentasCentralAll", oWizardModel.getProperty("/cuentasCentralizadoras").slice());
+                const aEmpresas = oWizardModel.getProperty("/empresas") || [];
+                const aBancos = oWizardModel.getProperty("/bancos") || [];
+                const aCuentasCentralizadoras = oWizardModel.getProperty("/cuentasCentralizadoras") || [];
+                oWizardModel.setProperty("/_empresasAll", aEmpresas.slice());
+                oWizardModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(aBancos)));
+                oWizardModel.setProperty("/_cuentasCentralAll", aCuentasCentralizadoras.slice());
                 this.getView().setModel(oWizardModel, "wizard");
                 this._openWizardDialogFragment();
             });
@@ -369,6 +372,79 @@ sap.ui.define([
             } else {
                 this._wizardDialog.open();
             }
+        },
+
+        _getWizardModel() {
+            return this.getView().getModel("wizard");
+        },
+
+        _getViewModel() {
+            return this.getView().getModel("view");
+        },
+
+        _setModelPropertyIfChanged(oModel, sPath, vValue) {
+            if (!oModel) {
+                return;
+            }
+
+            const vCurrent = oModel.getProperty(sPath);
+            if (vCurrent !== vValue) {
+                oModel.setProperty(sPath, vValue);
+            }
+        },
+
+        _setWizardPropertyIfChanged(sPath, vValue) {
+            this._setModelPropertyIfChanged(this._getWizardModel(), sPath, vValue);
+        },
+
+        _setWizardStepValidation(sStepId, bValid) {
+            const oWizard = this.byId("configWizard");
+            const oStep = this.byId(sStepId);
+            if (!oWizard || !oStep) {
+                return;
+            }
+            bValid ? oWizard.validateStep(oStep) : oWizard.invalidateStep(oStep);
+        },
+
+        _getSelectedStep2Accounts() {
+            const oBancosList = this.byId("bancosListStep2");
+            if (!oBancosList) {
+                return [];
+            }
+
+            const aSelectedAccounts = [];
+            oBancosList.getItems().forEach((oCustomItem) => {
+                const oPanel = oCustomItem.getContent()[0];
+                const oTable = oPanel ? oPanel.getContent()[0] : null;
+                if (!oTable) {
+                    return;
+                }
+
+                const oBancoContext = oPanel.getBindingContext("wizard");
+                const sBancoNombre = oBancoContext ? oBancoContext.getProperty("nombre") : "";
+
+                oTable.getSelectedItems().forEach((oItem) => {
+                    const oCtx = oItem.getBindingContext("wizard");
+                    if (oCtx) {
+                        aSelectedAccounts.push({
+                            banco: sBancoNombre,
+                            data: oCtx.getObject()
+                        });
+                    }
+                });
+            });
+
+            return aSelectedAccounts;
+        },
+
+        _hasValidLocalizedInputs(aItems) {
+            return aItems.length > 0 && aItems.every((oItem) => {
+                const sInput = (oItem.saldoPersonalizadoInput || "").trim();
+                if (!sInput) {
+                    return false;
+                }
+                return !Number.isNaN(this._parseLocalizedNumber(sInput));
+            });
         },
 
         _resetWizard() {
@@ -404,7 +480,7 @@ sap.ui.define([
         },
 
         onWizardAccept() {
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const oReview = oModel.getProperty("/review");
             //MessageToast.show(`Configuració guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
             MessageToast.show(this._oResourceBundle.getText("msgSavedConfig", [oReview.razonSocial, oReview.cuentaCentralNombre, oReview.horario]));
@@ -413,15 +489,15 @@ sap.ui.define([
             }
         },
 
-        onWizardDialogAfterClose(oEvent) {
+        onWizardDialogAfterClose() {
             this._resetWizard();
 
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             if (oModel) {
-                oModel.setProperty("/nav/backVisible", false);
-                oModel.setProperty("/nav/nextVisible", true);
-                oModel.setProperty("/nav/nextEnabled", false);
-                oModel.setProperty("/nav/acceptVisible", false);
+                this._setWizardPropertyIfChanged("/nav/backVisible", false);
+                this._setWizardPropertyIfChanged("/nav/nextVisible", true);
+                this._setWizardPropertyIfChanged("/nav/nextEnabled", false);
+                this._setWizardPropertyIfChanged("/nav/acceptVisible", false);
             }
 
             this._iCurrentStepIndex = 0;
@@ -437,7 +513,7 @@ sap.ui.define([
         },
 
         _updateReviewEmpresa() {
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const oEmpresaTable = this.byId("empresaTable");
             const oSelected = oEmpresaTable ? oEmpresaTable.getItems().find((i) => i.getSelected()) : null;
             if (oSelected) {
@@ -451,26 +527,13 @@ sap.ui.define([
         },
 
         _updateReviewCuentas() {
-            const oModel = this.getView().getModel("wizard");
-            const oBancosList = this.byId("bancosListStep2");
-            if (oBancosList) {
-                const aCuentasSeleccionadas = [];
-                oBancosList.getItems().forEach((oCustomItem) => {
-                    const oPanel = oCustomItem.getContent()[0];
-                    const oTable = oPanel ? oPanel.getContent()[0] : null;
-                    if (oTable) {
-                        oTable.getSelectedItems().forEach((oItem) => {
-                            const oCtx = oItem.getBindingContext("wizard");
-                            if (oCtx) { aCuentasSeleccionadas.push(oCtx.getObject()); }
-                        });
-                    }
-                });
-                oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.nombre).join(", ") || "-");
-            }
+            const oModel = this._getWizardModel();
+            const aCuentasSeleccionadas = this._getSelectedStep2Accounts().map((oEntry) => oEntry.data);
+            oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.nombre).join(", ") || "-");
         },
 
         _updateReviewCuentaCentral() {
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const oCuentaTable = this.byId("cuentaCentralTable");
             const oSelected = oCuentaTable ? oCuentaTable.getItems().find((i) => i.getSelected()) : null;
             if (oSelected) {
@@ -484,7 +547,7 @@ sap.ui.define([
         },
 
         _updateReviewHorario() {
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const oHorarioGroup = this.byId("horarioGroup");
             if (oHorarioGroup) {
                 const oSelected = oHorarioGroup.getSelectedButton();
@@ -520,8 +583,8 @@ sap.ui.define([
         },
 
         _updateReviewDias() {
-            const oModel = this.getView().getModel("wizard");
-            const oDias = oModel.getProperty("/dias");
+            const oModel = this._getWizardModel();
+            const oDias = oModel.getProperty("/dias") || {};
             const aDiasSeleccionados = Object.entries(oDias)
                 .filter(([, bSelected]) => bSelected)
                 .map(([sDay]) => sDay.charAt(0).toUpperCase() + sDay.slice(1));
@@ -529,7 +592,7 @@ sap.ui.define([
         },
 
         _updateReviewSaldo() {
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const oSaldoGroup = this.byId("saldoGroup");
             if (oSaldoGroup) {
                 const oSelected = oSaldoGroup.getSelectedButton();
@@ -589,7 +652,7 @@ sap.ui.define([
 
         onEmpresaSearch(oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const aAll = oModel.getProperty("/_empresasAll");
             const aFiltered = sQuery
                 ? aAll.filter((o) => o.razonSocial.toLowerCase().includes(sQuery) || o.cif.toLowerCase().includes(sQuery))
@@ -599,7 +662,7 @@ sap.ui.define([
 
         onCuentasSearch(oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const aAll = oModel.getProperty("/_bancosAll");
             if (!sQuery) {
                 const aReset = JSON.parse(JSON.stringify(aAll)).map((b) => Object.assign(b, { expanded: false }));
@@ -624,7 +687,7 @@ sap.ui.define([
 
         onCuentaCentralSearch(oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const aAll = oModel.getProperty("/_cuentasCentralAll");
             const aFiltered = sQuery
                 ? aAll.filter((o) =>
@@ -637,6 +700,9 @@ sap.ui.define([
 
         onWizardDialogAfterOpen() {
             const oWizard = this.byId("configWizard");
+            if (!oWizard) {
+                return;
+            }
             const sCurrentId = oWizard.getCurrentStep();
             const aSteps = oWizard.getSteps();
             const iIndex = aSteps.findIndex((s) => s.getId() === sCurrentId);
@@ -649,30 +715,39 @@ sap.ui.define([
         },
 
         _updateNavState(iIndex) {
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const oWizard = this.byId("configWizard");
+            if (!oModel || !oWizard) {
+                return;
+            }
             const aSteps = oWizard ? oWizard.getSteps() : [];
             const bIsLast = iIndex === aSteps.length - 1;
             const bCurrentValid = iIndex === 0
                 ? this._isStep1Valid()
                 : (aSteps[iIndex] ? aSteps[iIndex].getValidated() : false);
 
-            oModel.setProperty("/nav/backVisible", iIndex > 0);
-            oModel.setProperty("/nav/nextVisible", !bIsLast);
-            oModel.setProperty("/nav/nextEnabled", bCurrentValid);
-            oModel.setProperty("/nav/acceptVisible", bIsLast);
+            this._setWizardPropertyIfChanged("/nav/backVisible", iIndex > 0);
+            this._setWizardPropertyIfChanged("/nav/nextVisible", !bIsLast);
+            this._setWizardPropertyIfChanged("/nav/nextEnabled", bCurrentValid);
+            this._setWizardPropertyIfChanged("/nav/acceptVisible", bIsLast);
             this._iCurrentStepIndex = iIndex;
         },
 
         onWizardNavChange(oEvent) {
             const oWizard = this.byId("configWizard");
+            if (!oWizard) {
+                return;
+            }
             const oStep = oEvent.getParameter("step");
             const iIndex = oWizard.getSteps().indexOf(oStep);
-            this._updateNavState(iIndex);
+            this._updateNavState(Math.max(0, iIndex));
         },
 
         onWizardNext() {
             const oWizard = this.byId("configWizard");
+            if (!oWizard) {
+                return;
+            }
             const iNext = this._iCurrentStepIndex + 1;
             if (iNext < oWizard.getProgress()) {
                 // Step already activated (e.g. navigating forward after editing) - goToStep is safe
@@ -686,53 +761,50 @@ sap.ui.define([
 
         onWizardBack() {
             const oWizard = this.byId("configWizard");
+            if (!oWizard || this._iCurrentStepIndex <= 0) {
+                return;
+            }
             const iPrev = this._iCurrentStepIndex - 1;
             oWizard.goToStep(oWizard.getSteps()[iPrev], true);
             this._updateNavState(iPrev);
         },
 
         onEmpresaSelectionChange() {
-            const oWizard = this.byId("configWizard");
             const bValid = this.byId("empresaTable").getItems().some((i) => i.getSelected());
-            bValid ? oWizard.validateStep(this.byId("wizardStep1")) : oWizard.invalidateStep(this.byId("wizardStep1"));
+            this._setWizardStepValidation("wizardStep1", bValid);
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewEmpresa();
         },
 
         onCuentasSelectionChange() {
-            const oWizard = this.byId("configWizard");
-            const oBancosList = this.byId("bancosListStep2");
-            let bValid = false;
-            if (oBancosList) {
-                bValid = oBancosList.getItems().some((oCustomItem) => {
-                    const oPanel = oCustomItem.getContent()[0];
-                    const oTable = oPanel ? oPanel.getContent()[0] : null;
-                    return oTable ? oTable.getSelectedItems().length > 0 : false;
-                });
-            }
-            bValid ? oWizard.validateStep(this.byId("wizardStep2")) : oWizard.invalidateStep(this.byId("wizardStep2"));
-            this._buildHorariosEspecificos();
-            this._buildSaldosPersonalizados();
+            const aSelectedAccounts = this._getSelectedStep2Accounts();
+            const bValid = aSelectedAccounts.length > 0;
+            this._setWizardStepValidation("wizardStep2", bValid);
+            this._buildHorariosEspecificos(aSelectedAccounts);
+            this._buildSaldosPersonalizados(aSelectedAccounts);
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewCuentas();
         },
 
         onCuentaCentralSelectionChange() {
-            const oWizard = this.byId("configWizard");
             const bValid = this.byId("cuentaCentralTable").getItems().some((i) => i.getSelected());
-            bValid ? oWizard.validateStep(this.byId("wizardStep3")) : oWizard.invalidateStep(this.byId("wizardStep3"));
+            this._setWizardStepValidation("wizardStep3", bValid);
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewCuentaCentral();
         },
 
         onHorarioSelectionChange() {
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const oHorarioGroup = this.byId("horarioGroup");
-            if (oHorarioGroup && oHorarioGroup.getSelectedIndex() !== 0) {
-                oModel.setProperty("/horarioUnico", "");
+            if (!oModel || !oHorarioGroup) {
+                return;
+            }
+
+            if (oHorarioGroup.getSelectedIndex() !== 0) {
+                this._setWizardPropertyIfChanged("/horarioUnico", "");
             }
             if (oHorarioGroup.getSelectedIndex() === 0) {
-                oModel.setProperty("/selectedHorario", 0);
+                this._setWizardPropertyIfChanged("/selectedHorario", 0);
             }
             this._buildHorariosEspecificos();
             this._updateReviewHorario();
@@ -743,13 +815,13 @@ sap.ui.define([
             this._updateReviewHorario();
         },
 
-        _buildHorariosEspecificos() {
-            const oModel = this.getView().getModel("wizard");
+        _buildHorariosEspecificos(aSelectedAccountsParam) {
+            const oModel = this._getWizardModel();
             const iSelectedHorarioIndex = oModel.getProperty("/selectedHorario");
-            const oBancosList = this.byId("bancosListStep2");
+            const aSelectedAccounts = aSelectedAccountsParam || this._getSelectedStep2Accounts();
             
             // Reset if not building for options 2 or 3
-            if (!oBancosList || iSelectedHorarioIndex === 0 || iSelectedHorarioIndex === null) {
+            if (!aSelectedAccounts.length || iSelectedHorarioIndex === 0 || iSelectedHorarioIndex === null) {
                 oModel.setProperty("/horariosPersonalizadosPorBanco", []);
                 oModel.setProperty("/horariosPersonalizadosPorCuenta", []);
                 return;
@@ -758,43 +830,31 @@ sap.ui.define([
             const aHorariosPorBanco = [];
             const aHorariosPorCuenta = [];
             const aHorariosDisponibles = oModel.getProperty("/horariosUnicos");
+            const oBancosYaAgregados = new Set();
 
-            oBancosList.getItems().forEach((oCustomItem) => {
-                const oPanel = oCustomItem.getContent()[0];
-                const oTable = oPanel ? oPanel.getContent()[0] : null;
-                
-                if (oTable) {
-                    const aSelectedItems = oTable.getSelectedItems();
-                    if (aSelectedItems.length > 0) {
-                        const oBancoContext = oPanel.getBindingContext("wizard");
-                        const sBancoNombre = oBancoContext ? oBancoContext.getProperty("nombre") : "";
+            aSelectedAccounts.forEach((oAccountEntry) => {
+                const sBancoNombre = oAccountEntry.banco;
+                const oAccountData = oAccountEntry.data;
 
-                        if (iSelectedHorarioIndex === 1) {
-                            // Opción 2: Horario por banco (agregar una sola vez por banco)
-                            const bBancoYaAgregado = aHorariosPorBanco.some((b) => b.nombre === sBancoNombre);
-                            if (!bBancoYaAgregado) {
-                                aHorariosPorBanco.push({
-                                    nombre: sBancoNombre,
-                                    selectedHorario: "",
-                                    horariosUnicos: aHorariosDisponibles
-                                });
-                            }
-                        } else if (iSelectedHorarioIndex === 2) {
-                            // Opción 3: Horario por cuenta
-                            aSelectedItems.forEach((oItem) => {
-                                const oCtx = oItem.getBindingContext("wizard");
-                                if (oCtx) {
-                                    aHorariosPorCuenta.push({
-                                        banco: sBancoNombre,
-                                        nombre: oCtx.getProperty("nombre"),
-                                        cuentaCorriente: oCtx.getProperty("cuentaCorriente"),
-                                        selectedHorario: "",
-                                        horariosUnicos: aHorariosDisponibles
-                                    });
-                                }
-                            });
-                        }
+                if (iSelectedHorarioIndex === 1) {
+                    // Opción 2: Horario por banco (agregar una sola vez por banco)
+                    if (!oBancosYaAgregados.has(sBancoNombre)) {
+                        oBancosYaAgregados.add(sBancoNombre);
+                        aHorariosPorBanco.push({
+                            nombre: sBancoNombre,
+                            selectedHorario: "",
+                            horariosUnicos: aHorariosDisponibles
+                        });
                     }
+                } else if (iSelectedHorarioIndex === 2) {
+                    // Opción 3: Horario por cuenta
+                    aHorariosPorCuenta.push({
+                        banco: sBancoNombre,
+                        nombre: oAccountData.nombre,
+                        cuentaCorriente: oAccountData.cuentaCorriente,
+                        selectedHorario: "",
+                        horariosUnicos: aHorariosDisponibles
+                    });
                 }
             });
 
@@ -803,10 +863,15 @@ sap.ui.define([
         },
 
         onHorarioEspecificoChange(oEvent) {
-            const sSelectedKey = oEvent.getParameter("selectedItem").getKey();
+            const oSelectedItem = oEvent.getParameter("selectedItem");
+            if (!oSelectedItem) {
+                return;
+            }
+
+            const sSelectedKey = oSelectedItem.getKey();
             const oSource = oEvent.getSource();
             const sDataKey = oSource.data("key");
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             const iSelectedHorarioIndex = oModel.getProperty("/selectedHorario");
 
             if (iSelectedHorarioIndex === 1) {
@@ -832,19 +897,23 @@ sap.ui.define([
             this._validateStep4();
         },
 
-        onSaldoSelectionChange() {
+        onSaldoSelectionChange(oEvent) {
+            const oModel = this._getWizardModel();
+            const oSaldoGroup = oEvent ? oEvent.getSource() : this.byId("saldoGroup");
+            if (oModel && oSaldoGroup) {
+                this._setWizardPropertyIfChanged("/selectedSaldoType", oSaldoGroup.getSelectedIndex());
+            }
+
             this._buildSaldosPersonalizados();
-            this._validateStep5();
             this._updateReviewSaldo();
+            this._validateStep5();
         },
 
         _validateStep4() {
-            const oWizard = this.byId("configWizard");
             const oHorarioGroup = this.byId("horarioGroup");
-            const oStep4 = this.byId("wizardStep4");
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
 
-            if (!oWizard || !oHorarioGroup || !oStep4 || !oModel) {
+            if (!oHorarioGroup || !oModel) {
                 return;
             }
 
@@ -854,17 +923,15 @@ sap.ui.define([
             const bAnyDaySelected = Object.values(oDias).some(Boolean);
             const bValid = bHorarioSelected && bAnyDaySelected;
 
-            bValid ? oWizard.validateStep(oStep4) : oWizard.invalidateStep(oStep4);
+            this._setWizardStepValidation("wizardStep4", bValid);
             this._updateNavState(this._iCurrentStepIndex);
         },
 
         _validateStep5() {
-            const oWizard = this.byId("configWizard");
             const oSaldoGroup = this.byId("saldoGroup");
-            const oStep5 = this.byId("wizardStep5");
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
 
-            if (!oWizard || !oSaldoGroup || !oStep5 || !oModel) {
+            if (!oSaldoGroup || !oModel) {
                 return;
             }
 
@@ -876,34 +943,22 @@ sap.ui.define([
                 bValid = true;
             } else if (iSelectedIndex === 0) {
                 const aBancos = oModel.getProperty("/saldosPersonalizadosPorBanco") || [];
-                bValid = aBancos.length > 0 && aBancos.every((oBanco) => {
-                    const sInput = (oBanco.saldoPersonalizadoInput || "").trim();
-                    if (!sInput) {
-                        return false;
-                    }
-                    return !Number.isNaN(this._parseLocalizedNumber(sInput));
-                });
+                bValid = this._hasValidLocalizedInputs(aBancos);
             } else if (iSelectedIndex === 1) {
                 const aCuentas = oModel.getProperty("/saldosPersonalizadosPorCuenta") || [];
-                bValid = aCuentas.length > 0 && aCuentas.every((oCuenta) => {
-                    const sInput = (oCuenta.saldoPersonalizadoInput || "").trim();
-                    if (!sInput) {
-                        return false;
-                    }
-                    return !Number.isNaN(this._parseLocalizedNumber(sInput));
-                });
+                bValid = this._hasValidLocalizedInputs(aCuentas);
             }
 
-            bValid ? oWizard.validateStep(oStep5) : oWizard.invalidateStep(oStep5);
+            this._setWizardStepValidation("wizardStep5", bValid);
             this._updateNavState(this._iCurrentStepIndex);
         },
 
-        _buildSaldosPersonalizados() {
-            const oModel = this.getView().getModel("wizard");
+        _buildSaldosPersonalizados(aSelectedAccountsParam) {
+            const oModel = this._getWizardModel();
             const iSelectedSaldoType = oModel.getProperty("/selectedSaldoType");
-            const oBancosList = this.byId("bancosListStep2");
+            const aSelectedAccounts = aSelectedAccountsParam || this._getSelectedStep2Accounts();
 
-            if (!oBancosList || (iSelectedSaldoType !== 0 && iSelectedSaldoType !== 1)) {
+            if (!aSelectedAccounts.length || (iSelectedSaldoType !== 0 && iSelectedSaldoType !== 1)) {
                 oModel.setProperty("/saldosPersonalizadosPorBanco", []);
                 oModel.setProperty("/saldosPersonalizadosPorCuenta", []);
                 return;
@@ -925,60 +980,40 @@ sap.ui.define([
             const aSaldosPorCuenta = [];
             const oBankAggregation = new Map();
 
-            oBancosList.getItems().forEach((oCustomItem) => {
-                const oPanel = oCustomItem.getContent()[0];
-                const oTable = oPanel ? oPanel.getContent()[0] : null;
+            aSelectedAccounts.forEach((oAccountEntry) => {
+                const sBancoNombre = oAccountEntry.banco;
+                const oAccountData = oAccountEntry.data;
+                const sCuentaCorriente = oAccountData.cuentaCorriente;
+                const sCuentaNombre = oAccountData.nombre;
+                const nSaldoInfoCent = Number(oAccountData.saldoInfoCent) || 0;
+                const sCurrency = oAccountData.currency || "";
 
-                if (!oTable) {
-                    return;
+                if (iSelectedSaldoType === 1) {
+                    const oPrevCuenta = oPrevCuentaMap.get(sCuentaCorriente) || {};
+                    aSaldosPorCuenta.push({
+                        banco: sBancoNombre,
+                        nombre: sCuentaNombre,
+                        cuentaCorriente: sCuentaCorriente,
+                        saldoDisponible: nSaldoInfoCent,
+                        currency: sCurrency,
+                        saldoPersonalizado: oPrevCuenta.saldoPersonalizado ?? null,
+                        saldoPersonalizadoInput: oPrevCuenta.saldoPersonalizadoInput || ""
+                    });
                 }
 
-                const aSelectedItems = oTable.getSelectedItems();
-                if (!aSelectedItems.length) {
-                    return;
+                if (!oBankAggregation.has(sBancoNombre)) {
+                    oBankAggregation.set(sBancoNombre, {
+                        nombre: sBancoNombre,
+                        saldoTotal: 0,
+                        currencies: new Set()
+                    });
                 }
 
-                const oBancoContext = oPanel.getBindingContext("wizard");
-                const sBancoNombre = oBancoContext ? oBancoContext.getProperty("nombre") : "";
-
-                aSelectedItems.forEach((oItem) => {
-                    const oCtx = oItem.getBindingContext("wizard");
-                    if (!oCtx) {
-                        return;
-                    }
-
-                    const sCuentaCorriente = oCtx.getProperty("cuentaCorriente");
-                    const sCuentaNombre = oCtx.getProperty("nombre");
-                    const nSaldoInfoCent = Number(oCtx.getProperty("saldoInfoCent")) || 0;
-                    const sCurrency = oCtx.getProperty("currency") || "";
-
-                    if (iSelectedSaldoType === 1) {
-                        const oPrevCuenta = oPrevCuentaMap.get(sCuentaCorriente) || {};
-                        aSaldosPorCuenta.push({
-                            banco: sBancoNombre,
-                            nombre: sCuentaNombre,
-                            cuentaCorriente: sCuentaCorriente,
-                            saldoDisponible: nSaldoInfoCent,
-                            currency: sCurrency,
-                            saldoPersonalizado: oPrevCuenta.saldoPersonalizado ?? null,
-                            saldoPersonalizadoInput: oPrevCuenta.saldoPersonalizadoInput || ""
-                        });
-                    }
-
-                    if (!oBankAggregation.has(sBancoNombre)) {
-                        oBankAggregation.set(sBancoNombre, {
-                            nombre: sBancoNombre,
-                            saldoTotal: 0,
-                            currencies: new Set()
-                        });
-                    }
-
-                    const oBankData = oBankAggregation.get(sBancoNombre);
-                    oBankData.saldoTotal += nSaldoInfoCent;
-                    if (sCurrency) {
-                        oBankData.currencies.add(sCurrency);
-                    }
-                });
+                const oBankData = oBankAggregation.get(sBancoNombre);
+                oBankData.saldoTotal += nSaldoInfoCent;
+                if (sCurrency) {
+                    oBankData.currencies.add(sCurrency);
+                }
             });
 
             if (iSelectedSaldoType === 0) {
@@ -1003,7 +1038,6 @@ sap.ui.define([
 
             oModel.setProperty("/saldosPersonalizadosPorBanco", aSaldosPorBanco);
             oModel.setProperty("/saldosPersonalizadosPorCuenta", aSaldosPorCuenta);
-            this._validateStep5();
         },
 
         onSaldoPersonalizadoChange(oEvent) {
@@ -1016,7 +1050,7 @@ sap.ui.define([
                 ? ""
                 : this._formatLocalizedNumber(nParsedValue);
 
-            const oModel = this.getView().getModel("wizard");
+            const oModel = this._getWizardModel();
             if (sScope === "banco") {
                 const aBancos = oModel.getProperty("/saldosPersonalizadosPorBanco") || [];
                 const iBancoIndex = aBancos.findIndex((b) => `banco_${b.nombre}` === sDataKey);
