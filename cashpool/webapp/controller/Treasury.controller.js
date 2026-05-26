@@ -7,9 +7,10 @@ sap.ui.define([
     "sap/m/Dialog",
     "sap/m/Button",
     "sap/m/Text",
+    "sap/ui/core/format/NumberFormat",
     "sap/viz/ui5/format/ChartFormatter",
     "sap/viz/ui5/api/env/Format"
-], (Controller, JSONModel, Fragment, Formatter, MessageToast, Dialog, Button, Text, ChartFormatter, Format) => {
+], (Controller, JSONModel, Fragment, Formatter, MessageToast, Dialog, Button, Text, NumberFormat, ChartFormatter, Format) => {
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
@@ -467,6 +468,8 @@ sap.ui.define([
                 horarioUnico: "",
                 horariosPersonalizadosPorBanco: [],
                 horariosPersonalizadosPorCuenta: [],
+                saldosPersonalizadosPorBanco: [],
+                saldosPersonalizadosPorCuenta: [],
                 horariosUnicos: [
                     { key: "17:00", text: "17:00" },
                     { key: "18:00", text: "18:00" },
@@ -579,8 +582,12 @@ sap.ui.define([
             }
         },
 
-        onWizardDialogAfterClose() {
-            // Cleanup hook
+        onWizardDialogAfterClose(oEvent) {
+            // if (this._wizardDialog) {
+            //     this._resetWizard();
+            //     this._wizardDialog.close();
+            //     this._wizardDialog.getModel('wizard').setProperty("/nav/nextEnabled", false);
+            // }
         },
 
         onReviewStepActivate() {
@@ -644,8 +651,8 @@ sap.ui.define([
             const oHorarioGroup = this.byId("horarioGroup");
             if (oHorarioGroup) {
                 const oSelected = oHorarioGroup.getSelectedButton();
-                const sSelectedText = oSelected ? oSelected.getText() : "";
                 const iSelectedIndex = oHorarioGroup.getSelectedIndex();
+                let sSelectedText = oSelected ? oSelected.getText() : "";
                 let sReviewHorario = sSelectedText;
 
                 if (iSelectedIndex === 0) {
@@ -657,16 +664,17 @@ sap.ui.define([
                     const aBancos = oModel.getProperty("/horariosPersonalizadosPorBanco") || [];
                     const aBancosConHorario = aBancos.filter((b) => b.selectedHorario);
                     if (aBancosConHorario.length > 0) {
-                        const aResumen = aBancosConHorario.map((b) => `${b.nombre}: ${b.selectedHorario}`).join(", ");
-                        sReviewHorario = `${sSelectedText} - ${aResumen}`;
+                        const aResumen = aBancosConHorario.map((b) => `${b.nombre}: ${b.selectedHorario}`).join("\n");
+                        sReviewHorario = `${sSelectedText}:\n ${aResumen}`;
                     }
                 } else if (iSelectedIndex === 2) {
                     // Opción 3: Horario por cuenta
+                    //sSelectedText +="\n"
                     const aCuentas = oModel.getProperty("/horariosPersonalizadosPorCuenta") || [];
                     const aCuentasConHorario = aCuentas.filter((c) => c.selectedHorario);
                     if (aCuentasConHorario.length > 0) {
-                        const aResumen = aCuentasConHorario.map((c) => `${c.banco} - ${c.nombre}: ${c.selectedHorario}`).join(", ");
-                        sReviewHorario = `${sSelectedText} - ${aResumen}`;
+                        const aResumen = aCuentasConHorario.map((c) => `${c.banco} - ${c.nombre}: ${c.selectedHorario}`).join("\n");
+                        sReviewHorario = `${sSelectedText}:\n ${aResumen}`;
                     }
                 }
 
@@ -689,17 +697,57 @@ sap.ui.define([
             if (oSaldoGroup) {
                 const oSelected = oSaldoGroup.getSelectedButton();
                 const sSelectedText = oSelected ? oSelected.getText() : "";
-                // const iSelectedIndex = oSaldoGroup.getSelectedIndex();
-                // let sReviewSaldo = sSelectedText;
-                // if (iSelectedIndex === 2) {
-                //     const oConsiderGroup = this.byId("saldoConsiderGroup");
-                //     const oConsiderSelected = oConsiderGroup ? oConsiderGroup.getSelectedButton() : null;
-                //     if (oConsiderSelected) {
-                //         sReviewSaldo = `${sSelectedText} (${oConsiderSelected.getText()})`;
-                //     }
-                // }
-                oModel.setProperty("/review/saldoAdicionalData", sSelectedText);
+                const iSelectedIndex = oSaldoGroup.getSelectedIndex();
+                let sReviewSaldo = sSelectedText;
+
+                if (iSelectedIndex === 0) {
+                    const aBancos = oModel.getProperty("/saldosPersonalizadosPorBanco") || [];
+                    const aBancosConSaldo = aBancos.filter((b) => b.saldoPersonalizado !== null && b.saldoPersonalizado !== undefined && b.saldoPersonalizado !== "");
+                    if (aBancosConSaldo.length > 0) {
+                        const aResumen = aBancosConSaldo
+                            .map((b) => `${b.nombre}: ${this._formatAmountForReview(b.saldoPersonalizado, b.currency)}`)
+                            .join("\n");
+                        sReviewSaldo = `${sSelectedText}:\n ${aResumen}`;
+                    }
+                } else if (iSelectedIndex === 1) {
+                    const aCuentas = oModel.getProperty("/saldosPersonalizadosPorCuenta") || [];
+                    const aCuentasConSaldo = aCuentas.filter((c) => c.saldoPersonalizado !== null && c.saldoPersonalizado !== undefined && c.saldoPersonalizado !== "");
+                    if (aCuentasConSaldo.length > 0) {
+                        const aResumen = aCuentasConSaldo
+                            .map((c) => `${c.banco} - ${c.nombre}: ${this._formatAmountForReview(c.saldoPersonalizado, c.currency)}`)
+                            .join("\n");
+                        sReviewSaldo = `${sSelectedText}:\n ${aResumen}`;
+                    }
+                }
+
+                oModel.setProperty("/review/saldoAdicionalData", sReviewSaldo);
             }
+        },
+
+        _formatAmountForReview(vAmount, sCurrency) {
+            const nAmount = Number(vAmount);
+            if (Number.isNaN(nAmount)) {
+                return "";
+            }
+            if (sCurrency) {
+                return Formatter.formatCurrency(nAmount, sCurrency);
+            }
+            return this._formatLocalizedNumber(nAmount);
+        },
+
+        _getLocalizedFloatFormatter() {
+            if (!this._oLocalizedFloatFormatter) {
+                this._oLocalizedFloatFormatter = NumberFormat.getFloatInstance({
+                    groupingEnabled: true,
+                    minFractionDigits: 2,
+                    maxFractionDigits: 2
+                });
+            }
+            return this._oLocalizedFloatFormatter;
+        },
+
+        _formatLocalizedNumber(nValue) {
+            return this._getLocalizedFloatFormatter().format(nValue);
         },
 
         onEmpresaSearch(oEvent) {
@@ -819,6 +867,8 @@ sap.ui.define([
                 });
             }
             bValid ? oWizard.validateStep(this.byId("wizardStep2")) : oWizard.invalidateStep(this.byId("wizardStep2"));
+            this._buildHorariosEspecificos();
+            this._buildSaldosPersonalizados();
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewCuentas();
         },
@@ -940,8 +990,177 @@ sap.ui.define([
             const oWizard = this.byId("configWizard");
             const bValid = !!this.byId("saldoGroup").getSelectedButton();
             bValid ? oWizard.validateStep(this.byId("wizardStep5")) : oWizard.invalidateStep(this.byId("wizardStep5"));
+            this._buildSaldosPersonalizados();
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewSaldo();
+        },
+
+        _buildSaldosPersonalizados() {
+            const oModel = this.getView().getModel("wizard");
+            const iSelectedSaldoType = oModel.getProperty("/selectedSaldoType");
+            const oBancosList = this.byId("bancosListStep2");
+
+            if (!oBancosList || (iSelectedSaldoType !== 0 && iSelectedSaldoType !== 1)) {
+                oModel.setProperty("/saldosPersonalizadosPorBanco", []);
+                oModel.setProperty("/saldosPersonalizadosPorCuenta", []);
+                return;
+            }
+
+            const aPrevByBanco = oModel.getProperty("/saldosPersonalizadosPorBanco") || [];
+            const aPrevByCuenta = oModel.getProperty("/saldosPersonalizadosPorCuenta") || [];
+
+            const oPrevBancoMap = new Map(aPrevByBanco.map((b) => [b.nombre, {
+                saldoPersonalizado: b.saldoPersonalizado,
+                saldoPersonalizadoInput: b.saldoPersonalizadoInput || ""
+            }]));
+            const oPrevCuentaMap = new Map(aPrevByCuenta.map((c) => [c.cuentaCorriente, {
+                saldoPersonalizado: c.saldoPersonalizado,
+                saldoPersonalizadoInput: c.saldoPersonalizadoInput || ""
+            }]));
+
+            const aSaldosPorBanco = [];
+            const aSaldosPorCuenta = [];
+            const oBankAggregation = new Map();
+
+            oBancosList.getItems().forEach((oCustomItem) => {
+                const oPanel = oCustomItem.getContent()[0];
+                const oTable = oPanel ? oPanel.getContent()[0] : null;
+
+                if (!oTable) {
+                    return;
+                }
+
+                const aSelectedItems = oTable.getSelectedItems();
+                if (!aSelectedItems.length) {
+                    return;
+                }
+
+                const oBancoContext = oPanel.getBindingContext("wizard");
+                const sBancoNombre = oBancoContext ? oBancoContext.getProperty("nombre") : "";
+
+                aSelectedItems.forEach((oItem) => {
+                    const oCtx = oItem.getBindingContext("wizard");
+                    if (!oCtx) {
+                        return;
+                    }
+
+                    const sCuentaCorriente = oCtx.getProperty("cuentaCorriente");
+                    const sCuentaNombre = oCtx.getProperty("nombre");
+                    const nSaldoInfoCent = Number(oCtx.getProperty("saldoInfoCent")) || 0;
+                    const sCurrency = oCtx.getProperty("currency") || "";
+
+                    if (iSelectedSaldoType === 1) {
+                        const oPrevCuenta = oPrevCuentaMap.get(sCuentaCorriente) || {};
+                        aSaldosPorCuenta.push({
+                            banco: sBancoNombre,
+                            nombre: sCuentaNombre,
+                            cuentaCorriente: sCuentaCorriente,
+                            saldoDisponible: nSaldoInfoCent,
+                            currency: sCurrency,
+                            saldoPersonalizado: oPrevCuenta.saldoPersonalizado ?? null,
+                            saldoPersonalizadoInput: oPrevCuenta.saldoPersonalizadoInput || ""
+                        });
+                    }
+
+                    if (!oBankAggregation.has(sBancoNombre)) {
+                        oBankAggregation.set(sBancoNombre, {
+                            nombre: sBancoNombre,
+                            saldoTotal: 0,
+                            currencies: new Set()
+                        });
+                    }
+
+                    const oBankData = oBankAggregation.get(sBancoNombre);
+                    oBankData.saldoTotal += nSaldoInfoCent;
+                    if (sCurrency) {
+                        oBankData.currencies.add(sCurrency);
+                    }
+                });
+            });
+
+            if (iSelectedSaldoType === 0) {
+                oBankAggregation.forEach((oBankData) => {
+                    const aCurrencies = Array.from(oBankData.currencies);
+                    const sCurrency = aCurrencies.length === 1 ? aCurrencies[0] : "";
+                    const sSaldoDisponibleTexto = sCurrency
+                        ? Formatter.formatCurrency(oBankData.saldoTotal, sCurrency)
+                        : "-";
+                    const oPrevBanco = oPrevBancoMap.get(oBankData.nombre) || {};
+
+                    aSaldosPorBanco.push({
+                        nombre: oBankData.nombre,
+                        saldoDisponible: oBankData.saldoTotal,
+                        saldoDisponibleTexto: sSaldoDisponibleTexto,
+                        currency: sCurrency,
+                        saldoPersonalizado: oPrevBanco.saldoPersonalizado ?? null,
+                        saldoPersonalizadoInput: oPrevBanco.saldoPersonalizadoInput || ""
+                    });
+                });
+            }
+
+            oModel.setProperty("/saldosPersonalizadosPorBanco", aSaldosPorBanco);
+            oModel.setProperty("/saldosPersonalizadosPorCuenta", aSaldosPorCuenta);
+        },
+
+        onSaldoPersonalizadoChange(oEvent) {
+            const oSource = oEvent.getSource();
+            const sScope = oSource.data("scope");
+            const sDataKey = oSource.data("key");
+            const sRawValue = oSource.getValue() || "";
+            const nParsedValue = this._parseLocalizedNumber(sRawValue);
+            const sFormattedValue = Number.isNaN(nParsedValue)
+                ? ""
+                : this._formatLocalizedNumber(nParsedValue);
+
+            const oModel = this.getView().getModel("wizard");
+            if (sScope === "banco") {
+                const aBancos = oModel.getProperty("/saldosPersonalizadosPorBanco") || [];
+                const iBancoIndex = aBancos.findIndex((b) => `banco_${b.nombre}` === sDataKey);
+                if (iBancoIndex >= 0) {
+                    oModel.setProperty(`/saldosPersonalizadosPorBanco/${iBancoIndex}/saldoPersonalizado`, Number.isNaN(nParsedValue) ? null : nParsedValue);
+                    oModel.setProperty(`/saldosPersonalizadosPorBanco/${iBancoIndex}/saldoPersonalizadoInput`, sFormattedValue);
+                }
+            } else if (sScope === "cuenta") {
+                const aCuentas = oModel.getProperty("/saldosPersonalizadosPorCuenta") || [];
+                const iCuentaIndex = aCuentas.findIndex((c) => `cuenta_${c.cuentaCorriente}` === sDataKey);
+                if (iCuentaIndex >= 0) {
+                    oModel.setProperty(`/saldosPersonalizadosPorCuenta/${iCuentaIndex}/saldoPersonalizado`, Number.isNaN(nParsedValue) ? null : nParsedValue);
+                    oModel.setProperty(`/saldosPersonalizadosPorCuenta/${iCuentaIndex}/saldoPersonalizadoInput`, sFormattedValue);
+                }
+            }
+            this._updateReviewSaldo();
+        },
+
+        _parseLocalizedNumber(sValue) {
+            if (!sValue) {
+                return Number.NaN;
+            }
+
+            const sInput = String(sValue).trim();
+            const vParsed = this._getLocalizedFloatFormatter().parse(sInput);
+            if (typeof vParsed === "number" && !Number.isNaN(vParsed)) {
+                return vParsed;
+            }
+
+            // Fallback for pasted values with a different locale format.
+            const sCompact = sInput.replace(/\s+/g, "");
+            const iLastComma = sCompact.lastIndexOf(",");
+            const iLastDot = sCompact.lastIndexOf(".");
+
+            if (iLastComma !== -1 || iLastDot !== -1) {
+                const sDecimalSep = iLastDot > iLastComma ? "." : ",";
+                const sThousandsSep = sDecimalSep === "." ? "," : ".";
+                const sNormalized = sCompact
+                    .split(sThousandsSep).join("")
+                    .replace(sDecimalSep, ".");
+                const nFallback = Number(sNormalized);
+                if (!Number.isNaN(nFallback)) {
+                    return nFallback;
+                }
+            }
+
+            const nDirect = Number(sCompact);
+            return Number.isNaN(nDirect) ? Number.NaN : nDirect;
         },
 
         onSaldoConsiderChange() {

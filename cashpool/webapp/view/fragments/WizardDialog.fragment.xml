@@ -202,7 +202,7 @@
                                             <Text text="{i18n>colNombre}"/>
                                         </header>
                                     </Column>
-                                    <Column hAlign="End" width="13rem">
+                                    <Column hAlign="Begin" width="13rem">
                                         <header>
                                             <Text text=""/>
                                         </header>
@@ -242,7 +242,7 @@
                                             <Text text="{i18n>colCuentaCorriente}"/>
                                         </header>
                                     </Column>
-                                    <Column hAlign="End" width="13rem">
+                                    <Column hAlign="Begin" width="13rem">
                                         <header>
                                             <Text text=""/>
                                         </header>
@@ -294,17 +294,87 @@
                                 <RadioButton text="{i18n>wizardSaldo3}"/>
                             </buttons>
                         </RadioButtonGroup>
-                        <VBox visible="false"
+                        <VBox visible="{= ${wizard>/selectedSaldoType} === 0 }"
                               class="sapUiSmallMarginTop">
-                            <Label text="{i18n>wizardSaldo0Consider}" class="sapUiTinyMarginTopBottom"/>
-                            <RadioButtonGroup id="saldoConsiderGroup"
-                                              columns="2"
-                                              select=".onSaldoConsiderChange">
-                                <buttons>
-                                    <RadioButton text="{i18n>colSaldoSAP}"/>
-                                    <RadioButton text="{i18n>colSaldoInfoCent}"/>
-                                </buttons>
-                            </RadioButtonGroup>
+                            <Table items="{wizard>/saldosPersonalizadosPorBanco}"
+                                   fixedLayout="false"
+                                   width="100%">
+                                <columns>
+                                    <Column>
+                                        <header>
+                                            <Text text="{i18n>colNombre}"/>
+                                        </header>
+                                    </Column>
+                                    <Column hAlign="End" width="12rem">
+                                        <header>
+                                            <Text text="{i18n>colSaldoInfoCent}"/>
+                                        </header>
+                                    </Column>
+                                    <Column hAlign="End" width="14rem">
+                                        <header>
+                                            <Text text=""/>
+                                        </header>
+                                    </Column>
+                                </columns>
+                                <items>
+                                    <ColumnListItem type="Inactive">
+                                        <cells>
+                                            <Text text="{wizard>nombre}"/>
+                                            <Text text="{wizard>saldoDisponibleTexto}"/>
+                                            <Input
+                                                textAlign="End"
+                                                value="{wizard>saldoPersonalizadoInput}"
+                                                data:scope="banco"
+                                                data:key="banco_{wizard>nombre}"
+                                                change=".onSaldoPersonalizadoChange"/>
+                                        </cells>
+                                    </ColumnListItem>
+                                </items>
+                            </Table>
+                        </VBox>
+                        <VBox visible="{= ${wizard>/selectedSaldoType} === 1 }"
+                              class="sapUiSmallMarginTop">
+                            <Table items="{path: 'wizard>/saldosPersonalizadosPorCuenta', sorter: {path: 'banco', group: true}}"
+                                   fixedLayout="false"
+                                   width="100%">
+                                <columns>
+                                    <Column>
+                                        <header>
+                                            <Text text="{i18n>colNombre}"/>
+                                        </header>
+                                    </Column>
+                                    <Column>
+                                        <header>
+                                            <Text text="{i18n>colCuentaCorriente}"/>
+                                        </header>
+                                    </Column>
+                                    <Column hAlign="End" width="12rem">
+                                        <header>
+                                            <Text text="{i18n>colSaldoInfoCent}"/>
+                                        </header>
+                                    </Column>
+                                    <Column hAlign="End" width="14rem">
+                                        <header>
+                                            <Text text=""/>
+                                        </header>
+                                    </Column>
+                                </columns>
+                                <items>
+                                    <ColumnListItem type="Inactive">
+                                        <cells>
+                                            <Text text="{wizard>nombre}"/>
+                                            <Text text="{wizard>cuentaCorriente}"/>
+                                            <Text text="{parts: [{path: 'wizard>saldoDisponible'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                            <Input
+                                                textAlign="End"
+                                                value="{wizard>saldoPersonalizadoInput}"
+                                                data:scope="cuenta"
+                                                data:key="cuenta_{wizard>cuentaCorriente}"
+                                                change=".onSaldoPersonalizadoChange"/>
+                                        </cells>
+                                    </ColumnListItem>
+                                </items>
+                            </Table>
                         </VBox>
                     </VBox>
                 </WizardStep>
