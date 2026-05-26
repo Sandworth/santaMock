@@ -165,7 +165,7 @@
                 <!-- Step 4: Configuración -->
                 <WizardStep id="wizardStep4"
                             title="{i18n>wizardStep4Title}"
-                            validated="true">
+                            validated="false">
                     <VBox class="sapUiSmallMarginBeginEnd sapUiMediumMarginTop sapUiContentPadding">
                         <Title text="{i18n>wizardQuestion1}" level="H5" class="sapUiSmallMarginBottom"/>
                         <RadioButtonGroup id="horarioGroup"
