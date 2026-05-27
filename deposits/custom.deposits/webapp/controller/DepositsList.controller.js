@@ -53,8 +53,21 @@ sap.ui.define([
 ) {
 	"use strict";
 
+	/**
+	 * Controller for the Deposits List view.
+	 * Manages filtering, sorting, grouping, personalization (p13n), navigation,
+	 * and the Custom Deposit Request dialog workflow.
+	 *
+	 * @class custom.deposits.controller.DepositsList
+	 * @extends custom.deposits.controller.BaseController
+	 */
 	return BaseController.extend("custom.deposits.controller.DepositsList", {
 
+		/**
+		 * Lifecycle hook called when the controller is initialized.
+		 * Sets up control references, models, SmartVariantManagement, FilterBar,
+		 * p13n Engine registration, default sorters, and router.
+		 */
 		onInit: function () {
 			this.oView = this.getView();
 
@@ -112,6 +125,12 @@ sap.ui.define([
 		// FilterBar — persistence callbacks
 		// -------------------------------------------------------
 
+		/**
+		 * Serializes the current state of all filter controls for variant persistence.
+		 * Called by the FilterBar when saving a variant.
+		 *
+		 * @returns {Array<{groupName: string, fieldName: string, fieldData: *}>} Array of filter field data objects
+		 */
 		fetchData: function () {
 			const that = this;
 			return this.oFilterBar.getAllFilterItems().reduce(function (aResult, oFilterItem) {
@@ -140,6 +159,12 @@ sap.ui.define([
 			}, []);
 		},
 
+		/**
+		 * Restores filter control states from previously serialized variant data.
+		 * Called by the FilterBar when loading a variant.
+		 *
+		 * @param {Array<{groupName: string, fieldName: string, fieldData: *}>} aData - Array of filter field data objects
+		 */
 		applyData: function (aData) {
 			aData.forEach(function (oDataObject) {
 				const oControl = this.oFilterBar.determineControlByName(oDataObject.fieldName, oDataObject.groupName);
@@ -165,6 +190,12 @@ sap.ui.define([
 			}, this);
 		},
 
+		/**
+		 * Returns all filter group items that currently have a value set.
+		 * Used by SmartVariantManagement to determine active filters.
+		 *
+		 * @returns {sap.ui.comp.filterbar.FilterGroupItem[]} Array of filter group items with values
+		 */
 		getFiltersWithValues: function () {
 			return this.oFilterBar.getFilterGroupItems().reduce(function (aResult, oFilterGroupItem) {
 				const oControl = oFilterGroupItem.getControl();
@@ -189,11 +220,21 @@ sap.ui.define([
 		// FilterBar — search & change handlers
 		// -------------------------------------------------------
 
+		/**
+		 * Handles selection change in filter controls.
+		 * Marks the current variant as modified and triggers a filter change event.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The selection change event
+		 */
 		onSelectionChange: function (oEvent) {
 			this.oSmartVariantManagement.currentVariantSetModified(true);
 			this.oFilterBar.fireFilterChange(oEvent);
 		},
 
+		/**
+		 * Executes the filter search by building Filter objects from all active filter controls
+		 * (Duration, Currency, Rate) and applying them to the table binding.
+		 */
 		onSearch: function () {
 			const aTableFilters = [];
 
@@ -242,15 +283,26 @@ sap.ui.define([
 			this._updateLabelsAndTable(false);
 		},
 
+		/**
+		 * Handles filter change events from the FilterBar.
+		 * Shows the table overlay unless filters are being cleared programmatically.
+		 */
 		onFilterChange: function () {
 			if (this._bClearing) { return; }
 			this._updateLabelsAndTable(true);
 		},
 
+		/**
+		 * Called after a variant is loaded. Updates labels and shows the table overlay.
+		 */
 		onAfterVariantLoad: function () {
 			this._updateLabelsAndTable(true);
 		},
 
+		/**
+		 * Clears all active filters, resets filter controls to their default state,
+		 * removes table filters, and updates the UI labels.
+		 */
 		onClearFilters: function () {
 			// Reset all filter controls
 			const oDurationCtrl = this.oView.byId("filterDuration");
@@ -269,10 +321,18 @@ sap.ui.define([
 			this._updateLabelsAndTable(false);
 		},
 
+		/**
+		 * Expands the page header when the filter info toolbar is pressed.
+		 */
 		onFilterInfoPress: function () {
 			this.oView.byId("listPage").setHeaderExpanded(true);
 		},
 
+		/**
+		 * Opens a ValueHelpDialog for the Rate filter field, allowing the user
+		 * to define numeric range conditions (e.g., between, greater than).
+		 * Tokens are stored internally and displayed as text in the filter input.
+		 */
 		onRateValueHelpRequest: function () {
 			const that = this;
 			const oVHD = new ValueHelpDialog({
@@ -322,6 +382,13 @@ sap.ui.define([
 			oVHD.open();
 		},
 
+		/**
+		 * Updates the expanded/snapped filter labels with the count of active filters
+		 * and optionally shows the table overlay to indicate pending search.
+		 *
+		 * @param {boolean} bShowOverlay - Whether to show the table overlay
+		 * @private
+		 */
 		_updateLabelsAndTable: function (bShowOverlay) {
 			const aFiltersWithValues = this.oFilterBar.retrieveFiltersWithValues();
 			var sText;
@@ -352,6 +419,12 @@ sap.ui.define([
 			// }
 		},
 
+		/**
+		 * Handles the table's updateFinished event to refresh the table title
+		 * with the current total item count.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The updateFinished event
+		 */
 		onTableUpdateFinished: function (oEvent) {
 			const iTotal = oEvent.getParameter("total");
 			const oTitle = this.oView.byId("tableTitle");
@@ -360,6 +433,14 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Retrieves a translated text from the resource bundle.
+		 *
+		 * @param {string} sKey - The i18n key
+		 * @param {Array<string>} [aArgs] - Optional placeholder replacement values
+		 * @returns {string} The translated text
+		 * @private
+		 */
 		_getText: function (sKey, aArgs) {
 			return this.getResourceBundle().getText(sKey, aArgs);
 		},
@@ -368,6 +449,12 @@ sap.ui.define([
 		// Navigation
 		// -------------------------------------------------------
 
+		/**
+		 * Navigates to the Deposit Detail view when a list item is pressed.
+		 * Uses the FlexibleColumnLayout helper to determine the next UI state.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The list item press event
+		 */
 		onListItemPress: function (oEvent) {
 			const oContext = oEvent.getSource().getBindingContext("mainService");
 			const sKey = oContext.getProperty("UUID");
@@ -385,15 +472,21 @@ sap.ui.define([
 		// p13n Engine
 		// -------------------------------------------------------
 
+		/**
+		 * Registers the deposits table with the p13n Engine for personalization support
+		 * (column visibility, sorting, grouping, and column width).
+		 *
+		 * @private
+		 */
 		_registerForP13n: function () {
 			const oTable = this.oTable;
 
 			this.oMetadataHelper = new MetadataHelper([
-				{ key: "name_col",        label: "Name",        path: "Name" },
-				{ key: "duration_col",    label: "Duration",    path: "to_TenorCode/Description" },
-				{ key: "currency_col",    label: "Currency",    path: "to_CurrencyCode/Description" },
-				{ key: "rate_col",        label: "Rate (%)",    path: "Rate" },
-				{ key: "suitability_col", label: "Suitability", path: "Suitability" }
+				{ key: "name_col",        label: this._getText("lblName"),        path: "Name" },
+				{ key: "duration_col",    label: this._getText("lblDuration"),    path: "to_TenorCode/Description" },
+				{ key: "currency_col",    label: this._getText("lblCurrency"),    path: "to_CurrencyCode/Description" },
+				{ key: "rate_col",        label: this._getText("lblRate"),        path: "Rate" },
+				{ key: "suitability_col", label: this._getText("lblSuitability"), path: "Suitability" }
 			]);
 
 			Engine.getInstance().register(oTable, {
@@ -409,10 +502,19 @@ sap.ui.define([
 			Engine.getInstance().attachStateChange(this.onP13nStateChange, this);
 		},
 
+		/**
+		 * Opens the p13n settings dialog for column, sort, and group configuration.
+		 */
 		onOpenSettings: function () {
 			Engine.getInstance().show(this.oTable, ["Columns", "Sorter", "Groups"]);
 		},
 
+		/**
+		 * Prepares the column header menu before opening by setting the sort and group
+		 * item keys/labels based on the triggering column.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The beforeOpen event from the column menu
+		 */
 		onBeforeOpenColumnMenu: function (oEvent) {
 			const oMenu = this.oView.byId("columnMenu");
 			const oColumn = oEvent.getParameter("openBy");
@@ -425,6 +527,12 @@ sap.ui.define([
 			oGroupItem.setLabel(oColumn.getHeader().getText());
 		},
 
+		/**
+		 * Handles column sort requests from the column menu.
+		 * Updates the p13n Engine state with the new sort configuration.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The sort event containing item key and sort order
+		 */
 		onSort: function (oEvent) {
 			const oTable  = this.oTable;
 			const sSortKey = oEvent.getParameter("item").getKey();
@@ -440,6 +548,12 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Handles column group requests from the column menu.
+		 * Updates the p13n Engine state with the new group configuration.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The group event containing item key and grouped flag
+		 */
 		onGroup: function (oEvent) {
 			const oTable   = this.oTable;
 			const sGroupKey = oEvent.getParameter("item").getKey();
@@ -455,6 +569,11 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Persists column width changes via the p13n Engine.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The columnResize event
+		 */
 		onColumnResize: function (oEvent) {
 			const oColumn = oEvent.getParameter("column");
 			const sWidth  = oEvent.getParameter("width");
@@ -463,6 +582,12 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Handles drag-and-drop column reordering and persists the new position
+		 * via the p13n Engine.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The column move event with dragged/dropped controls
+		 */
 		onColumnMove: function (oEvent) {
 			const oDragged = oEvent.getParameter("draggedControl");
 			const oDropped = oEvent.getParameter("droppedControl");
@@ -483,6 +608,12 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Reacts to p13n Engine state changes by applying column visibility,
+		 * sorting, and grouping to the table.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The stateChange event containing the new state
+		 */
 		onP13nStateChange: function (oEvent) {
 			const oTable  = this.oTable;
 			const oState  = oEvent.getParameter("state");
@@ -549,6 +680,13 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Retrieves the p13n key from a column's custom data.
+		 *
+		 * @param {sap.m.Column} oColumn - The table column
+		 * @returns {string} The p13n key identifier
+		 * @private
+		 */
 		_getKey: function (oColumn) {
 			return oColumn.data("p13nKey");
 		},
@@ -593,6 +731,10 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Lifecycle hook called when the controller is destroyed.
+		 * Detaches the p13n Engine state change listener.
+		 */
 		onExit: function () {
 			Engine.getInstance().detachStateChange(this.onP13nStateChange, this);
 		},
@@ -601,6 +743,12 @@ sap.ui.define([
 		// Custom Deposit Request Dialog
 		// -------------------------------------------------------
 
+		/**
+		 * Initializes the "customRequest" JSON model with default values
+		 * for the Custom Deposit Request dialog workflow.
+		 *
+		 * @private
+		 */
 		_initCustomRequestModel: function () {
 			const oData = {
 				currency: "",
@@ -628,6 +776,12 @@ sap.ui.define([
 			this.setModel(new JSONModel(oData), "customRequest");
 		},
 
+		/**
+		 * Initializes the "banks" JSON model with mock bank and account data
+		 * used for account selection in the Custom Deposit Request dialog.
+		 *
+		 * @private
+		 */
 		_initBanksModel: function () {
 			this.setModel(new JSONModel({
 				bancos: [
@@ -679,6 +833,10 @@ sap.ui.define([
 			}), "banks");
 		},
 
+		/**
+		 * Opens the Custom Deposit Request dialog by loading its fragment,
+		 * adding it as a dependent, and resetting the model state.
+		 */
 		onOpenCustomReq: function () {
 			const that = this;
 			Fragment.load({
@@ -694,6 +852,12 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Resets the "customRequest" model to its initial state and configures
+		 * the date range picker's min/max dates using the Temporal API.
+		 *
+		 * @private
+		 */
 		_resetCustomRequestModel: function () {
 			const oModel = this.getModel("customRequest");
 			oModel.setData({
@@ -735,6 +899,12 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Handles currency selection in Step 1 of the Custom Request wizard.
+		 * Saves the selected currency, enables Step 2, and resets subsequent steps.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The selection change event
+		 */
 		onStep1CurrencyChanged: function (oEvent) {
 			const sCurrency = oEvent.getSource().getSelectedKey();
 			const oModel = this.getModel("customRequest");
@@ -758,6 +928,13 @@ sap.ui.define([
 			oModel.setProperty("/accountsFiltered", []);
 		},
 
+		/**
+		 * Handles date range selection in Step 2 of the Custom Request wizard.
+		 * Calculates tenor, interpolates the rate, filters accounts by currency,
+		 * and enables Step 4.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The date range change event
+		 */
 		onStep2DateRangeChanged: function (oEvent) {
 			const oDateRange = oEvent.getSource();
 			const oDateFrom = oDateRange.getDateValue();
@@ -793,6 +970,15 @@ sap.ui.define([
 			oModel.setProperty("/step5Enabled", false);
 		},
 
+		/**
+		 * Converts a date range to the number of days between the two dates.
+		 * Uses the Temporal API when available, with a fallback to Date arithmetic.
+		 *
+		 * @param {Date} oDateFrom - The start date
+		 * @param {Date} oDateTo - The end date
+		 * @returns {number} The number of days between the two dates
+		 * @private
+		 */
 		_convertDateRangeToDays: function (oDateFrom, oDateTo) {
 			if (typeof Temporal !== "undefined") {
 				// Use Temporal API for cleaner date arithmetic
@@ -809,6 +995,15 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Interpolates the deposit rate for a given tenor and currency using
+		 * linear interpolation between the nearest lower and upper deposit rates.
+		 * Updates the "customRequest" model with the interpolated rate.
+		 *
+		 * @param {number} fTenorMonths - The target tenor in months
+		 * @param {string} sCurrency - The currency code (e.g., "EUR", "USD", "GBP")
+		 * @private
+		 */
 		_interpolateRate: function (fTenorMonths, sCurrency) {
 			const oModel = this.getModel("customRequest");
 			const aDeposits = this.getModel("mainService").getProperty("/value") || [];
@@ -842,10 +1037,26 @@ sap.ui.define([
 			oModel.setProperty("/rateInterpolated", Number.parseFloat(fInterpolatedRate.toFixed(2)));
 		},
 
+		/**
+		 * Converts a tenor code string (e.g., "3M") to its numeric month value.
+		 *
+		 * @param {string} sTenorCode - The tenor code (e.g., "1M", "6M", "12M")
+		 * @returns {number} The number of months represented by the tenor code
+		 * @private
+		 */
 		_getTenorMonths: function (sTenorCode) {
 			return this._DURATION_MONTHS[sTenorCode] || 1;
 		},
 
+		/**
+		 * Finds the closest lower and upper deposit entries for a given tenor and currency.
+		 * Used for linear interpolation of rates.
+		 *
+		 * @param {number} fTenorMonths - The target tenor in months
+		 * @param {string} sCurrency - The currency code
+		 * @returns {{lower?: object, upper?: object, single?: object}} Object containing the bounding deposits
+		 * @private
+		 */
 		_getDepositsByTenorAndCurrency: function (fTenorMonths, sCurrency) {
 			const aDeposits = this.getModel("mainService").getProperty("/value") || [];
 			
@@ -881,6 +1092,12 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Filters bank accounts by the currently selected currency and updates
+		 * the "accountsFiltered" property in the customRequest model.
+		 *
+		 * @private
+		 */
 		_filterAccountsByCurrency: function () {
 			const sCurrency = this.getModel("customRequest").getProperty("/currency");
 			const aBancos = this.getModel("banks").getProperty("/bancos") || [];
@@ -905,6 +1122,12 @@ sap.ui.define([
 			this.getModel("customRequest").setProperty("/accountsFiltered", aCuentasFiltradas);
 		},
 
+		/**
+		 * Handles account selection in Step 4 of the Custom Request wizard.
+		 * Saves the selected account and enables Step 5.
+		 *
+		 * @param {sap.ui.base.Event} oEvent - The selection change event
+		 */
 		onStep4AccountChanged: function (oEvent) {
 			const sAccount = oEvent.getSource().getSelectedKey();
 			const oModel = this.getModel("customRequest");
@@ -913,6 +1136,11 @@ sap.ui.define([
 			oModel.setProperty("/step5Enabled", true);
 		},
 
+		/**
+		 * Validates the deposit amount and calculates the expected return in Step 5.
+		 * Uses the formula: Interest = Amount * (Rate / 100) * (Months / 12).
+		 * Sets error state on the input if validation fails.
+		 */
 		onStep5Calculate: function () {
 			const oModel = this.getModel("customRequest");
 			const oInput = Fragment.byId("customReqDialog", "customReqAmountInput");
@@ -953,6 +1181,10 @@ sap.ui.define([
 			oModel.setProperty("/expectedTotal", Number.parseFloat(fTotal.toFixed(2)));
 		},
 
+		/**
+		 * Cancels the Custom Deposit Request dialog, closing and destroying it,
+		 * and resets the model to its initial state.
+		 */
 		onCancelCustomRequest: function () {
 			if (this.oCustomReqDialog) {
 				this.oCustomReqDialog.close();
@@ -962,6 +1194,13 @@ sap.ui.define([
 			this._resetCustomRequestModel();
 		},
 
+		/**
+		 * Converts a JavaScript Date object to a Temporal.PlainDate.
+		 *
+		 * @param {Date} oDate - The JavaScript Date to convert
+		 * @returns {Temporal.PlainDate} The equivalent Temporal.PlainDate
+		 * @private
+		 */
 		_dateToPlainDate: function (oDate) {
 			// Convert JavaScript Date to Temporal.PlainDate
 			return Temporal.PlainDate.from({
@@ -971,11 +1210,22 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Converts a Temporal.PlainDate to a JavaScript Date (local midnight).
+		 *
+		 * @param {Temporal.PlainDate} oPlainDate - The Temporal.PlainDate to convert
+		 * @returns {Date} The equivalent JavaScript Date
+		 * @private
+		 */
 		_plainDateToDate: function (oPlainDate) {
 			// Convert Temporal.PlainDate to JavaScript Date (naive conversion, UTC midnight)
 			return new Date(oPlainDate.year, oPlainDate.month - 1, oPlainDate.day);
 		},
 
+		/**
+		 * Submits the Custom Deposit Request after showing a confirmation dialog.
+		 * On confirmation, closes the dialog, resets the model, and shows a success toast.
+		 */
 		onSubmitCustomRequest: function () {
 			const that = this;
 			const oModel = this.getModel("customRequest");
