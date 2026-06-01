@@ -859,10 +859,26 @@ sap.ui.define([
 		 * @private
 		 */
 		_resetCustomRequestModel: function () {
+			// Determine start date: today if before 17:00 local time, tomorrow otherwise
+			let oDateFrom, oDateFromPlain;
+			if (typeof Temporal !== "undefined") {
+				const oNowZDT = Temporal.Now.zonedDateTimeISO();
+				oDateFromPlain = oNowZDT.hour >= 17
+					? oNowZDT.toPlainDate().add({ days: 1 })
+					: oNowZDT.toPlainDate();
+				oDateFrom = this._plainDateToDate(oDateFromPlain);
+			} else {
+				const oNow = new Date();
+				oDateFrom = new Date(oNow.getFullYear(), oNow.getMonth(), oNow.getDate());
+				if (oNow.getHours() >= 17) {
+					oDateFrom.setDate(oDateFrom.getDate() + 1);
+				}
+			}
+
 			const oModel = this.getModel("customRequest");
 			oModel.setData({
 				currency: "",
-				dateFrom: null,
+				dateFrom: oDateFrom,
 				dateTo: null,
 				rateInterpolated: 0,
 				tenorDays: 0,
@@ -884,18 +900,21 @@ sap.ui.define([
 				step5Enabled: false
 			});
 
-			// Set date range limits using Temporal API: min = today, max = today + 365 days
-			const oDateRange = Fragment.byId("customReqDialog", "customReqDateRange");
-			if (oDateRange && typeof Temporal !== "undefined") {
-				const oTodayPlain = Temporal.Now.plainDateISO();
-				const oMaxDatePlain = oTodayPlain.add({ days: 365 });
-				
-				// Convert Temporal.PlainDate to Date for setMinDate/setMaxDate
-				const oToday = this._plainDateToDate(oTodayPlain);
-				const oMaxDate = this._plainDateToDate(oMaxDatePlain);
-				
-				oDateRange.setMinDate(oToday);
-				oDateRange.setMaxDate(oMaxDate);
+			// Configure DatePicker: min = dateFrom + 7 days, max = dateFrom + 1 year
+			const oDatePicker = Fragment.byId("customReqDialog", "customReqDateTo");
+			if (oDatePicker) {
+				let oMinDate, oMaxDate;
+				if (typeof Temporal !== "undefined" && oDateFromPlain) {
+					oMinDate = this._plainDateToDate(oDateFromPlain.add({ days: 7 }));
+					oMaxDate = this._plainDateToDate(oDateFromPlain.add({ years: 1 }));
+				} else {
+					oMinDate = new Date(oDateFrom);
+					oMinDate.setDate(oMinDate.getDate() + 7);
+					oMaxDate = new Date(oDateFrom);
+					oMaxDate.setFullYear(oMaxDate.getFullYear() + 1);
+				}
+				oDatePicker.setMinDate(oMinDate);
+				oDatePicker.setMaxDate(oMaxDate);
 			}
 		},
 
@@ -913,8 +932,7 @@ sap.ui.define([
 			oModel.setProperty("/currency", sCurrency);
 			oModel.setProperty("/step2Enabled", true);
 			
-			// Reset steps 2-5
-			oModel.setProperty("/dateFrom", null);
+			// Reset steps 2-5 (dateFrom remains auto-computed and unchanged)
 			oModel.setProperty("/dateTo", null);
 			oModel.setProperty("/rateInterpolated", 0);
 			oModel.setProperty("/tenorDays", 0);
@@ -929,39 +947,49 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handles date range selection in Step 2 of the Custom Request wizard.
-		 * Calculates tenor, interpolates the rate, filters accounts by currency,
-		 * and enables Step 4.
+		 * Handles maturity date selection in Step 2 of the Custom Request wizard.
+		 * Reads the auto-computed start date from the model, calculates tenor,
+		 * interpolates the rate, filters accounts by currency, and enables Step 4.
 		 *
-		 * @param {sap.ui.base.Event} oEvent - The date range change event
+		 * @param {sap.ui.base.Event} oEvent - The DatePicker change event
 		 */
-		onStep2DateRangeChanged: function (oEvent) {
-			const oDateRange = oEvent.getSource();
-			const oDateFrom = oDateRange.getDateValue();
-			const oDateTo = oDateRange.getSecondDateValue();
+		onStep2DateToChanged: function (oEvent) {
+			const oDatePicker = oEvent.getSource();
+			const oDateTo = oDatePicker.getDateValue();
 			const oModel = this.getModel("customRequest");
-			
-			if (!oDateFrom || !oDateTo) {
+
+			if (!oDateTo || !oDatePicker.isValidValue()) {
+				oModel.setProperty("/dateTo", null);
+				oModel.setProperty("/rateInterpolated", 0);
+				oModel.setProperty("/tenorDays", 0);
+				oModel.setProperty("/tenorMonths", 0);
+				oModel.setProperty("/step4Enabled", false);
+				oModel.setProperty("/account", "");
+				oModel.setProperty("/amount", null);
+				oModel.setProperty("/expectedReturn", 0);
+				oModel.setProperty("/expectedTotal", 0);
+				oModel.setProperty("/step5Enabled", false);
 				return;
 			}
-			
+
+			const oDateFrom = oModel.getProperty("/dateFrom");
+
 			// Calculate tenor in days and months
 			const iTenorDays = this._convertDateRangeToDays(oDateFrom, oDateTo);
 			const fTenorMonths = iTenorDays / 30;
-			
-			// Save dates and tenor values
-			oModel.setProperty("/dateFrom", oDateFrom);
+
+			// Save date and tenor values
 			oModel.setProperty("/dateTo", oDateTo);
 			oModel.setProperty("/tenorDays", iTenorDays);
 			oModel.setProperty("/tenorMonths", fTenorMonths);
-			
+
 			// Interpolate rate based on tenor
 			this._interpolateRate(fTenorMonths, oModel.getProperty("/currency"));
-			
+
 			// Filter accounts by currency and enable step 4
 			this._filterAccountsByCurrency();
 			oModel.setProperty("/step4Enabled", true);
-			
+
 			// Reset steps 4-5
 			oModel.setProperty("/account", "");
 			oModel.setProperty("/amount", null);
@@ -1238,13 +1266,11 @@ sap.ui.define([
 			
 			// Build confirmation message
 			const sMsg = this._getText("customReqConfirmMsg", [
-				fAmount.toFixed(2),
-				sCurrency,
+				Formatter.formatCurrency(fAmount, sCurrency),
 				iTenorDays,
 				fTenorMonths.toFixed(1),
 				fRate.toFixed(2),
-				fExpectedReturn.toFixed(2),
-				sCurrency
+				Formatter.formatCurrency(fExpectedReturn, sCurrency)
 			]);
 			
 			MessageBox.confirm(sMsg, {

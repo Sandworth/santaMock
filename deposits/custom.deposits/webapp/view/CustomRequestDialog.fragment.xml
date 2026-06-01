@@ -5,6 +5,7 @@
 	xmlns:forms="sap.ui.layout.form"
 	core:require="{
 		Float: 'sap/ui/model/type/Float',
+		Date: 'sap/ui/model/type/Date',
 		Formatter: 'custom/deposits/model/formatter'
 	}"    >
     <Dialog
@@ -38,20 +39,28 @@
                         <core:Item key="USD" text="USD - US Dollar" />
                         <core:Item key="GBP" text="GBP - British Pound" />
                     </ComboBox>
-                </forms:content>
-                <!-- PASO 2: Rango de Fechas -->
-                <forms:content>
-                    <Label text="{i18n>customReqStep2Label}" />
-                    <DateRangeSelection
-							id="customReqDateRange"
-							dateValue="{customRequest>/dateFrom}"
-							secondDateValue="{customRequest>/dateTo}"
+
+                <!-- PASO 2a: Fecha de Inicio (calculada automáticamente) -->
+
+                    <Label text="{i18n>customReqStep2StartLabel}" />
+                    <Text text="{
+						path: 'customRequest>/dateFrom',
+						type: 'Date',
+						formatOptions: { style: 'short' }
+					}" />
+
+                <!-- PASO 2b: Fecha de Vencimiento -->
+
+                    <Label text="{i18n>customReqStep2EndLabel}" />
+                    <DatePicker
+							id="customReqDateTo"
+							dateValue="{customRequest>/dateTo}"
 							enabled="{customRequest>/step2Enabled}"
-							change=".onStep2DateRangeChanged"
+							change=".onStep2DateToChanged"
 							displayFormat="short" />
-                </forms:content>
+
                 <!-- PASO 3: Interés Aplicable (readonly) -->
-                <forms:content>
+
                     <Label text="{i18n>customReqStep3Label}" />
                     <ObjectNumber
 							number="{
@@ -61,9 +70,9 @@
 							}"
 							unit="%"
 							state="Information"/>
-                </forms:content>
+
                 <!-- PASO 4: Selector de Cuenta -->
-                <forms:content>
+
                     <Label text="{i18n>customReqStep4Label}" />
                     <ComboBox
 							id="customReqAccountCombo"
@@ -86,11 +95,11 @@
 											formatter: 'Formatter.formatCurrency'
 										}" />
                     </ComboBox>
-                </forms:content>
+
                 <!-- PASO 5: Importe + Botón Calcular -->
-                <forms:content>
+
                     <Label text="{i18n>reqAmountLabel}" />
-                    <HBox>
+                    <HBox justifyContent="SpaceBetween" renderType="Bare">
                         <Input
 								id="customReqAmountInput"
 								value="{
@@ -114,9 +123,9 @@
 								enabled="{customRequest>/step5Enabled}"
 								press=".onStep5Calculate" />
                     </HBox>
-                </forms:content>
+
                 <!-- SECCIÓN: Retorno Esperado -->
-                <forms:content>
+
                     <Label text="{i18n>simInterestLabel}" />
                     <ObjectNumber
                             number="{
