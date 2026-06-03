@@ -108,17 +108,17 @@
 												formatOptions: {
 													groupingEnabled: true,
 													decimals: 2,
-													maxFractionDigits: 2
+													maxFractionDigits: 2,
+													preserveDecimals: false
 												},
-												constraints: { minimum: 0.01 }
+												constraints: { minimum: 10000000 }
 											}"
-											valueStateText="{i18n>simInvalidAmount}"
-											liveChange=".onAmountLiveChange"
-											submit=".onSimulate" />
+											valueLiveUpdate="true"/>
 									</VBox>
 									<Button
 										class="sapUiSmallMarginBegin"
 										text="{i18n>simCalculate}"
+										enabled="{= Boolean(${simulation>/amount}) &amp;&amp; ${simulation>/amount} >= 10000000}"
 										icon="sap-icon://simulate"
 										press=".onSimulate" />
 								</HBox>
@@ -192,21 +192,30 @@
 										}" />
 								</ComboBox>
 								<Label text="{i18n>reqAmountLabel}" required="true" class="sapUiSmallMarginTop" />
+								<HBox >
 								<Input
 										id="reqAmountInput"
 										width="18rem"
-										placeholder="{i18n>reqAmountPlaceholder}"
-										value="{
-											path: 'request>/importeSolicitud',
-											type: 'Float',
-											formatOptions: {
-												groupingEnabled: true,
-												decimals: 2,
-												maxFractionDigits: 2
-											},
-											constraints: { minimum: 0.01 }
-										}"
-										liveChange=".onReqAmountLiveChange" />
+											placeholder="{i18n>simAmountPlaceholder}"
+											value="{
+												path: 'request>/importeSolicitud',
+												type: 'Float',
+												formatOptions: {
+													groupingEnabled: true,
+													decimals: 2,
+													maxFractionDigits: 2,
+													preserveDecimals: false
+												},
+												constraints: { minimum: 10000000 }
+											}"
+											valueLiveUpdate="true" />
+									<Button
+										class="sapUiSmallMarginBegin"
+										text="{i18n>simCopy}"
+										enabled="{= Boolean(${simulation>/amount}) &amp;&amp; ${simulation>/amount} >= 10000000}"
+										icon="sap-icon://copy"
+										press=".onCopySimulation" />											
+								</HBox>
 							</VBox>
 						</uxap:blocks>
 					</uxap:ObjectPageSubSection>
@@ -221,7 +230,7 @@
 					icon="sap-icon://request"
 					text="{i18n>depositRequest}"
 					type="Emphasized"
-					enabled="{= !!${request>/cuentaOrigen} &amp;&amp; ${request>/importeSolicitud} > 0 }"
+					enabled="{= !!${request>/cuentaOrigen} &amp;&amp; ${request>/importeSolicitud} >= 10000000 }"
 					press=".onRequestDeposit" />
 			</OverflowToolbar>
 		</uxap:footer>

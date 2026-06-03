@@ -108,13 +108,14 @@
 												formatOptions: {
 													groupingEnabled: true,
 													decimals: 2,
-													maxFractionDigits: 2
+													maxFractionDigits: 2,
+													preserveDecimals: false
 												},
-												constraints: { minimum: 0.01 }
+												constraints: { minimum: 10000000 }
 											}"
                                 placeholder="{i18n>simAmountPlaceholder}"
+								valueLiveUpdate="true"
 								enabled="{customRequest>/step5Enabled}"
-								liveChange=".onAmountLiveChange"
                                 submit=".onStep5Calculate" />
                         <Button
                                 class="sapUiSmallMarginBegin"

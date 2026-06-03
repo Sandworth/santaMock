@@ -1,0 +1,60 @@
+{
+  "bancos": [
+    {
+      "nombre": "Santander",
+      "expanded": false,
+      "cuentas": [
+        { "nombre": "Cuenta 1", "oficina": "0049", "cuentaCorriente": "00491555-11-0123456789", "saldoSAP": 52000000.00, "saldoInfoCent": 50000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 2", "oficina": "0049", "cuentaCorriente": "00492205-20-9876543210", "saldoSAP": 48000000.00, "saldoInfoCent": 49000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 3", "oficina": "0049", "cuentaCorriente": "00491206-30-1122334455", "saldoSAP": 50000000.00, "saldoInfoCent": 51000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 4", "oficina": "0049", "cuentaCorriente": "00493033-40-5544332211", "saldoSAP": 50000000.00, "saldoInfoCent": 50000000.00, "currency": "EUR" }
+      ]
+    },
+    {
+      "nombre": "Abanca",
+      "expanded": false,
+      "cuentas": [
+        { "nombre": "Cuenta 1", "oficina": "2080", "cuentaCorriente": "20800970-05-1234554321", "saldoSAP": 61000000.00, "saldoInfoCent": 60000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 2", "oficina": "2080", "cuentaCorriente": "20801880-20-9876598765", "saldoSAP": 43000000.00, "saldoInfoCent": 44500000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 3", "oficina": "2080", "cuentaCorriente": "20802252-30-5555555555", "saldoSAP": 55000000.00, "saldoInfoCent": 55000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 4", "oficina": "2080", "cuentaCorriente": "20809910-40-1111111111", "saldoSAP": 38000000.00, "saldoInfoCent": 37500000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 5", "oficina": "2080", "cuentaCorriente": "20802202-50-6666666666", "saldoSAP": 72000000.00, "saldoInfoCent": 72000000.00, "currency": "EUR" }
+      ]
+    },
+    {
+      "nombre": "CaixaBank",
+      "expanded": false,
+      "cuentas": [
+        { "nombre": "Cuenta 1", "oficina": "2100", "cuentaCorriente": "21002151-41-2233355555", "saldoSAP": 67000000.00, "saldoInfoCent": 68000000.00, "currency": "USD" },
+        { "nombre": "Cuenta 2", "oficina": "2100", "cuentaCorriente": "21006428-22-6678764260", "saldoSAP": 45000000.00, "saldoInfoCent": 44000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 3", "oficina": "2100", "cuentaCorriente": "21002151-30-1122334455", "saldoSAP": 33000000.00, "saldoInfoCent": 33000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 4", "oficina": "2100", "cuentaCorriente": "21002207-40-5544332211", "saldoSAP": 59000000.00, "saldoInfoCent": 58500000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 5", "oficina": "2100", "cuentaCorriente": "21001880-42-2231235555", "saldoSAP": 41000000.00, "saldoInfoCent": 41000000.00, "currency": "USD" }
+      ]
+    },
+    {
+      "nombre": "Banco Sabadell",
+      "expanded": false,
+      "cuentas": [
+        { "nombre": "Cuenta 1", "oficina": "0281", "cuentaCorriente": "02812200-10-1234567890", "saldoSAP": 80000000.00, "saldoInfoCent": 79000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 2", "oficina": "0281", "cuentaCorriente": "02817856-20-9876543210", "saldoSAP": 54000000.00, "saldoInfoCent": 54000000.00, "currency": "EUR" },
+        { "nombre": "Cuenta 3", "oficina": "0281", "cuentaCorriente": "02812389-30-1122334455", "saldoSAP": 36000000.00, "saldoInfoCent": 37000000.00, "currency": "EUR" }
+      ]
+    },
+    {
+      "nombre": "Bankinter",
+      "expanded": false,
+      "cuentas": [
+        { "nombre": "Cuenta 1", "oficina": "0128", "cuentaCorriente": "01289414-86-1111222233", "saldoSAP": 28000000.00, "saldoInfoCent": 28000000.00, "currency": "EUR" }
+      ]
+    },
+    {
+      "nombre": "BBVA",
+      "expanded": false,
+      "cuentas": [
+        { "nombre": "Cuenta 1", "oficina": "0182", "cuentaCorriente": "01822357-14-627550077", "saldoSAP": 95000000.00, "saldoInfoCent": 94000000.00, "currency": "GBP" },
+        { "nombre": "Cuenta 2", "oficina": "0182", "cuentaCorriente": "01824213-48-1941353530", "saldoSAP": 95000000.00, "saldoInfoCent": 94000000.00, "currency": "EUR" }
+      ]
+    }
+  ]
+}

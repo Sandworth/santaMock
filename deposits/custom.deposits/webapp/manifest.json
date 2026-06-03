@@ -43,6 +43,7 @@
     }
   },
   "sap.ui5": {
+		"handleValidation": true,
     "rootView": {
       "viewName": "custom.deposits.view.App",
       "type": "XML",
@@ -79,6 +80,10 @@
       "mainService": {
         "type": "sap.ui.model.json.JSONModel",
         "uri": "model/data/Deposits.json"
+      },
+      "banks": {
+        "type": "sap.ui.model.json.JSONModel",
+        "uri": "model/data/Banks.json"
       }
     },
     "routing": {

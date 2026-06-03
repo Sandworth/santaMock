@@ -81,9 +81,6 @@ sap.ui.define([
 			// Initialize customRequest model for Custom Deposit Dialog
 			this._initCustomRequestModel();
 
-			// Initialize banks model for account selection in Custom Deposit Dialog
-			this._initBanksModel();
-
 			// Tenor code to months mapping for calculations
 			this._DURATION_MONTHS = {
 				"1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6,
@@ -777,63 +774,6 @@ sap.ui.define([
 		},
 
 		/**
-		 * Initializes the "banks" JSON model with mock bank and account data
-		 * used for account selection in the Custom Deposit Request dialog.
-		 *
-		 * @private
-		 */
-		_initBanksModel: function () {
-			this.setModel(new JSONModel({
-				bancos: [
-					{
-						nombre: "Santander", expanded: false, cuentas: [
-							{ nombre: "Cuenta 1", oficina: "0049", cuentaCorriente: "00491555-11-0123456789", saldoSAP: 52000.00, saldoInfoCent: 50000.00, currency: "EUR" },
-							{ nombre: "Cuenta 2", oficina: "0049", cuentaCorriente: "00492205-20-9876543210", saldoSAP: 48000.00, saldoInfoCent: 49000.00, currency: "EUR" },
-							{ nombre: "Cuenta 3", oficina: "0049", cuentaCorriente: "00491206-30-1122334455", saldoSAP: 50000.00, saldoInfoCent: 51000.00, currency: "EUR" },
-							{ nombre: "Cuenta 4", oficina: "0049", cuentaCorriente: "00493033-40-5544332211", saldoSAP: 50000.00, saldoInfoCent: 50000.00, currency: "EUR" }
-						]
-					},
-					{
-						nombre: "Abanca", expanded: false, cuentas: [
-							{ nombre: "Cuenta 1", oficina: "2080", cuentaCorriente: "20800970-05-1234554321", saldoSAP: 61000.00, saldoInfoCent: 60000.00, currency: "EUR" },
-							{ nombre: "Cuenta 2", oficina: "2080", cuentaCorriente: "20801880-20-9876598765", saldoSAP: 43000.00, saldoInfoCent: 44500.00, currency: "EUR" },
-							{ nombre: "Cuenta 3", oficina: "2080", cuentaCorriente: "20802252-30-5555555555", saldoSAP: 55000.00, saldoInfoCent: 55000.00, currency: "EUR" },
-							{ nombre: "Cuenta 4", oficina: "2080", cuentaCorriente: "20809910-40-1111111111", saldoSAP: 38000.00, saldoInfoCent: 37500.00, currency: "EUR" },
-							{ nombre: "Cuenta 5", oficina: "2080", cuentaCorriente: "20802202-50-6666666666", saldoSAP: 72000.00, saldoInfoCent: 72000.00, currency: "EUR" }
-						]
-					},
-					{
-						nombre: "CaixaBank", expanded: false, cuentas: [
-							{ nombre: "Cuenta 1", oficina: "2100", cuentaCorriente: "21002151-41-2233355555", saldoSAP: 67000.00, saldoInfoCent: 68000.00, currency: "USD" },
-							{ nombre: "Cuenta 2", oficina: "2100", cuentaCorriente: "21006428-22-6678764260", saldoSAP: 45000.00, saldoInfoCent: 44000.00, currency: "EUR" },
-							{ nombre: "Cuenta 3", oficina: "2100", cuentaCorriente: "21002151-30-1122334455", saldoSAP: 33000.00, saldoInfoCent: 33000.00, currency: "EUR" },
-							{ nombre: "Cuenta 4", oficina: "2100", cuentaCorriente: "21002207-40-5544332211", saldoSAP: 59000.00, saldoInfoCent: 58500.00, currency: "EUR" },
-							{ nombre: "Cuenta 5", oficina: "2100", cuentaCorriente: "21001880-42-2231235555", saldoSAP: 41000.00, saldoInfoCent: 41000.00, currency: "USD" }
-						]
-					},
-					{
-						nombre: "Banco Sabadell", expanded: false, cuentas: [
-							{ nombre: "Cuenta 1", oficina: "0281", cuentaCorriente: "02812200-10-1234567890", saldoSAP: 80000.00, saldoInfoCent: 79000.00, currency: "EUR" },
-							{ nombre: "Cuenta 2", oficina: "0281", cuentaCorriente: "02817856-20-9876543210", saldoSAP: 54000.00, saldoInfoCent: 54000.00, currency: "EUR" },
-							{ nombre: "Cuenta 3", oficina: "0281", cuentaCorriente: "02812389-30-1122334455", saldoSAP: 36000.00, saldoInfoCent: 37000.00, currency: "EUR" }
-						]
-					},
-					{
-						nombre: "Bankinter", expanded: false, cuentas: [
-							{ nombre: "Cuenta 1", oficina: "0128", cuentaCorriente: "01289414-86-1111222233", saldoSAP: 28000.00, saldoInfoCent: 28000.00, currency: "EUR" }
-						]
-					},
-					{
-						nombre: "BBVA", expanded: false, cuentas: [
-							{ nombre: "Cuenta 1", oficina: "0182", cuentaCorriente: "01822357-14-627550077", saldoSAP: 95000.00, saldoInfoCent: 94000.00, currency: "GBP" },
-							{ nombre: "Cuenta 2", oficina: "0182", cuentaCorriente: "01824213-48-1941353530", saldoSAP: 95000.00, saldoInfoCent: 94000.00, currency: "EUR" }
-						]
-					}
-				]
-			}), "banks");
-		},
-
-		/**
 		 * Opens the Custom Deposit Request dialog by loading its fragment,
 		 * adding it as a dependent, and resetting the model state.
 		 */
@@ -884,7 +824,7 @@ sap.ui.define([
 				tenorDays: 0,
 				tenorMonths: 0,
 				account: "",
-				amount: null,
+				amount: "",
 				expectedReturn: 0,
 				expectedTotal: 0,
 				currencies: [
@@ -939,7 +879,7 @@ sap.ui.define([
 			oModel.setProperty("/tenorMonths", 0);
 			oModel.setProperty("/step4Enabled", false);
 			oModel.setProperty("/account", "");
-			oModel.setProperty("/amount", null);
+			oModel.setProperty("/amount", "");
 			oModel.setProperty("/expectedReturn", 0);
 			oModel.setProperty("/expectedTotal", 0);
 			oModel.setProperty("/step5Enabled", false);
@@ -965,7 +905,7 @@ sap.ui.define([
 				oModel.setProperty("/tenorMonths", 0);
 				oModel.setProperty("/step4Enabled", false);
 				oModel.setProperty("/account", "");
-				oModel.setProperty("/amount", null);
+				oModel.setProperty("/amount", "");
 				oModel.setProperty("/expectedReturn", 0);
 				oModel.setProperty("/expectedTotal", 0);
 				oModel.setProperty("/step5Enabled", false);
@@ -992,7 +932,7 @@ sap.ui.define([
 
 			// Reset steps 4-5
 			oModel.setProperty("/account", "");
-			oModel.setProperty("/amount", null);
+			oModel.setProperty("/amount", "");
 			oModel.setProperty("/expectedReturn", 0);
 			oModel.setProperty("/expectedTotal", 0);
 			oModel.setProperty("/step5Enabled", false);
@@ -1047,13 +987,18 @@ sap.ui.define([
 				const fRateUpper = oDepositPair.upper.Rate;
 				const iTenorLowerMonths = this._getTenorMonths(oDepositPair.lower.to_TenorCode.Code);
 				const iTenorUpperMonths = this._getTenorMonths(oDepositPair.upper.to_TenorCode.Code);
-				
-				// Linear interpolation formula
-				fInterpolatedRate = fRateLower + 
-					(fRateUpper - fRateLower) * 
-					(fTenorMonths - iTenorLowerMonths) / 
-					(iTenorUpperMonths - iTenorLowerMonths);
-				console.log("Interpolating rate: lower=" + fRateLower + " at " + iTenorLowerMonths + " months, upper=" + fRateUpper + " at " + iTenorUpperMonths + " months, target tenor=" + fTenorMonths + " months => interpolated rate=" + fInterpolatedRate);	
+
+				if (iTenorLowerMonths === iTenorUpperMonths) {
+					// Exact tenor match — lower and upper point to the same deposit, no interpolation needed
+					fInterpolatedRate = fRateLower;
+				} else {
+					// Linear interpolation formula
+					fInterpolatedRate = fRateLower +
+						(fRateUpper - fRateLower) *
+						(fTenorMonths - iTenorLowerMonths) /
+						(iTenorUpperMonths - iTenorLowerMonths);
+				}
+				console.log("Interpolating rate: lower=" + fRateLower + " at " + iTenorLowerMonths + " months, upper=" + fRateUpper + " at " + iTenorUpperMonths + " months, target tenor=" + fTenorMonths + " months => interpolated rate=" + fInterpolatedRate);
 			} else if (oDepositPair.single) {
 				// Only one deposit exists (at or closest to tenor)
 				fInterpolatedRate = oDepositPair.single.Rate;
@@ -1167,44 +1112,50 @@ sap.ui.define([
 		/**
 		 * Validates the deposit amount and calculates the expected return in Step 5.
 		 * Uses the formula: Interest = Amount * (Rate / 100) * (Months / 12).
-		 * Sets error state on the input if validation fails.
+		 * Delegates type constraint validation (minimum) to UI5 via handleValidation:true;
+		 * only applies a manual error for the "field not yet filled" case.
 		 */
 		onStep5Calculate: function () {
 			const oModel = this.getModel("customRequest");
 			const oInput = Fragment.byId("customReqDialog", "customReqAmountInput");
-			const sValue = oInput ? oInput.getValue() : "";
 			const fAmount = oModel.getProperty("/amount");
-			
-			// Validate: amount must be a positive number and input must not be empty
-			if (!fAmount || fAmount <= 0 || sValue === "") {
-				if (oInput) {
-					oInput.setValueState("Error");
-					oInput.setValueStateText(this._getText("customReqInvalidAmount"));
-				}
-				// Reset expected return section
+
+			// UI5 already flagged a type constraint error (e.g. value below minimum):
+			// honour it without overwriting the error message set by the MessageManager
+			if (oInput && oInput.getValueState() === "Error") {
 				oModel.setProperty("/expectedReturn", 0);
 				oModel.setProperty("/expectedTotal", 0);
-				//MessageToast.show(this._getText("customReqInvalidAmount"));
 				return;
 			}
-			
-			// Clear error state if valid
-			if (oInput) {
-				oInput.setValueState("None");
-				// Format amount to locale (2 decimal places)
-				const oNumberFormat = NumberFormat.getFloatInstance({ decimals: 2, maxFractionDigits: 2 });
-				const sFormattedAmount = oNumberFormat.format(fAmount);
-				oInput.setValue(sFormattedAmount);
+
+			// Field was never filled in (null) — user hasn't typed yet
+			if (!fAmount || fAmount <= 0) {
+				if (oInput) {
+					// Use the same message that MessageManager generates for the
+					// minimum constraint, so both cases (empty and below minimum) look identical.
+					// sap/ui/core/Lib is a core module — synchronous require works when already loaded.
+					const oCoreLib = sap.ui.require("sap/ui/core/Lib");
+					const oCoreBundle = oCoreLib ? oCoreLib.getResourceBundleFor("sap.ui.core") : null;
+					const oNumFormat = NumberFormat.getFloatInstance({ decimals: 2, groupingEnabled: true });
+					const sErrorText = oCoreBundle
+						? oCoreBundle.getText("Float.Minimum", [oNumFormat.format(10000000)])
+						: this._getText("customReqInvalidAmount");
+					oInput.setValueState("Error");
+					oInput.setValueStateText(sErrorText);
+				}
+				oModel.setProperty("/expectedReturn", 0);
+				oModel.setProperty("/expectedTotal", 0);
+				return;
 			}
-			
-			// Get rate and tenor for calculation
+
+			// Valid - calculate
 			const fRate = oModel.getProperty("/rateInterpolated");
 			const fTenorMonths = oModel.getProperty("/tenorMonths");
-			
+
 			// Calculate interest: Interest = Amount * (Rate / 100) * (Months / 12)
 			const fInterest = fAmount * (fRate / 100) * (fTenorMonths / 12);
 			const fTotal = fAmount + fInterest;
-			
+
 			oModel.setProperty("/expectedReturn", Number.parseFloat(fInterest.toFixed(2)));
 			oModel.setProperty("/expectedTotal", Number.parseFloat(fTotal.toFixed(2)));
 		},

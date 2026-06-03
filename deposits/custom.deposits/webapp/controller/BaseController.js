@@ -66,26 +66,6 @@ sap.ui.define([
 			} else {
 				this.getRouter().navTo("main", {}, undefined, true);
 			}
-		},
-
-		/**
-		 * Handles live change events on amount input fields.
-		 * Filters out invalid characters (only allows digits and locale decimal/grouping separators)
-		 * and clears error state when valid input is entered.
-		 * @param {sap.ui.base.Event} oEvent The event object
-		 */
-		onAmountLiveChange: function (oEvent) {
-			const oInput = oEvent.getSource();
-			const sValue = oEvent.getParameter("value");
-			// Allow only digits and locale decimal/grouping separators (dot and comma)
-			const sFiltered = sValue.replace(/[^0-9.,]/g, "");
-			if (sFiltered !== sValue) {
-				oInput.setValue(sFiltered);
-			}
-			// Clear error state when user starts typing valid input
-			if (sFiltered !== "" && oInput.getValueState() === "Error") {
-				oInput.setValueState("None");
-			}
 		}
 	});
 });
