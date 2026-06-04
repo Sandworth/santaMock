@@ -1087,7 +1087,8 @@ sap.ui.define([
 							nombre: oCuenta.nombre,
 							cuentaCorriente: oCuenta.cuentaCorriente,
 							saldoInfoCent: oCuenta.saldoInfoCent,
-							currency: oCuenta.currency
+							currency: oCuenta.currency,
+							enabled: oCuenta.enabled
 						});
 					});
 			});
