@@ -103,19 +103,18 @@
                         <Input
 								id="customReqAmountInput"
 								value="{
-												path: 'customRequest>/amount',
-												type: 'Float',
-												formatOptions: {
+											path: 'customRequest>/amount',
+											type: 'Float',
+											formatOptions: {
 													groupingEnabled: true,
 													decimals: 2,
 													maxFractionDigits: 2,
 													preserveDecimals: false
-												},
-												constraints: { minimum: 10000000 }
-											}"
+												}
+										}"
                                 placeholder="{i18n>simAmountPlaceholder}"
-								valueLiveUpdate="true"
 								enabled="{customRequest>/step5Enabled}"
+								change=".onStep5AmountValidate"
                                 submit=".onStep5Calculate" />
                         <Button
                                 class="sapUiSmallMarginBegin"

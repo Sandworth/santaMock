@@ -479,11 +479,11 @@ sap.ui.define([
 			const oTable = this.oTable;
 
 			this.oMetadataHelper = new MetadataHelper([
-				{ key: "name_col",        label: this._getText("lblName"),        path: "Name" },
-				{ key: "duration_col",    label: this._getText("lblDuration"),    path: "to_TenorCode/Description" },
+				//{ key: "name_col",        label: this._getText("lblName"),        path: "Name" },
 				{ key: "currency_col",    label: this._getText("lblCurrency"),    path: "to_CurrencyCode/Description" },
+				{ key: "duration_col",    label: this._getText("lblDuration"),    path: "to_TenorCode/order" },
 				{ key: "rate_col",        label: this._getText("lblRate"),        path: "Rate" },
-				{ key: "suitability_col", label: this._getText("lblSuitability"), path: "Suitability" }
+				//{ key: "suitability_col", label: this._getText("lblSuitability"), path: "Suitability" }
 			]);
 
 			Engine.getInstance().register(oTable, {
@@ -708,15 +708,15 @@ sap.ui.define([
 							unit: "%"
 						});
 
-					case "suitability_col":
-						return new RatingIndicator({
-							value: {
-								parts: [{ path: "mainService>Rate" }, { path: "mainService>to_TenorCode/Code" }],
-								formatter: Formatter.formatSuitability
-							},
-							maxValue: 5,
-							editable: false
-						});
+					// case "suitability_col":
+					// 	return new RatingIndicator({
+					// 		value: {
+					// 			parts: [{ path: "mainService>Rate" }, { path: "mainService>to_TenorCode/Code" }],
+					// 			formatter: Formatter.formatSuitability
+					// 		},
+					// 		maxValue: 5,
+					// 		editable: false
+					// 	});
 					default:
 						return new MText();
 				}
@@ -755,7 +755,7 @@ sap.ui.define([
 				tenorDays: 0,
 				tenorMonths: 0,
 				account: "",
-				amount: null,
+				amount: 0,
 				expectedReturn: 0,
 				expectedTotal: 0,
 				currencies: [
@@ -879,7 +879,7 @@ sap.ui.define([
 			oModel.setProperty("/tenorMonths", 0);
 			oModel.setProperty("/step4Enabled", false);
 			oModel.setProperty("/account", "");
-			oModel.setProperty("/amount", "");
+			oModel.setProperty("/amount", 0);
 			oModel.setProperty("/expectedReturn", 0);
 			oModel.setProperty("/expectedTotal", 0);
 			oModel.setProperty("/step5Enabled", false);
@@ -905,7 +905,7 @@ sap.ui.define([
 				oModel.setProperty("/tenorMonths", 0);
 				oModel.setProperty("/step4Enabled", false);
 				oModel.setProperty("/account", "");
-				oModel.setProperty("/amount", "");
+				oModel.setProperty("/amount", 0);
 				oModel.setProperty("/expectedReturn", 0);
 				oModel.setProperty("/expectedTotal", 0);
 				oModel.setProperty("/step5Enabled", false);
@@ -932,7 +932,7 @@ sap.ui.define([
 
 			// Reset steps 4-5
 			oModel.setProperty("/account", "");
-			oModel.setProperty("/amount", "");
+			oModel.setProperty("/amount", 0);
 			oModel.setProperty("/expectedReturn", 0);
 			oModel.setProperty("/expectedTotal", 0);
 			oModel.setProperty("/step5Enabled", false);
@@ -1105,54 +1105,62 @@ sap.ui.define([
 			const sAccount = oEvent.getSource().getSelectedKey();
 			const oModel = this.getModel("customRequest");
 			
+			oModel.setProperty("/amount", 0);  // Reset amount when account changes
 			oModel.setProperty("/account", sAccount);
 			oModel.setProperty("/step5Enabled", true);
 		},
 
+		// Validate that the amount is above the minimum and that the selected account has sufficient balance.
+		onStep5AmountValidate: function (oEvent) {
+			const iMinAmount = 10000000;
+			const oNumFormat = NumberFormat.getFloatInstance({ decimals: 2, groupingEnabled: true });
+			const oInput = oEvent.getSource();
+			const fAmount = oNumFormat.parse(oInput.getValue());
+			const oModel = this.getModel("customRequest");
+			// check account balance as well
+			const oAccountCombo = Fragment.byId("customReqDialog", "customReqAccountCombo");
+			const oSelectedItem = oAccountCombo ? oAccountCombo.getSelectedItem() : null;
+			const sBalanceText = oSelectedItem ? oSelectedItem.getAdditionalText() : "";
+			const fAccountBalance = oNumFormat.parse(sBalanceText.split(" ")[0]);
+			if (isNaN(fAmount) || fAmount < iMinAmount) {
+				oInput.setValueState("Error");
+				oInput.setValueStateText(this._getText("customReqMinAmount", [oNumFormat.format(iMinAmount)]));
+				oModel.setProperty("/expectedReturn", 0);
+				oModel.setProperty("/expectedTotal", 0);				
+			}
+			else if (fAmount > fAccountBalance) {
+				oInput.setValueState("Error");
+				oInput.setValueStateText(this._getText("customReqInsufficientBalance"));
+				oModel.setProperty("/expectedReturn", 0);
+				oModel.setProperty("/expectedTotal", 0);
+			}
+			else {
+				oInput.setValueState("None");
+			}
+		},
+
 		/**
-		 * Validates the deposit amount and calculates the expected return in Step 5.
+		 * Calculates the expected return for the custom deposit request in Step 5.
+		 * Assumes the amount has already been validated by onStep5AmountValidate (change event).
 		 * Uses the formula: Interest = Amount * (Rate / 100) * (Months / 12).
-		 * Delegates type constraint validation (minimum) to UI5 via handleValidation:true;
-		 * only applies a manual error for the "field not yet filled" case.
 		 */
 		onStep5Calculate: function () {
 			const oModel = this.getModel("customRequest");
-			const oInput = Fragment.byId("customReqDialog", "customReqAmountInput");
 			const fAmount = oModel.getProperty("/amount");
-
-			// UI5 already flagged a type constraint error (e.g. value below minimum):
-			// honour it without overwriting the error message set by the MessageManager
-			if (oInput && oInput.getValueState() === "Error") {
-				oModel.setProperty("/expectedReturn", 0);
-				oModel.setProperty("/expectedTotal", 0);
-				return;
-			}
-
-			// Field was never filled in (null) — user hasn't typed yet
-			if (!fAmount || fAmount <= 0) {
-				if (oInput) {
-					// Use the same message that MessageManager generates for the
-					// minimum constraint, so both cases (empty and below minimum) look identical.
-					// sap/ui/core/Lib is a core module — synchronous require works when already loaded.
-					const oCoreLib = sap.ui.require("sap/ui/core/Lib");
-					const oCoreBundle = oCoreLib ? oCoreLib.getResourceBundleFor("sap.ui.core") : null;
-					const oNumFormat = NumberFormat.getFloatInstance({ decimals: 2, groupingEnabled: true });
-					const sErrorText = oCoreBundle
-						? oCoreBundle.getText("Float.Minimum", [oNumFormat.format(10000000)])
-						: this._getText("customReqInvalidAmount");
-					oInput.setValueState("Error");
-					oInput.setValueStateText(sErrorText);
-				}
-				oModel.setProperty("/expectedReturn", 0);
-				oModel.setProperty("/expectedTotal", 0);
-				return;
-			}
-
-			// Valid - calculate
 			const fRate = oModel.getProperty("/rateInterpolated");
 			const fTenorMonths = oModel.getProperty("/tenorMonths");
 
-			// Calculate interest: Interest = Amount * (Rate / 100) * (Months / 12)
+			// Guard: nothing to calculate if amount is absent or non-positive
+			if (!fAmount || fAmount <= 0) {
+				return;
+			}
+
+			// Guard: ensure input is not in error state before calculating
+			const oAmountInput = Fragment.byId("customReqDialog", "customReqAmountInput");
+			if (oAmountInput && oAmountInput.getValueState() === "Error") {
+				return;
+			}
+
 			const fInterest = fAmount * (fRate / 100) * (fTenorMonths / 12);
 			const fTotal = fAmount + fInterest;
 

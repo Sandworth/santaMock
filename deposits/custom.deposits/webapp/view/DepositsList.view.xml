@@ -202,30 +202,29 @@
 
 				<!-- Columns -->
 				<columns>
-					<Column app:p13nKey="name_col" headerMenu="columnMenu">
-						<header><Text text="{i18n>colName}" /></header>
+					<Column app:p13nKey="currency_col">
+						<Text text="{i18n>colCurrency}" />
 					</Column>
-					<Column app:p13nKey="duration_col" headerMenu="columnMenu">
-						<header><Text text="{i18n>colDuration}" /></header>
+					<Column app:p13nKey="duration_col">
+						<Text text="{i18n>colDuration}" />
 					</Column>
-					<Column app:p13nKey="currency_col" headerMenu="columnMenu">
-						<header><Text text="{i18n>colCurrency}" /></header>
+					<Column app:p13nKey="rate_col" hAlign="End">
+						<Text text="{i18n>colRate}" />
 					</Column>
-					<Column app:p13nKey="rate_col" hAlign="End" headerMenu="columnMenu">
-						<header><Text text="{i18n>colRate}" /></header>
-					</Column>
-					<Column app:p13nKey="suitability_col" headerMenu="columnMenu">
-						<header><Text text="{i18n>colSuitability}" /></header>
-					</Column>
+					<!-- <Column app:p13nKey="name_col">
+						<Text text="{i18n>colName}" />
+					</Column> -->
+					<!-- <Column app:p13nKey="suitability_col">
+						<Text text="{i18n>colSuitability}" />
+					</Column> -->
 				</columns>
 
 				<!-- Row template -->
 				<items>
-					<ColumnListItem type="Navigation" press=".onListItemPress">
+					<ColumnListItem type="Navigation" press=".onListItemPress" class="listItemCustHeight">
 						<cells>
-							<ObjectIdentifier title="{mainService>Name}" />
-							<Text text="{mainService>to_TenorCode/Description}" />
 							<Text text="{mainService>to_CurrencyCode/Description}" />
+							<Text text="{mainService>to_TenorCode/Description}" />
 							<ObjectNumber
 								number="{
 									path: 'mainService>Rate',
@@ -233,8 +232,9 @@
 									formatOptions: { decimals: 2 }
 								}"
 								unit="%" />
+							<!-- <Text text="{mainService>Name}" /> -->
 
-							<RatingIndicator
+							<!-- <RatingIndicator
 								value="{
 									parts: [
 										{ path: 'mainService>Rate' },
@@ -243,7 +243,7 @@
 									formatter: 'Formatter.formatSuitability'
 								}"
 								maxValue="5"
-								editable="false" />
+								editable="false" /> -->
 						</cells>
 					</ColumnListItem>
 				</items>
