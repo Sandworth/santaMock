@@ -19,6 +19,11 @@
                         type="Emphasized"
                         icon="sap-icon://settings"
                         press=".onConfigureNow"/>
+                    <m:Button 
+                        text="Transferencia Manual"
+                        type="Ghost"
+                        icon="sap-icon://payment-approval"
+                        press=".onAnotherButtonPress"/>
                 </f:actions>
             </f:DynamicPageTitle>
         </f:title>
