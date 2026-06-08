@@ -819,7 +819,7 @@ sap.ui.define([
             const oModel = this._getWizardModel();
             const iSelectedHorarioIndex = oModel.getProperty("/selectedHorario");
             const aSelectedAccounts = aSelectedAccountsParam || this._getSelectedStep2Accounts();
-            
+
             // Reset if not building for options 2 or 3
             if (!aSelectedAccounts.length || iSelectedHorarioIndex === 0 || iSelectedHorarioIndex === null) {
                 oModel.setProperty("/horariosPersonalizadosPorBanco", []);
@@ -1124,6 +1124,41 @@ sap.ui.define([
 
         onDialogClose() {
             // Handle dialog close event
-        }
+        },
+        onAnotherButtonPress() {
+            const oTreasureModel = this.getView().getModel("Cashpool");
+            const oContext = oTreasureModel.bindContext('/postBankTransfer(...)')
+            const oToPostBank = {
+                    "destinationName": "DS9",
+                    "valueDate": "2026-06-02",
+                    "payingCompanyCode": "2010",
+                    "payingBankAccount": "0123456789",
+                    "payingHouseBank": "SANT0",
+                    "payingHouseBankAccount": "0",
+                    "payeeHouseBank": "CAIX0",
+                    "payeeHouseBankAccount": "0",
+                    "paymentRequestAmountInPaytCrcy": 99.99,
+                    "paymentRequestCurrency": "EUR",
+                    "payeeBankAccount": "6678764260",
+                    "payeeCompanyCode": "2010",
+                    "bankTransferReleaseAndPay": true
+                }
+                
+                oContext.setParameter("postBankTransferData", oToPostBank);
+
+                oContext.execute().then(() => {
+                    var oActionContext = oContext.getBoundContext();
+                    var sError = oActionContext.getObject().error;
+                    if (sError) {
+                        MessageToast.show("Error from backend: " + sError);
+                        return;
+                    } else {
+                    console.log(sError);                    
+                    MessageToast.show("Bank transfer posted successfully!");}
+
+                }).catch((oError) => {
+                    MessageToast.show("Error posting bank transfer: " + oError.error.message);
+                });
+            }
     });
 });

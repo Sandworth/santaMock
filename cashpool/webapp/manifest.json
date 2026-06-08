@@ -29,6 +29,15 @@
           }
         }
       }
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/odata/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      }
     }
   },
   "sap.ui": {
@@ -65,6 +74,15 @@
       "cozy": true
     },
     "models": {
+      "Cashpool": {
+        "dataSource": "mainService",
+        "type": "sap.ui.model.odata.v4.ODataModel",
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
+      },
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {

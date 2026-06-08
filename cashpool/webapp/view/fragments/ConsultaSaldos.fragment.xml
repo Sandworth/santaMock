@@ -48,7 +48,7 @@
             class="sapUiContentPadding"
             showSeparators="None"
             width="100%"
-            items="{empresas>/empresas}"
+            items="{Cashpool>/Companies}"
         >
             <CustomListItem type="Inactive">
                 <Panel
@@ -65,7 +65,7 @@
                         >
                             <HBox alignItems="Center">
                                 <Title
-                                    text="{empresas>razonSocial}"
+                                    text="{Cashpool>name}"
                                     titleStyle="H3"
                                     class="sapUiSmallMarginEnd sapUiTinyMarginTop"
                                 />
@@ -74,7 +74,7 @@
                                     type="Transparent"
                                 />
                             </HBox>
-                            <Label text="CIF: {empresas>cif}" />
+                            <Label text="CIF: {Cashpool>cif}" />
                         </VBox>
                         <VBox
                             alignItems="End"

@@ -15,10 +15,16 @@
       "destination": "ui5"
     },
     {
+      "source": "^/odata/(.*)$",
+      "target": "/$1",
+      "authenticationType": "xsuaa",
+      "destination": "CashPooling_Destination"
+    },
+    {
       "source": "^(.*)$",
       "target": "$1",
       "service": "html5-apps-repo-rt",
       "authenticationType": "xsuaa"
     }
-  ]
+  ] 
 }
