@@ -1,0 +1,267 @@
+<core:FragmentDefinition xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:data="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
+    core:require="{Formatter: 'cashpool/app/cashpool/utils/Formatter'}">
+    <Dialog id="wizardTransferDialog"
+            title="{i18n>wizardTransferDialogTitle}"
+            contentWidth="1420px"
+            afterOpen=".onTransferWizardDialogAfterOpen"
+            afterClose=".onTransferWizardDialogAfterClose">
+        <content>
+            <Wizard id="transferConfigWizard"
+                    renderMode="Page"
+                    showNextButton="false"
+                    navigationChange=".onTransferWizardNavChange"
+                    width="100%">
+                <!-- Step 1: Empresa -->
+                <WizardStep id="wizardTransferStep1"
+                            title="{i18n>wizardStep1Title}"
+                            validated="false">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <SearchField 
+                                    placeholder="{i18n>wizardSearchStep1Placeholder}"
+                                    search=".onEmpresaSearchTransfer"
+                                    class="sapUiSmallMarginBottom"/>
+                        <Table id="empresaTableTransfer"
+                                items="{wizardTransfer>/empresas}"
+                                mode="SingleSelectLeft"
+                                selectionChange=".onEmpresaSelectionChangeTransfer"
+                                fixedLayout="false">
+                            <columns>
+                                <Column>
+                                    <header>
+                                        <Text text="{i18n>colRazonSocial}"/>
+                                    </header>
+                                </Column>
+                                <Column>
+                                    <header>
+                                        <Text text="{i18n>colCIF}"/>
+                                    </header>
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem type="Active">
+                                    <cells>
+                                        <Text text="{wizardTransfer>razonSocial}"/>
+                                        <Text text="{wizardTransfer>cif}"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 2: Cuenta de Origen (SingleSelect) -->
+                <WizardStep id="wizardTransferStep2"
+                            title="{i18n>transferOriginLabel}"
+                            validated="false">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <SearchField width="100%"
+                                     placeholder="{i18n>wizardSearchStep2Placeholder}"
+                                     search=".onCuentasSearchTransfer"/>
+                        <List id="bancosListTransferStep2"
+                              items="{wizardTransfer>/bancos}"
+                              mode="None"
+                              showSeparators="None">
+                            <CustomListItem>
+                                <Panel expandable="true"
+                                       expanded="{wizardTransfer>expanded}"
+                                       headerText="{parts: [{path: 'wizardTransfer>nombre'}, {path: 'wizardTransfer>cuentas'}], formatter: 'Formatter.formatBankTitle'}"
+                                       class="sapUiSmallMarginBottom">
+                                    <Table items="{wizardTransfer>cuentas}"
+                                           mode="SingleSelectLeft"
+                                           selectionChange=".onCuentaOrigenSelectionChange"
+                                           fixedLayout="false">
+                                        <columns>
+                                            <Column>
+                                                <header>
+                                                    <Text text="{i18n>colNombre}"/>
+                                                </header>
+                                            </Column>
+                                            <Column>
+                                                <header>
+                                                    <Text text="{i18n>colOficina}"/>
+                                                </header>
+                                            </Column>
+                                            <Column>
+                                                <header>
+                                                    <Text text="{i18n>colCuentaCorriente}"/>
+                                                </header>
+                                            </Column>
+                                            <Column hAlign="End">
+                                                <header>
+                                                    <Text text="{i18n>colSaldoInfoCent}"/>
+                                                </header>
+                                            </Column>
+                                        </columns>
+                                        <items>
+                                            <ColumnListItem type="Active">
+                                                <cells>
+                                                    <HBox alignItems="Center">
+                                                        <Text text="{wizardTransfer>nombre}" class="sapUiTinyMarginEnd"/>
+                                                        <ObjectStatus inverted="true" text="{i18n>autorizado}"/>
+                                                    </HBox>
+                                                    <Text text="{wizardTransfer>oficina}"/>
+                                                    <Text text="{wizardTransfer>cuentaCorriente}"/>
+                                                    <Text text="{parts: [{path: 'wizardTransfer>saldoInfoCent'}, {path: 'wizardTransfer>currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                                </cells>
+                                            </ColumnListItem>
+                                        </items>
+                                    </Table>
+                                </Panel>
+                            </CustomListItem>
+                        </List>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 3: Cuenta de Destino -->
+                <WizardStep id="wizardTransferStep3"
+                            title="{i18n>transferDestinationLabel}"
+                            validated="false">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <SearchField width="100%"
+                                     placeholder="{i18n>wizardSearchStep3Placeholder}"
+                                     search=".onCuentaDestinoSearchTransfer"
+                                     class="sapUiSmallMarginBottom"/>
+                        <Table id="cuentaDestinoTableTransfer"
+                               items="{wizardTransfer>/cuentasCentralizadoras}"
+                               mode="SingleSelectLeft"
+                               selectionChange=".onCuentaDestinoSelectionChange"
+                               fixedLayout="false">
+                            <columns>
+                                <Column width="40%">
+                                    <header>
+                                        <Text text="{i18n>colNombre}"/>
+                                    </header>
+                                </Column>
+                                <Column width="30%">
+                                    <header>
+                                        <Text text="{i18n>colOficina}"/>
+                                    </header>
+                                </Column>
+                                <Column width="30%">
+                                    <header>
+                                        <Text text="{i18n>colCuentaCorriente}"/>
+                                    </header>
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem type="Active">
+                                    <cells>
+                                        <Text text="{wizardTransfer>nombre}"/>
+                                        <Text text="{wizardTransfer>oficina}"/>
+                                        <Text text="{wizardTransfer>cuentaCorriente}"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 4: Importe -->
+                <WizardStep id="wizardTransferStep4"
+                            title="{i18n>transferAmountLabel}"
+                            validated="false">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiMediumMarginTop sapUiContentPadding">
+                        <Label text="{i18n>transferAmountLabel}" labelFor="transferAmountInput"/>
+                        <Input id="transferAmountInput"
+                               value="{wizardTransfer>/transferAmount}"
+                               liveChange=".onTransferAmountChange"
+                               placeholder="0,00"
+                               width="16rem"/>
+                    </VBox>
+                </WizardStep>
+                <!-- Step 5: Revisión -->
+                <WizardStep id="wizardTransferStep5"
+                            title="{i18n>wizardStep6Title}"
+                            validated="true"
+                            activate=".onTransferReviewStepActivate">
+                    <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
+                        <!-- 1. Empresa -->
+                        <Panel expandable="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>wizardReviewSection1}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStepTransfer" data:step="1"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>colRazonSocial}"/>
+                                    <Text text="{wizardTransfer>/review/razonSocial}"/>
+                                    <Label text="{i18n>colCIF}"/>
+                                    <Text text="{wizardTransfer>/review/cif}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                        <!-- 2. Cuenta de Origen -->
+                        <Panel expandable="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>transferReviewOrigin}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStepTransfer" data:step="2"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>colBanco}"/>
+                                    <Text text="{wizardTransfer>/review/cuentaOrigenBanco}"/>
+                                    <Label text="{i18n>colCuentaCorriente}"/>
+                                    <Text text="{wizardTransfer>/review/cuentaOrigenCuenta}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                        <!-- 3. Cuenta de Destino -->
+                        <Panel expandable="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>transferReviewDestination}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStepTransfer" data:step="3"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>colNombre}"/>
+                                    <Text text="{wizardTransfer>/review/cuentaDestinoBanco}"/>
+                                    <Label text="{i18n>colCuentaCorriente}"/>
+                                    <Text text="{wizardTransfer>/review/cuentaDestinoCuenta}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                        <!-- 4. Importe -->
+                        <Panel expandable="false">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>transferAmountLabel}" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Link text="{i18n>editLink}" press=".onEditStepTransfer" data:step="4"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <form:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                                             labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                             adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
+                                <form:content>
+                                    <Label text="{i18n>transferAmountLabel}"/>
+                                    <Text text="{wizardTransfer>/review/importe}"/>
+                                </form:content>
+                            </form:SimpleForm>
+                        </Panel>
+                    </VBox>
+                </WizardStep>
+            </Wizard>
+        </content>
+        <buttons>
+            <Button text="{i18n>wizardCancelBtn}" press=".onTransferWizardCancel"/>
+            <Button text="{i18n>wizardBackBtn}" visible="{wizardTransfer>/nav/backVisible}" press=".onTransferWizardBack"/>
+            <Button text="{i18n>wizardNextBtn}" type="Emphasized" visible="{wizardTransfer>/nav/nextVisible}" enabled="{wizardTransfer>/nav/nextEnabled}" press=".onTransferWizardNext"/>
+            <Button text="{i18n>wizardAcceptBtn}" type="Emphasized" visible="{wizardTransfer>/nav/acceptVisible}" press=".onTransferWizardAccept"/>
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

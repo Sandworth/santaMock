@@ -1125,9 +1125,360 @@ sap.ui.define([
         onDialogClose() {
             // Handle dialog close event
         },
-        onAnotherButtonPress() {
+
+        onCreateSingleTransfer() {
+            const oTransferModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardTransferData.json"));
+            oTransferModel.attachRequestCompleted(() => {
+                const aEmpresas = oTransferModel.getProperty("/empresas") || [];
+                const aBancos = oTransferModel.getProperty("/bancos") || [];
+                const aCuentasCentral = oTransferModel.getProperty("/cuentasCentralizadoras") || [];
+                oTransferModel.setProperty("/_empresasAll", aEmpresas.slice());
+                oTransferModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(aBancos)));
+                oTransferModel.setProperty("/_cuentasCentralAll", aCuentasCentral.slice());
+                this.getView().setModel(oTransferModel, "wizardTransfer");
+                this._openTransferWizardDialogFragment();
+            });
+            oTransferModel.attachRequestFailed(() => {
+                MessageToast.show("No se pudo cargar la configuración del wizard de transferencia.");
+            });
+        },
+
+        _openTransferWizardDialogFragment() {
+            if (!this._transferWizardDialog) {
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "cashpool.app.cashpool.view.fragments.WizardTransferDialog",
+                    controller: this
+                }).then((oDialog) => {
+                    this._transferWizardDialog = oDialog;
+                    this.getView().addDependent(this._transferWizardDialog);
+                    this._transferWizardDialog.open();
+                });
+            } else {
+                this._resetTransferWizard();
+                this._transferWizardDialog.open();
+            }
+        },
+
+        _getTransferWizardModel() {
+            return this.getView().getModel("wizardTransfer");
+        },
+
+        // ─── Transfer wizard navigation ───────────────────────────────
+
+        onTransferWizardDialogAfterOpen() {
+            this._iTransferCurrentStepIndex = 0;
+            this._updateTransferNavState(0);
+        },
+
+        onTransferWizardDialogAfterClose() {
+            this._resetTransferWizard();
+        },
+
+        _resetTransferWizard() {
+            const oWizard = this.byId("transferConfigWizard");
+            if (oWizard) {
+                oWizard.discardProgress(this.byId("wizardTransferStep1"), true);
+            }
+            const oModel = this._getTransferWizardModel();
+            if (oModel) {
+                oModel.setProperty("/transferAmount", "");
+                oModel.setProperty("/review", {
+                    razonSocial: "", cif: "",
+                    cuentaOrigenBanco: "", cuentaOrigenCuenta: "",
+                    cuentaDestinoBanco: "", cuentaDestinoCuenta: "",
+                    importe: ""
+                });
+            }
+            this._iTransferCurrentStepIndex = 0;
+        },
+
+        _updateTransferNavState(iIndex) {
+            const oModel = this._getTransferWizardModel();
+            if (!oModel) {
+                return;
+            }
+            const iTotalSteps = 5;
+            const bIsFirst = iIndex === 0;
+            const bIsLast = iIndex === iTotalSteps - 1;
+
+            oModel.setProperty("/nav/backVisible", !bIsFirst);
+            oModel.setProperty("/nav/nextVisible", !bIsLast);
+            oModel.setProperty("/nav/acceptVisible", bIsLast);
+
+            // Determine nextEnabled based on current step validation
+            let bNextEnabled = false;
+            if (iIndex === 0) {
+                const oTable = this.byId("empresaTableTransfer");
+                bNextEnabled = oTable ? oTable.getSelectedItems().length > 0 : false;
+            } else if (iIndex === 1) {
+                bNextEnabled = this._isTransferOrigenSelected();
+            } else if (iIndex === 2) {
+                const oDestTable = this.byId("cuentaDestinoTableTransfer");
+                bNextEnabled = oDestTable ? oDestTable.getSelectedItems().length > 0 : false;
+            } else if (iIndex === 3) {
+                const sAmount = oModel.getProperty("/transferAmount") || "";
+                bNextEnabled = sAmount.trim().length > 0 && !Number.isNaN(this._parseLocalizedNumber(sAmount));
+            }
+            oModel.setProperty("/nav/nextEnabled", bNextEnabled);
+        },
+
+        _isTransferOrigenSelected() {
+            const oBancosList = this.byId("bancosListTransferStep2");
+            if (!oBancosList) {
+                return false;
+            }
+            const aItems = oBancosList.getItems();
+            for (let i = 0; i < aItems.length; i++) {
+                const oPanel = aItems[i].getContent ? aItems[i].getContent()[0] : null;
+                if (oPanel && oPanel.getContent) {
+                    const aContent = oPanel.getContent();
+                    for (let j = 0; j < aContent.length; j++) {
+                        if (aContent[j].getSelectedItems && aContent[j].getSelectedItems().length > 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        },
+
+        onTransferWizardNavChange(oEvent) {
+            const oStep = oEvent.getParameter("step");
+            const oWizard = this.byId("transferConfigWizard");
+            if (!oWizard || !oStep) {
+                return;
+            }
+            const aSteps = oWizard.getSteps();
+            const iIndex = aSteps.indexOf(oStep);
+            if (iIndex >= 0) {
+                this._iTransferCurrentStepIndex = iIndex;
+                this._updateTransferNavState(iIndex);
+            }
+        },
+
+        onTransferWizardNext() {
+            const oWizard = this.byId("transferConfigWizard");
+            if (oWizard) {
+                const aSteps = oWizard.getSteps();
+                const iCurrent = this._iTransferCurrentStepIndex || 0;
+                if (iCurrent < aSteps.length - 1) {
+                    oWizard.nextStep();
+                    this._iTransferCurrentStepIndex = iCurrent + 1;
+                    this._updateTransferNavState(this._iTransferCurrentStepIndex);
+                }
+            }
+        },
+
+        onTransferWizardBack() {
+            const oWizard = this.byId("transferConfigWizard");
+            if (oWizard) {
+                const iCurrent = this._iTransferCurrentStepIndex || 0;
+                if (iCurrent > 0) {
+                    oWizard.previousStep();
+                    this._iTransferCurrentStepIndex = iCurrent - 1;
+                    this._updateTransferNavState(this._iTransferCurrentStepIndex);
+                }
+            }
+        },
+
+        onTransferWizardCancel() {
+            if (this._transferWizardDialog) {
+                this._transferWizardDialog.close();
+            }
+        },
+
+        // ─── Transfer wizard step handlers ────────────────────────────
+
+        onEmpresaSearchTransfer(oEvent) {
+            const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
+            const oModel = this._getTransferWizardModel();
+            if (!oModel) {
+                return;
+            }
+            const aAll = oModel.getProperty("/_empresasAll") || [];
+            if (!sQuery) {
+                oModel.setProperty("/empresas", aAll.slice());
+                return;
+            }
+            const aFiltered = aAll.filter((o) =>
+                o.razonSocial.toLowerCase().includes(sQuery) || o.cif.toLowerCase().includes(sQuery)
+            );
+            oModel.setProperty("/empresas", aFiltered);
+        },
+
+        onEmpresaSelectionChangeTransfer() {
+            this._updateTransferNavState(0);
+        },
+
+        onCuentasSearchTransfer(oEvent) {
+            const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
+            const oModel = this._getTransferWizardModel();
+            if (!oModel) {
+                return;
+            }
+            const aAll = oModel.getProperty("/_bancosAll") || [];
+            if (!sQuery) {
+                oModel.setProperty("/bancos", JSON.parse(JSON.stringify(aAll)));
+                return;
+            }
+            const aFiltered = JSON.parse(JSON.stringify(aAll)).map((oBanco) => {
+                const bBankMatch = oBanco.nombre.toLowerCase().includes(sQuery);
+                if (!bBankMatch) {
+                    oBanco.cuentas = oBanco.cuentas.filter((c) =>
+                        c.oficina.toLowerCase().includes(sQuery) || c.cuentaCorriente.toLowerCase().includes(sQuery)
+                    );
+                }
+                return oBanco;
+            }).filter((oBanco) => oBanco.cuentas.length > 0);
+            oModel.setProperty("/bancos", aFiltered);
+        },
+
+        onCuentaOrigenSelectionChange() {
+            this._updateTransferNavState(1);
+        },
+
+        onCuentaDestinoSearchTransfer(oEvent) {
+            const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
+            const oModel = this._getTransferWizardModel();
+            if (!oModel) {
+                return;
+            }
+            const aAll = oModel.getProperty("/_cuentasCentralAll") || [];
+            if (!sQuery) {
+                oModel.setProperty("/cuentasCentralizadoras", aAll.slice());
+                return;
+            }
+            const aFiltered = aAll.filter((o) =>
+                o.nombre.toLowerCase().includes(sQuery) ||
+                o.oficina.toLowerCase().includes(sQuery) ||
+                o.cuentaCorriente.toLowerCase().includes(sQuery)
+            );
+            oModel.setProperty("/cuentasCentralizadoras", aFiltered);
+        },
+
+        onCuentaDestinoSelectionChange() {
+            this._updateTransferNavState(2);
+        },
+
+        onTransferAmountChange(oEvent) {
+            this._getTransferWizardModel().setProperty('/transferAmount', oEvent.getParameter('newValue'))
+            this._updateTransferNavState(3);
+        },
+
+        // ─── Transfer wizard review ──────────────────────────────────
+
+        onTransferReviewStepActivate() {
+            this._updateTransferReview();
+        },
+
+        _updateTransferReview() {
+            const oModel = this._getTransferWizardModel();
+            if (!oModel) {
+                return;
+            }
+
+            // Empresa
+            const oEmpresaTable = this.byId("empresaTableTransfer");
+            if (oEmpresaTable) {
+                const aSelected = oEmpresaTable.getSelectedItems();
+                if (aSelected.length > 0) {
+                    const oCtx = aSelected[0].getBindingContext("wizardTransfer");
+                    if (oCtx) {
+                        oModel.setProperty("/review/razonSocial", oCtx.getProperty("razonSocial"));
+                        oModel.setProperty("/review/cif", oCtx.getProperty("cif"));
+                    }
+                }
+            }
+
+            // Cuenta Origen
+            const oBancosList = this.byId("bancosListTransferStep2");
+            if (oBancosList) {
+                const aItems = oBancosList.getItems();
+                for (let i = 0; i < aItems.length; i++) {
+                    const oPanel = aItems[i].getContent ? aItems[i].getContent()[0] : null;
+                    if (oPanel && oPanel.getContent) {
+                        const aContent = oPanel.getContent();
+                        for (let j = 0; j < aContent.length; j++) {
+                            if (aContent[j].getSelectedItems && aContent[j].getSelectedItems().length > 0) {
+                                const oSelCtx = aContent[j].getSelectedItems()[0].getBindingContext("wizardTransfer");
+                                if (oSelCtx) {
+                                    const sBanco = oSelCtx.getPath().split("/cuentas")[0];
+                                    oModel.setProperty("/review/cuentaOrigenBanco", oModel.getProperty(sBanco + "/nombre"));
+                                    oModel.setProperty("/review/cuentaOrigenCuenta", oSelCtx.getProperty("cuentaCorriente"));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Cuenta Destino
+            const oDestinoTable = this.byId("cuentaDestinoTableTransfer");
+            if (oDestinoTable) {
+                const aSelDest = oDestinoTable.getSelectedItems();
+                if (aSelDest.length > 0) {
+                    const oCtxDest = aSelDest[0].getBindingContext("wizardTransfer");
+                    if (oCtxDest) {
+                        oModel.setProperty("/review/cuentaDestinoBanco", oCtxDest.getProperty("nombre"));
+                        oModel.setProperty("/review/cuentaDestinoCuenta", oCtxDest.getProperty("cuentaCorriente"));
+                    }
+                }
+            }
+
+            // Importe
+            const sAmount = oModel.getProperty("/transferAmount") || "";
+            const nParsed = this._parseLocalizedNumber(sAmount);
+            if (!Number.isNaN(nParsed)) {
+                oModel.setProperty("/review/importe", this._formatLocalizedNumber(nParsed));
+            } else {
+                oModel.setProperty("/review/importe", sAmount);
+            }
+        },
+
+        onEditStepTransfer(oEvent) {
+            const sStep = oEvent.getSource().data("step");
+            const iIndex = parseInt(sStep, 10) - 1;
+            const oWizard = this.byId("transferConfigWizard");
+            if (oWizard) {
+                oWizard.goToStep(this.byId("wizardTransferStep" + sStep), true);
+                this._iTransferCurrentStepIndex = iIndex;
+                this._updateTransferNavState(iIndex);
+            }
+        },
+
+        onTransferWizardAccept() {
+            const oModel = this._getTransferWizardModel();
+            if (!oModel) {
+                return;
+            }
+            this._updateTransferReview();
+            const oReview = oModel.getProperty("/review");
+            const oPreparedTransfer = {
+                empresa: {
+                    razonSocial: oReview.razonSocial,
+                    cif: oReview.cif
+                },
+                cuentaOrigen: {
+                    banco: oReview.cuentaOrigenBanco,
+                    cuentaCorriente: oReview.cuentaOrigenCuenta
+                },
+                cuentaDestino: {
+                    nombre: oReview.cuentaDestinoBanco,
+                    cuentaCorriente: oReview.cuentaDestinoCuenta
+                },
+                importe: this._parseLocalizedNumber(oModel.getProperty("/transferAmount")) || 0
+            };
+            oModel.setProperty("/preparedTransfer", oPreparedTransfer);
+            MessageToast.show(this._oResourceBundle.getText("msgTransferPrepared", [oReview.importe]));
+            if (this._transferWizardDialog) {
+                this._transferWizardDialog.close();
+            }
+        },
+
+        onAnotherButtonPress(oTransferObject) {
             const oTreasureModel = this.getView().getModel("Cashpool");
-            const oContext = oTreasureModel.bindContext('/postBankTransfer(...)')
+            const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
             const oToPostBank = {
                     "destinationName": "DS9",
                     "valueDate": "2026-06-02",

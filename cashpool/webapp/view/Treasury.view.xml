@@ -23,7 +23,7 @@
                         text="Transferencia Manual"
                         type="Ghost"
                         icon="sap-icon://payment-approval"
-                        press=".onAnotherButtonPress"/>
+                        press=".onCreateSingleTransfer"/>
                 </f:actions>
             </f:DynamicPageTitle>
         </f:title>
