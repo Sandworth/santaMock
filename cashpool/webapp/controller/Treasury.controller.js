@@ -1214,7 +1214,7 @@ sap.ui.define([
             } else if (iIndex === 1) {
                 bNextEnabled = this._isTransferOrigenSelected();
             } else if (iIndex === 2) {
-                const oDestTable = this.byId("cuentaDestinoTableTransfer");
+                const oDestTable = this.byId("cuentaDestinoTable");
                 bNextEnabled = oDestTable ? oDestTable.getSelectedItems().length > 0 : false;
             } else if (iIndex === 3) {
                 const sAmount = oModel.getProperty("/transferAmount") || "";
@@ -1405,7 +1405,7 @@ sap.ui.define([
                                 if (oSelCtx) {
                                     const sBanco = oSelCtx.getPath().split("/cuentas")[0];
                                     oModel.setProperty("/review/cuentaOrigenBanco", oModel.getProperty(sBanco + "/nombre"));
-                                    oModel.setProperty("/review/cuentaOrigenCuenta", oSelCtx.getProperty("cuentaCorriente"));
+                                    oModel.setProperty("/review/cuentaOrigenCuenta",  `${oSelCtx.getObject().nombre}\nOficina: ${oSelCtx.getObject().oficina}\nCuenta: ${oSelCtx.getObject().cuentaCorriente}`);
                                 }
                             }
                         }
@@ -1414,14 +1414,14 @@ sap.ui.define([
             }
 
             // Cuenta Destino
-            const oDestinoTable = this.byId("cuentaDestinoTableTransfer");
+            const oDestinoTable = this.byId("cuentaDestinoTable");
             if (oDestinoTable) {
                 const aSelDest = oDestinoTable.getSelectedItems();
                 if (aSelDest.length > 0) {
                     const oCtxDest = aSelDest[0].getBindingContext("wizardTransfer");
                     if (oCtxDest) {
-                        oModel.setProperty("/review/cuentaDestinoBanco", oCtxDest.getProperty("nombre"));
-                        oModel.setProperty("/review/cuentaDestinoCuenta", oCtxDest.getProperty("cuentaCorriente"));
+                        oModel.setProperty("/review/cuentaDestinoBanco", "Bankinter");
+                        oModel.setProperty("/review/cuentaDestinoCuenta",  `${oCtxDest.getObject().nombre}\nOficina: ${oCtxDest.getObject().oficina}\nCuenta: ${oCtxDest.getObject().cuentaCorriente}`);
                     }
                 }
             }

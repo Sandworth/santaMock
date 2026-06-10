@@ -5,6 +5,10 @@
       "cif": "A28345671"
     },
     {
+      "razonSocial": "Embedded Corp",
+      "cif": "P2344686G"
+    },
+    {
       "razonSocial": "Tecnologías Vega S.L.",
       "cif": "B81234567"
     },
@@ -47,9 +51,9 @@
       "expanded": false,
       "cuentas": [
         {
-          "nombre": "Cuenta 1",
+          "nombre": "Test Account 2- Santander",
           "oficina": "0049",
-          "cuentaCorriente": "00491555-11-0123456789",
+          "cuentaCorriente": "ES5700491857161234567890",
           "saldoSAP": 52000,
           "saldoInfoCent": 50000,
           "currency": "EUR"
@@ -241,9 +245,9 @@
   ],
   "cuentasCentralizadoras": [
     {
-      "nombre": "Cuenta Maestra",
-      "oficina": "0049",
-      "cuentaCorriente": "00491555-11-0123456789"
+      "nombre": "TEST - Bankinter",
+      "oficina": "0128",
+      "cuentaCorriente": "ES3801280010970123456769"
     },
     {
       "nombre": "Cuenta Central EUR",

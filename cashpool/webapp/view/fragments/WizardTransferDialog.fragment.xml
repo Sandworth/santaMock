@@ -70,6 +70,7 @@
                                        class="sapUiSmallMarginBottom">
                                     <Table items="{wizardTransfer>cuentas}"
                                            mode="SingleSelectLeft"
+                                           id="cuentaOrigenTable"
                                            selectionChange=".onCuentaOrigenSelectionChange"
                                            fixedLayout="false">
                                         <columns>
@@ -122,7 +123,7 @@
                                      placeholder="{i18n>wizardSearchStep3Placeholder}"
                                      search=".onCuentaDestinoSearchTransfer"
                                      class="sapUiSmallMarginBottom"/>
-                        <Table id="cuentaDestinoTableTransfer"
+                        <Table id="cuentaDestinoTable"
                                items="{wizardTransfer>/cuentasCentralizadoras}"
                                mode="SingleSelectLeft"
                                selectionChange=".onCuentaDestinoSelectionChange"
@@ -228,7 +229,7 @@
                                              labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
                                              adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
                                 <form:content>
-                                    <Label text="{i18n>colNombre}"/>
+                                    <Label text="{i18n>colBanco}"/>
                                     <Text text="{wizardTransfer>/review/cuentaDestinoBanco}"/>
                                     <Label text="{i18n>colCuentaCorriente}"/>
                                     <Text text="{wizardTransfer>/review/cuentaDestinoCuenta}"/>
@@ -239,7 +240,7 @@
                         <Panel expandable="false">
                             <headerToolbar>
                                 <Toolbar>
-                                    <Title text="{i18n>transferAmountLabel}" level="H5"/>
+                                    <Title text="4. {i18n>transferAmountLabel}" level="H5"/>
                                     <ToolbarSpacer/>
                                     <Link text="{i18n>editLink}" press=".onEditStepTransfer" data:step="4"/>
                                 </Toolbar>
@@ -249,7 +250,7 @@
                                              adjustLabelSpan="false" columnsXL="1" columnsL="1" columnsM="1">
                                 <form:content>
                                     <Label text="{i18n>transferAmountLabel}"/>
-                                    <Text text="{wizardTransfer>/review/importe}"/>
+                                    <Text text="{wizardTransfer>/review/importe} €"/>
                                 </form:content>
                             </form:SimpleForm>
                         </Panel>
