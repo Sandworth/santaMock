@@ -23,6 +23,7 @@ sap.ui.define([
 	"sap/m/MessageToast",
 	"sap/ui/core/Fragment",
 	"sap/ui/core/format/NumberFormat",
+	"sap/ui/core/format/DateFormat",
 	"../model/formatter"
 ], function (
 	BaseController,
@@ -49,6 +50,7 @@ sap.ui.define([
 	MessageToast,
 	Fragment,
 	NumberFormat,
+	DateFormat,
 	Formatter
 ) {
 	"use strict";
@@ -110,8 +112,9 @@ sap.ui.define([
 
 			// Default sort: EUR → USD → GBP, then by tenor order
 			this._aDefaultSorters = [
-				new Sorter("to_CurrencyCode/order"),
-				new Sorter("to_TenorCode/order")
+				new Sorter("createdAt", true), // Default sort by creation date descending
+				new Sorter("currency/order"),
+				new Sorter("tenor/order")
 			];
 
 			// Router
@@ -240,7 +243,7 @@ sap.ui.define([
 			const aDurations = oDurationCtrl ? oDurationCtrl.getSelectedKeys() : [];
 			if (aDurations.length > 0) {
 				const aDurFilters = aDurations.map(function (sKey) {
-					return new Filter("to_TenorCode/Code", FilterOperator.EQ, sKey);
+					return new Filter("tenor_ID", FilterOperator.EQ, sKey);
 				});
 				aTableFilters.push(new Filter({ filters: aDurFilters, and: false }));
 			}
@@ -250,7 +253,7 @@ sap.ui.define([
 			const aCurrencies = oCurrencyCtrl ? oCurrencyCtrl.getSelectedKeys() : [];
 			if (aCurrencies.length > 0) {
 				const aCurFilters = aCurrencies.map(function (sKey) {
-					return new Filter("Currency", FilterOperator.EQ, sKey);
+					return new Filter("currency_ID", FilterOperator.EQ, sKey);
 				});
 				aTableFilters.push(new Filter({ filters: aCurFilters, and: false }));
 			}
@@ -261,9 +264,9 @@ sap.ui.define([
 					const oRange = oToken.data("range");
 					var oFilter;
 					if (oRange.operation === "BT") {
-						oFilter = new Filter("Rate", FilterOperator.BT, parseFloat(oRange.value1), parseFloat(oRange.value2));
+						oFilter = new Filter("rate", FilterOperator.BT, parseFloat(oRange.value1), parseFloat(oRange.value2));
 					} else {
-						oFilter = new Filter("Rate", oRange.operation, parseFloat(oRange.value1));
+						oFilter = new Filter("rate", oRange.operation, parseFloat(oRange.value1));
 					}
 					if (oRange.exclude) {
 						oFilter = new Filter({ filters: [oFilter], and: true, not: true });
@@ -422,11 +425,21 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.Event} oEvent - The updateFinished event
 		 */
-		onTableUpdateFinished: function (oEvent) {
-			const iTotal = oEvent.getParameter("total");
+		onTableUpdateFinished: async function (oEvent) {
+			const iTotal = oEvent.getParameter("actual");
 			const oTitle = this.oView.byId("tableTitle");
+			const oLabel = this.oView.byId("lastUpdateLabel");
+			const oModel = oEvent.getSource().getAggregation('items')[0].getBindingContext('mainService').getModel();
+			const oCreatedAt = oModel.bindProperty(oEvent.getSource().getAggregation('items')[0].getBindingContextPath()+"/createdAt");
+			const sValue = await oCreatedAt.requestValue();
+			const oDate = new Date(sValue);
+			const oDateFormat = DateFormat.getDateInstance({ relative: true, relativeScale: "hour", relativeStyle: "wide" });
+			const sFormattedRelative = oDateFormat.format(oDate);
 			if (oTitle) {
 				oTitle.setText(this._getText("listTitle", [iTotal]));
+			}
+			if (oLabel){
+				oLabel.setText(this._getText("lastUpdate", [sFormattedRelative]));
 			}
 		},
 
@@ -454,7 +467,8 @@ sap.ui.define([
 		 */
 		onListItemPress: function (oEvent) {
 			const oContext = oEvent.getSource().getBindingContext("mainService");
-			const sKey = oContext.getProperty("UUID");
+			// const sKey = oContext.getProperty("UUID");
+			const sKey = oContext.sPath.split('(')[1].slice(0,-1); // Extract key from path
 
 			this.getOwnerComponent().getHelper().then(function (oHelper) {
 				const oNextUIState = oHelper.getNextUIState(1);
@@ -480,9 +494,9 @@ sap.ui.define([
 
 			this.oMetadataHelper = new MetadataHelper([
 				//{ key: "name_col",        label: this._getText("lblName"),        path: "Name" },
-				{ key: "currency_col",    label: this._getText("lblCurrency"),    path: "to_CurrencyCode/Description" },
-				{ key: "duration_col",    label: this._getText("lblDuration"),    path: "to_TenorCode/order" },
-				{ key: "rate_col",        label: this._getText("lblRate"),        path: "Rate" },
+				{ key: "currency_col",    label: this._getText("lblCurrency"),    path: "currency/description" },
+				{ key: "duration_col",    label: this._getText("lblDuration"),    path: "tenor/order" },
+				{ key: "rate_col",        label: this._getText("lblRate"),        path: "rate" },
 				//{ key: "suitability_col", label: this._getText("lblSuitability"), path: "Suitability" }
 			]);
 
@@ -669,7 +683,7 @@ sap.ui.define([
 			var aAllKeys = oTable.getColumns().map(function (oCol) { return oCol.data("p13nKey"); });
 			oTable.bindItems({
 				model: "mainService",
-				path: "/value",
+				path: "/RateGrid",
 				templateShareable: false,
 				sorter: aSorters,
 				filters: aFilters,
@@ -699,12 +713,12 @@ sap.ui.define([
 					case "name_col":
 						return new ObjectIdentifier({ title: "{mainService>Name}" });
 					case "duration_col":
-						return new MText({ text: "{mainService>to_TenorCode/Description}" });
+						return new MText({ text: "{mainService>tenor/description}" });
 					case "currency_col":
-						return new MText({ text: "{mainService>to_CurrencyCode/Description}" });
+						return new MText({ text: "{mainService>currency/description}" });
 					case "rate_col":
 						return new ObjectNumber({
-							number: { path: "mainService>Rate", type: new FloatType({ decimals: 2, maxFractionDigits: 2 }) },
+							number: { path: "mainService>rate", type: new FloatType({ decimals: 2, maxFractionDigits: 2 }) },
 							unit: "%"
 						});
 
@@ -923,19 +937,19 @@ sap.ui.define([
 			oModel.setProperty("/tenorDays", iTenorDays);
 			oModel.setProperty("/tenorMonths", fTenorMonths);
 
-			// Interpolate rate based on tenor
-			this._interpolateRate(fTenorMonths, oModel.getProperty("/currency"));
-
-			// Filter accounts by currency and enable step 4
-			this._filterAccountsByCurrency();
-			oModel.setProperty("/step4Enabled", true);
-
-			// Reset steps 4-5
+			// Reset steps 4-5 immediately and keep step 4 disabled until the rate resolves
 			oModel.setProperty("/account", "");
 			oModel.setProperty("/amount", 0);
 			oModel.setProperty("/expectedReturn", 0);
 			oModel.setProperty("/expectedTotal", 0);
+			oModel.setProperty("/step4Enabled", false);
 			oModel.setProperty("/step5Enabled", false);
+
+			// Interpolate rate (async OData V4), then filter accounts and unlock step 4
+			this._interpolateRate(fTenorMonths, oModel.getProperty("/currency")).then(function () {
+				this._filterAccountsByCurrency();
+				oModel.setProperty("/step4Enabled", true);
+			}.bind(this));
 		},
 
 		/**
@@ -970,44 +984,44 @@ sap.ui.define([
 		 *
 		 * @param {number} fTenorMonths - The target tenor in months
 		 * @param {string} sCurrency - The currency code (e.g., "EUR", "USD", "GBP")
+		 * @returns {Promise<void>} Promise that resolves once the rate is written to the model
 		 * @private
 		 */
 		_interpolateRate: function (fTenorMonths, sCurrency) {
 			const oModel = this.getModel("customRequest");
-			const aDeposits = this.getModel("mainService").getProperty("/value") || [];
-			
-			// Get deposits with tenor less than and greater than fTenorMonths
-			const oDepositPair = this._getDepositsByTenorAndCurrency(fTenorMonths, sCurrency);
-			
-			let fInterpolatedRate = 0;
-			
-			if (oDepositPair.lower && oDepositPair.upper) {
-				// Both lower and upper tenors exist — interpolate linearly
-				const fRateLower = oDepositPair.lower.Rate;
-				const fRateUpper = oDepositPair.upper.Rate;
-				const iTenorLowerMonths = this._getTenorMonths(oDepositPair.lower.to_TenorCode.Code);
-				const iTenorUpperMonths = this._getTenorMonths(oDepositPair.upper.to_TenorCode.Code);
 
-				if (iTenorLowerMonths === iTenorUpperMonths) {
-					// Exact tenor match — lower and upper point to the same deposit, no interpolation needed
-					fInterpolatedRate = fRateLower;
+			// Get deposits bracketing fTenorMonths (Promise — OData V4 binding)
+			return this._getDepositsByTenorAndCurrency(fTenorMonths, sCurrency).then(function (oDepositPair) {
+				let fInterpolatedRate = 0;
+
+				if (oDepositPair.lower && oDepositPair.upper) {
+					// Both lower and upper tenors exist — interpolate linearly
+					const fRateLower = 	Number.parseFloat(oDepositPair.lower.rate);
+					const fRateUpper = 	Number.parseFloat(oDepositPair.upper.rate);
+					const iTenorLowerMonths = this._getTenorMonths(oDepositPair.lower.tenor_ID);
+					const iTenorUpperMonths = this._getTenorMonths(oDepositPair.upper.tenor_ID);
+
+					if (iTenorLowerMonths === iTenorUpperMonths) {
+						// Exact tenor match — lower and upper point to the same deposit, no interpolation needed
+						fInterpolatedRate = fRateLower;
+					} else {
+						// Linear interpolation formula
+						fInterpolatedRate = fRateLower +
+							(fRateUpper - fRateLower) *
+							(fTenorMonths - iTenorLowerMonths) /
+							(iTenorUpperMonths - iTenorLowerMonths);
+					}
+					console.log("Interpolating rate: lower=" + fRateLower + " at " + iTenorLowerMonths + " months, upper=" + fRateUpper + " at " + iTenorUpperMonths + " months, target tenor=" + fTenorMonths + " months => interpolated rate=" + fInterpolatedRate);
+				} else if (oDepositPair.single) {
+					// Only one deposit exists (at or closest to tenor)
+					fInterpolatedRate = oDepositPair.single.rate;
 				} else {
-					// Linear interpolation formula
-					fInterpolatedRate = fRateLower +
-						(fRateUpper - fRateLower) *
-						(fTenorMonths - iTenorLowerMonths) /
-						(iTenorUpperMonths - iTenorLowerMonths);
+					// No deposits for this currency — default to 0
+					fInterpolatedRate = 0;
 				}
-				console.log("Interpolating rate: lower=" + fRateLower + " at " + iTenorLowerMonths + " months, upper=" + fRateUpper + " at " + iTenorUpperMonths + " months, target tenor=" + fTenorMonths + " months => interpolated rate=" + fInterpolatedRate);
-			} else if (oDepositPair.single) {
-				// Only one deposit exists (at or closest to tenor)
-				fInterpolatedRate = oDepositPair.single.Rate;
-			} else {
-				// No deposits for this currency — default to 0
-				fInterpolatedRate = 0;
-			}
-			
-			oModel.setProperty("/rateInterpolated", Number.parseFloat(fInterpolatedRate.toFixed(2)));
+
+				oModel.setProperty("/rateInterpolated", Number.parseFloat(fInterpolatedRate.toFixed(2)));
+			}.bind(this));
 		},
 
 		/**
@@ -1025,44 +1039,58 @@ sap.ui.define([
 		 * Finds the closest lower and upper deposit entries for a given tenor and currency.
 		 * Used for linear interpolation of rates.
 		 *
+		 * Uses the OData V4 list binding of the deposits table to fetch all rows via
+		 * requestContexts(), bypassing any active search filters applied to the table.
+		 *
 		 * @param {number} fTenorMonths - The target tenor in months
 		 * @param {string} sCurrency - The currency code
-		 * @returns {{lower?: object, upper?: object, single?: object}} Object containing the bounding deposits
+		 * @returns {Promise<{lower?: object, upper?: object, single?: object}>} Promise resolving to the bounding deposits
 		 * @private
 		 */
 		_getDepositsByTenorAndCurrency: function (fTenorMonths, sCurrency) {
-			const aDeposits = this.getModel("mainService").getProperty("/value") || [];
-			
-			// Filter deposits by currency
-			const aDepositsByCurrency = aDeposits.filter(function (oDeposit) {
-				return oDeposit.to_CurrencyCode && oDeposit.to_CurrencyCode.Code === sCurrency;
-			});
-			
-			// Find deposits with tenor lower and upper
-			let oLower = null;
-			let oUpper = null;
-			
-			for (let i = 0; i < aDepositsByCurrency.length; i++) {
-				const oDeposit = aDepositsByCurrency[i];
-				const iTenorMonths = this._getTenorMonths(oDeposit.to_TenorCode.Code);
-				
-				if (iTenorMonths <= fTenorMonths && (!oLower || iTenorMonths > this._getTenorMonths(oLower.to_TenorCode.Code))) {
-					oLower = oDeposit;
-				}
-				
-				if (iTenorMonths >= fTenorMonths && (!oUpper || iTenorMonths < this._getTenorMonths(oUpper.to_TenorCode.Code))) {
-					oUpper = oDeposit;
-				}
+			const oTableBinding = this.oTable.getBinding("items");
+			if (!oTableBinding) {
+				return Promise.resolve({});
 			}
-			
-			// Return result
-			if (oLower && oUpper) {
-				return { lower: oLower, upper: oUpper };
-			} else if (oLower || oUpper) {
-				return { single: oLower || oUpper };
-			} else {
-				return {};
-			}
+
+			// Create a temporary, filter-free binding on the same entity set so that
+			// active search filters on the table do not hide deposits needed for interpolation.
+			const oTempBinding = oTableBinding.getModel().bindList(oTableBinding.getPath());
+
+			return oTempBinding.requestContexts(0, 1000).then(function (aContexts) {
+				// Filter deposits by currency
+				const aDepositsByCurrency = aContexts
+					.map(function (oCtx) { return oCtx.getObject(); })
+					.filter(function (oDeposit) {
+						return oDeposit && oDeposit.currency_ID && oDeposit.currency_ID === sCurrency;
+					});
+
+				// Find deposits with tenor lower and upper
+				let oLower = null;
+				let oUpper = null;
+
+				for (let i = 0; i < aDepositsByCurrency.length; i++) {
+					const oDeposit = aDepositsByCurrency[i];
+					const iTenorMonths = this._getTenorMonths(oDeposit.tenor_ID);
+
+					if (iTenorMonths <= fTenorMonths && (!oLower || iTenorMonths > this._getTenorMonths(oLower.tenor_ID))) {
+						oLower = oDeposit;
+					}
+
+					if (iTenorMonths >= fTenorMonths && (!oUpper || iTenorMonths < this._getTenorMonths(oUpper.tenor_ID))) {
+						oUpper = oDeposit;
+					}
+				}
+
+				// Return result
+				if (oLower && oUpper) {
+					return { lower: oLower, upper: oUpper };
+				} else if (oLower || oUpper) {
+					return { single: oLower || oUpper };
+				} else {
+					return {};
+				}
+			}.bind(this));
 		},
 
 		/**
@@ -1208,6 +1236,54 @@ sap.ui.define([
 		_plainDateToDate: function (oPlainDate) {
 			// Convert Temporal.PlainDate to JavaScript Date (naive conversion, UTC midnight)
 			return new Date(oPlainDate.year, oPlainDate.month - 1, oPlainDate.day);
+		},
+		
+		handleUploadPress: function () {
+			// Get file from fileUploader control
+			const oFileUploader = this.byId("fileUploader");
+			const oFile = oFileUploader.getFocusDomRef().files[0];
+			// set Table busy while processing
+			this.oTable.setBusy(true);
+			let sBase64 = "";
+			let oToSend;
+			if (!oFile) {
+				MessageToast.show(this._getText("uploadNoFile"));
+				this.oTable.setBusy(false);
+				return;
+			}
+
+			// if there is a file, convert to base64
+
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				sBase64 = e.target.result.split(",")[1]; // Remove data URL prefix
+				//console.log("File content in Base64:", sBase64);
+				oToSend = {
+						sBase64File: sBase64
+					}
+				console.log (oToSend)
+				let oContext = this.getView().getModel("mainService").bindContext("/postFixTermDeposits(...)");
+				oContext.setParameter("parameters", oToSend);
+				oContext.execute().then(() => {
+					MessageToast.show(this._getText("uploadSuccess"));
+					// then refresh mainService model to get the new deposit in the table
+					this.getView().getModel("mainService").refresh();
+				}).catch(() => {
+					MessageToast.show(this._getText("uploadError"));
+				}).finally(() => {
+					this.oTable.setBusy(false);
+				});
+
+			};
+
+			reader.onerror = (e) => {
+				console.error("Error reading file:", e);
+				MessageToast.show(this._getText("uploadError"));
+				this.oTable.setBusy(false);
+			};
+
+			reader.readAsDataURL(oFile);
+
 		},
 
 		/**

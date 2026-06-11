@@ -21,6 +21,12 @@
       "destination": "ui5"
     },
     {
+      "source": "^/odata/(.*)$",
+      "target": "/$1",
+      "authenticationType": "xsuaa",
+      "destination": "Deposits_Destination"
+    },
+    {
       "source": "^(.*)$",
       "target": "$1",
       "service": "html5-apps-repo-rt",

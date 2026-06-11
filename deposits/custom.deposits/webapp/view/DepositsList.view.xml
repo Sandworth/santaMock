@@ -15,6 +15,7 @@
 	xmlns:columnmenu="sap.m.table.columnmenu"
 	xmlns:dnd="sap.ui.core.dnd"
 	xmlns:core="sap.ui.core"
+	xmlns:u="sap.ui.unified"
 	xmlns:app="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1">
 
 	<f:DynamicPage id="listPage" headerExpanded="true">
@@ -118,11 +119,11 @@
 		<!-- CONTENT — Table with p13n                                   -->
 		<!-- =========================================================== -->
 		<f:content>
+				<!-- growingThreshold="20" -->
 			<Table
 				id="depositsTable"
 				inset="false"
-				growing="true"
-				growingThreshold="20"
+				growing="false"
 				sticky="ColumnHeaders,HeaderToolbar"
 				autoPopinMode="true"
 				fixedLayout="Strict"
@@ -130,21 +131,45 @@
 				ariaLabelledBy="tableTitle"
 				updateFinished=".onTableUpdateFinished"
                 width="100%"
-				items="{
-					path: 'mainService>/value',
-					sorter: [
-						{ path: 'to_CurrencyCode/order' },
-						{ path: 'to_TenorCode/order' }
-					]
-				}">
+						items="{
+							path: 'mainService>/RateGrid',
+							length: 24,
+							filters: [
+								{ path: 'rate', operator: 'GT', value1: 0 }
+							],
+							sorter: [
+								{ path: 'createdAt', descending: true },
+								{ path: 'currency/order' },
+								{ path: 'tenor/order' }
+							]
+						}">
 
 				<!-- Header Toolbar -->
 				<headerToolbar>
 					<OverflowToolbar>
 						<Title id="tableTitle" text="{i18n>listTitle}" />
 						<ToolbarSeparator />
+						<Text id="lastUpdateLabel" text="{i18n>lastUpdate}: " />
 						<vm:VariantManagement id="tableVm" for="depositsTable" visible="false"/>
 						<ToolbarSpacer />
+					<u:FileUploader
+						id="fileUploader"
+						name="myFileUpload"
+						tooltip="Upload your file to the local server"
+						uploadComplete=".handleUploadComplete"/>
+					<Button
+						text="Upload File"
+						press=".handleUploadPress"/>						
+						<!-- <u:FileUploader
+							id="fileUploader"
+							name="myFileUpload"
+							uploadOnChange="true"
+							useMultipart="false"
+							sendXHR="true"
+							buttonOnly="true"
+							buttonText="Update Rates"
+							uploadUrl="odata/deposits/postFixTermDeposits"
+							uploadComplete=".handleUploadComplete"/>						 -->
 						<Button
 							icon="sap-icon://customer-order-entry"
                             text="{i18n>newDeposit}"
@@ -208,7 +233,7 @@
 					<Column app:p13nKey="duration_col">
 						<Text text="{i18n>colDuration}" />
 					</Column>
-					<Column app:p13nKey="rate_col" hAlign="End">
+					<Column app:p13nKey="rate_col">
 						<Text text="{i18n>colRate}" />
 					</Column>
 					<!-- <Column app:p13nKey="name_col">
@@ -223,27 +248,15 @@
 				<items>
 					<ColumnListItem type="Navigation" press=".onListItemPress" class="listItemCustHeight">
 						<cells>
-							<Text text="{mainService>to_CurrencyCode/Description}" />
-							<Text text="{mainService>to_TenorCode/Description}" />
+							<Text text="{mainService>currency/description}" />
+							<Text text="{mainService>tenor/description}" />
 							<ObjectNumber
 								number="{
-									path: 'mainService>Rate',
+									path: 'mainService>rate',
 									type: 'Float',
 									formatOptions: { decimals: 2 }
 								}"
 								unit="%" />
-							<!-- <Text text="{mainService>Name}" /> -->
-
-							<!-- <RatingIndicator
-								value="{
-									parts: [
-										{ path: 'mainService>Rate' },
-										{ path: 'mainService>to_TenorCode/Code' }
-									],
-									formatter: 'Formatter.formatSuitability'
-								}"
-								maxValue="5"
-								editable="false" /> -->
 						</cells>
 					</ColumnListItem>
 				</items>

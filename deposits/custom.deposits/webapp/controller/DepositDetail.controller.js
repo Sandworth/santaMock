@@ -33,17 +33,21 @@ sap.ui.define([
 			this.oRouter.getRoute("DepositDetail").attachPatternMatched(this._onDepositMatched, this);
 		},
 
-		_onDepositMatched: function (oEvent) {
+		_onDepositMatched: async function (oEvent) {
 			const sKey = oEvent.getParameter("arguments").key;
 
 			this._resetSimulation();
 			this._resetRequest();
 
-			const aDeposits = this.getOwnerComponent().getModel("mainService").getProperty("/value");
-			const iIdx = aDeposits ? aDeposits.findIndex(function (d) { return d.UUID === sKey; }) : -1;
-			if (iIdx >= 0) {
-				this.getView().bindElement({ model: "mainService", path: "/value/" + iIdx });
-			}
+			//const aDeposits = this.getOwnerComponent().getModel("mainService").getProperty("/value");
+			//const iIdx = aDeposits ? aDeposits.findIndex(function (d) { return d.UUID === sKey; }) : -1;
+			//if (iIdx >= 0) {
+			this.getView().bindElement({
+				model: "mainService",
+				path: `/RateGrid('${sKey}')`,
+				parameters: { $select: ["currency_ID", "tenor_ID", "rate"] }
+			});
+			//}
 			this._filterAccountsByCurrency();
 		},
 
@@ -65,9 +69,9 @@ sap.ui.define([
 			oInput.setValueState("None");
 
 			const oCtx = oView.getBindingContext("mainService");
-			const fRate = oCtx.getProperty("Rate");
-			const sDuration = oCtx.getProperty("to_TenorCode/Code");
-			const sCurrency = oCtx.getProperty("to_CurrencyCode/Code");
+			const fRate = oCtx.getProperty("rate");
+			const sDuration = oCtx.getProperty("tenor_ID");
+			const sCurrency = oCtx.getProperty("currency_ID");
 
 			const iMonths = this._DURATION_MONTHS[sDuration] || 1;
 			const fInterest = fAmount * (fRate / 100) * (iMonths / 12);
@@ -104,10 +108,11 @@ sap.ui.define([
 			}
 		},
 
-		_filterAccountsByCurrency: function () {
+		_filterAccountsByCurrency: async function () {
 			const oCtx = this.getView().getBindingContext("mainService");
 			if (!oCtx) { return; }
-			const sCurrency = oCtx.getProperty("to_CurrencyCode/Code");
+			await oCtx.requestObject();
+			const sCurrency = oCtx.getProperty("currency_ID");
 			const aBancos = this.getModel("banks").getProperty("/bancos");
 			const aCuentasFiltradas = [];
 			aBancos.forEach(function (oBanco) {
@@ -126,12 +131,13 @@ sap.ui.define([
 			this.getModel("request").setProperty("/cuentasFiltradas", aCuentasFiltradas);
 		},
 
-		onRequestDeposit: function () {
+		onRequestDeposit: async function () {
 			const oBundle = this.getResourceBundle();
 			const oCtx = this.getView().getBindingContext("mainService");
-			const sDescription = oCtx.getProperty("to_TenorCode/Description");
-			const fRate = oCtx.getProperty("Rate");
-			const sCurrency = oCtx.getProperty("to_CurrencyCode/Code");
+			await oCtx.requestObject();
+			const sDescription = oCtx.getProperty("tenor/description");
+			const fRate = oCtx.getProperty("rate");
+			const sCurrency = oCtx.getProperty("currency_ID");
 			const fImporte = this.getModel("request").getProperty("/importeSolicitud");
 
 			const oRateFormat = NumberFormat.getFloatInstance({ decimals: 2, maxFractionDigits: 2 });
@@ -154,26 +160,6 @@ sap.ui.define([
 			});
 		},
 
-		handleFullScreen: function () {
-			const sNextLayout = this.oModel.getProperty("/actionButtonsInfo/midColumn/fullScreen");
-			if (sNextLayout) {
-				this.oRouter.navTo("DepositDetail", {
-					layout: sNextLayout,
-					key: this._getKey()
-				});
-			}
-		},
-
-		handleExitFullScreen: function () {
-			const sNextLayout = this.oModel.getProperty("/actionButtonsInfo/midColumn/exitFullScreen");
-			if (sNextLayout) {
-				this.oRouter.navTo("DepositDetail", {
-					layout: sNextLayout,
-					key: this._getKey()
-				});
-			}
-		},
-
 		handleClose: function () {
 			const sNextLayout = this.oModel.getProperty("/actionButtonsInfo/midColumn/closeColumn");
 			this.oRouter.navTo("DepositsList", {
@@ -181,15 +167,6 @@ sap.ui.define([
 			});
 		},
 
-		_getKey: function () {
-			// For JSON model with key in format EntitySet/key, extract the key value
-			const sKey	= this.getView().getBindingContext("mainService").getProperty('UUID');
-			return sKey;
-			
-			// For OData service with key in format EntitySet(key), extract the key value
-			const sPath = this.getView().getBindingContext("mainService").getPath();
-			return sPath.split("(")[1].slice(0, -1);
-		},
 		// copy value from simulation model to request model
 		onCopySimulation: function () {
 			const oSimModel = this.getModel("simulation");

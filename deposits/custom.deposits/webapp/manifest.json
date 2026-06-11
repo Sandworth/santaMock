@@ -16,7 +16,15 @@
     "applicationVersion": {
       "version": "1.0.0"
     },
-    "dataSources": {},
+    "dataSources": {
+      "mainService": {
+        "uri": "/odata/deposits/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      }
+    },
     "crossNavigation": {
       "inbounds": {
         "Deposits-display": {
@@ -77,8 +85,13 @@
         }
       },
       "mainService": {
-        "type": "sap.ui.model.json.JSONModel",
-        "uri": "model/data/Deposits.json"
+        "dataSource": "mainService",
+        "type": "sap.ui.model.odata.v4.ODataModel",
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true, 
+          "earlyRequests": true
+        }
       },
       "banks": {
         "type": "sap.ui.model.json.JSONModel",
