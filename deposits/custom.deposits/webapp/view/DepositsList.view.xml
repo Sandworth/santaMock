@@ -82,16 +82,16 @@
 										id="filterDuration"
 										selectionChange=".onSelectionChange">
 										<core:ListItem key="1M"  text="{i18n>tenorCode_1M}"  additionalText="1M" />
-										<core:ListItem key="2M"  text="{i18n>tenorCode_2M}"  additionalText="2M" />
+										<!-- <core:ListItem key="2M"  text="{i18n>tenorCode_2M}"  additionalText="2M" /> -->
 										<core:ListItem key="3M"  text="{i18n>tenorCode_3M}"  additionalText="3M" />
-										<core:ListItem key="4M"  text="{i18n>tenorCode_4M}"  additionalText="4M" />
-										<core:ListItem key="5M"  text="{i18n>tenorCode_5M}"  additionalText="5M" />
+										<!-- <core:ListItem key="4M"  text="{i18n>tenorCode_4M}"  additionalText="4M" /> -->
+										<!-- <core:ListItem key="5M"  text="{i18n>tenorCode_5M}"  additionalText="5M" /> -->
 										<core:ListItem key="6M"  text="{i18n>tenorCode_6M}"  additionalText="6M" />
-										<core:ListItem key="7M"  text="{i18n>tenorCode_7M}"  additionalText="7M" />
-										<core:ListItem key="8M"  text="{i18n>tenorCode_8M}"  additionalText="8M" />
-										<core:ListItem key="9M"  text="{i18n>tenorCode_9M}"  additionalText="9M" />
-										<core:ListItem key="10M" text="{i18n>tenorCode_10M}" additionalText="10M" />
-										<core:ListItem key="11M" text="{i18n>tenorCode_11M}" additionalText="11M" />
+										<!-- <core:ListItem key="7M"  text="{i18n>tenorCode_7M}"  additionalText="7M" /> -->
+										<!-- <core:ListItem key="8M"  text="{i18n>tenorCode_8M}"  additionalText="8M" /> -->
+										<!-- <core:ListItem key="9M"  text="{i18n>tenorCode_9M}"  additionalText="9M" /> -->
+										<!-- <core:ListItem key="10M" text="{i18n>tenorCode_10M}" additionalText="10M" /> -->
+										<!-- <core:ListItem key="11M" text="{i18n>tenorCode_11M}" additionalText="11M" /> -->
 										<core:ListItem key="12M" text="{i18n>tenorCode_12M}" additionalText="12M" />
 									</MultiComboBox>
 								</fb:control>
@@ -124,6 +124,7 @@
 				id="depositsTable"
 				inset="false"
 				growing="false"
+				showNoData="false"
 				sticky="ColumnHeaders,HeaderToolbar"
 				autoPopinMode="true"
 				fixedLayout="Strict"
@@ -133,15 +134,13 @@
                 width="100%"
 						items="{
 							path: 'mainService>/RateGrid',
-							length: 24,
-							filters: [
-								{ path: 'rate', operator: 'GT', value1: 0 }
-							],
 							sorter: [
-								{ path: 'createdAt', descending: true },
 								{ path: 'currency/order' },
 								{ path: 'tenor/order' }
-							]
+							],
+							parameters: {
+								$filter : 'tenor_ID eq \'1M\' or tenor_ID eq \'3M\' or tenor_ID eq \'6M\' or tenor_ID eq \'12M\''
+							}
 						}">
 
 				<!-- Header Toolbar -->
@@ -159,17 +158,7 @@
 						uploadComplete=".handleUploadComplete"/>
 					<Button
 						text="Upload File"
-						press=".handleUploadPress"/>						
-						<!-- <u:FileUploader
-							id="fileUploader"
-							name="myFileUpload"
-							uploadOnChange="true"
-							useMultipart="false"
-							sendXHR="true"
-							buttonOnly="true"
-							buttonText="Update Rates"
-							uploadUrl="odata/deposits/postFixTermDeposits"
-							uploadComplete=".handleUploadComplete"/>						 -->
+						press=".handleUploadPress"/>
 						<Button
 							icon="sap-icon://customer-order-entry"
                             text="{i18n>newDeposit}"

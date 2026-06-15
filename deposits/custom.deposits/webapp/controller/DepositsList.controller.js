@@ -21,6 +21,7 @@ sap.ui.define([
 	"sap/m/RatingIndicator",
 	"sap/m/MessageBox",
 	"sap/m/MessageToast",
+	"sap/m/IllustratedMessage",
 	"sap/ui/core/Fragment",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/core/format/DateFormat",
@@ -48,6 +49,7 @@ sap.ui.define([
 	RatingIndicator,
 	MessageBox,
 	MessageToast,
+	IllustratedMessage,
 	Fragment,
 	NumberFormat,
 	DateFormat,
@@ -79,6 +81,7 @@ sap.ui.define([
 			this.oSnappedLabel           = this.oView.byId("snappedLabel");
 			this.oFilterBar              = this.oView.byId("filterBar");
 			this.oTable                  = this.oView.byId("depositsTable");
+			this.aTableFilters			 = [];
 
 			// Initialize customRequest model for Custom Deposit Dialog
 			this._initCustomRequestModel();
@@ -132,13 +135,12 @@ sap.ui.define([
 		 * @returns {Array<{groupName: string, fieldName: string, fieldData: *}>} Array of filter field data objects
 		 */
 		fetchData: function () {
-			const that = this;
-			return this.oFilterBar.getAllFilterItems().reduce(function (aResult, oFilterItem) {
+			return this.oFilterBar.getAllFilterItems().reduce((aResult, oFilterItem) => {
 				const oControl = oFilterItem.getControl();
 				var value;
 				if (oFilterItem.getName() === "Rate") {
 					// Serialize token range data — the Input value is only display text
-					value = (that._aRateTokens || []).map(function (oToken) {
+					value = (this._aRateTokens || []).map((oToken) => {
 						return { text: oToken.getText(), range: oToken.data("range") };
 					});
 				} else if (oControl.getSelectedKeys) {
@@ -236,7 +238,7 @@ sap.ui.define([
 		 * (Duration, Currency, Rate) and applying them to the table binding.
 		 */
 		onSearch: function () {
-			const aTableFilters = [];
+			this.aTableFilters = [];
 
 			// Duration (MultiComboBox — filters on to_TenorCode/Code)
 			const oDurationCtrl = this.oView.byId("filterDuration");
@@ -245,7 +247,7 @@ sap.ui.define([
 				const aDurFilters = aDurations.map(function (sKey) {
 					return new Filter("tenor_ID", FilterOperator.EQ, sKey);
 				});
-				aTableFilters.push(new Filter({ filters: aDurFilters, and: false }));
+				this.aTableFilters.push(new Filter({ filters: aDurFilters, and: false }));
 			}
 
 			// Currency (MultiComboBox)
@@ -255,7 +257,7 @@ sap.ui.define([
 				const aCurFilters = aCurrencies.map(function (sKey) {
 					return new Filter("currency_ID", FilterOperator.EQ, sKey);
 				});
-				aTableFilters.push(new Filter({ filters: aCurFilters, and: false }));
+				this.aTableFilters.push(new Filter({ filters: aCurFilters, and: false }));
 			}
 
 			// Rate (ValueHelpDialog tokens — range data stored as custom data on each token)
@@ -273,12 +275,12 @@ sap.ui.define([
 					}
 					return oFilter;
 				});
-				aTableFilters.push(aRateFilters.length === 1
+				this.aTableFilters.push(aRateFilters.length === 1
 					? aRateFilters[0]
 					: new Filter({ filters: aRateFilters, and: false }));
 			}
 
-			this.oTable.getBinding("items").filter(aTableFilters);
+			this.oTable.getBinding("items").filter(this.aTableFilters);
 			this.oTable.setShowOverlay(false);
 			this._updateLabelsAndTable(false);
 		},
@@ -334,7 +336,6 @@ sap.ui.define([
 		 * Tokens are stored internally and displayed as text in the filter input.
 		 */
 		onRateValueHelpRequest: function () {
-			const that = this;
 			const oVHD = new ValueHelpDialog({
 				title: this._getText("filterRate"),
 				supportRanges: true,
@@ -342,26 +343,26 @@ sap.ui.define([
 				key: "Rate",
 				maxConditions: 1,
 				descriptionKey: "Rate",
-				ok: function (oEvent) {
+				ok: (oEvent) => {
 					const aTokens = oEvent.getParameter("tokens");
-					that._aRateTokens = aTokens;
+					this._aRateTokens = aTokens;
 
 					// Update the Input with a human-readable summary
-					const oRateInput = that.oView.byId("filterRate");
+					const oRateInput = this.oView.byId("filterRate");
 					if (aTokens.length === 0) {
 						oRateInput.setValue("");
 					} else {
-						oRateInput.setValue(aTokens.map(function (t) { return t.getText(); }).join(", "));
+						oRateInput.setValue(aTokens.map((t) => t.getText()).join(", "));
 					}
 
 					oVHD.close();
-					that.oSmartVariantManagement.currentVariantSetModified(true);
-					that.oFilterBar.fireFilterChange();
+					this.oSmartVariantManagement.currentVariantSetModified(true);
+					this.oFilterBar.fireFilterChange();
 				},
-				cancel: function () {
+				cancel: () => {
 					oVHD.close();
 				},
-				afterClose: function () {
+				afterClose: () => {
 					oVHD.destroy();
 				}
 			});
@@ -420,8 +421,8 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handles the table's updateFinished event to refresh the table title
-		 * with the current total item count.
+		 * Handles the table's updateFinished event to refresh the table header
+		 * with the total count of items and the relative time since the last update.
 		 *
 		 * @param {sap.ui.base.Event} oEvent - The updateFinished event
 		 */
@@ -429,17 +430,45 @@ sap.ui.define([
 			const iTotal = oEvent.getParameter("actual");
 			const oTitle = this.oView.byId("tableTitle");
 			const oLabel = this.oView.byId("lastUpdateLabel");
-			const oModel = oEvent.getSource().getAggregation('items')[0].getBindingContext('mainService').getModel();
-			const oCreatedAt = oModel.bindProperty(oEvent.getSource().getAggregation('items')[0].getBindingContextPath()+"/createdAt");
-			const sValue = await oCreatedAt.requestValue();
-			const oDate = new Date(sValue);
 			const oDateFormat = DateFormat.getDateInstance({ relative: true, relativeScale: "hour", relativeStyle: "wide" });
-			const sFormattedRelative = oDateFormat.format(oDate);
+			const oTableBinding = this.oTable.getBinding("items");
+			const oTempBinding = oTableBinding.getModel().bindList(oTableBinding.getPath());
+			const oCreatedAt = await oTempBinding.requestContexts(0, 1);
+			let sValue = "";
+			let sFormattedRelative = "-";
+			if (oCreatedAt.length === 0) {
+				this.oTable.setShowNoData(true);
+				this.oTable.setNoData(
+					new IllustratedMessage({
+						// description: this._getText("noDataDescription"), // To be added in i18n when decided
+						illustrationType: "sapIllus-NoEntries",
+					})
+				);
+				const oToday = new Date();
+				oToday.setDate(oToday.getDate() - 1);
+				sFormattedRelative = oDateFormat.format(oToday);
+				oLabel.setText(this._getText("lastUpdate", [sFormattedRelative]));
+			}
+
+			if (oCreatedAt.length !== 0 && iTotal === 0) {
+				this.oTable.setShowNoData(true);
+				sValue = oCreatedAt[0].getObject().createdAt;
+				const oDate = new Date(sValue);
+				sFormattedRelative = oDateFormat.format(oDate);
+				this.oTable.setNoData(
+					new IllustratedMessage({
+						illustrationType: "sapIllus-NoFilterResults"
+					})
+				);				
+			}
+			if (iTotal > 0) {
+				sValue = oCreatedAt[0].getObject().createdAt;
+				const oDate = new Date(sValue);
+				sFormattedRelative = oDateFormat.format(oDate);
+			}
+			oLabel.setText(this._getText("lastUpdate", [sFormattedRelative]));
 			if (oTitle) {
 				oTitle.setText(this._getText("listTitle", [iTotal]));
-			}
-			if (oLabel){
-				oLabel.setText(this._getText("lastUpdate", [sFormattedRelative]));
 			}
 		},
 
@@ -707,8 +736,7 @@ sap.ui.define([
 		 * Must match the order of columns in the table aggregation (cell[i] ↔ column[i]).
 		 */
 		_buildRowTemplate: function (aColumnKeys) {
-			var that = this;
-			var aCells = aColumnKeys.map(function (sKey) {
+			var aCells = aColumnKeys.map((sKey) => {
 				switch (sKey) {
 					case "name_col":
 						return new ObjectIdentifier({ title: "{mainService>Name}" });
@@ -737,7 +765,7 @@ sap.ui.define([
 			});
 			return new ColumnListItem({
 				type: "Navigation",
-				press: [that.onListItemPress, that],
+				press: [this.onListItemPress, this],
 				cells: aCells
 			});
 		},
@@ -792,16 +820,14 @@ sap.ui.define([
 		 * adding it as a dependent, and resetting the model state.
 		 */
 		onOpenCustomReq: function () {
-			const that = this;
 			Fragment.load({
 				name: "custom.deposits.view.CustomRequestDialog",
 				id: "customReqDialog",
 				controller: this
-			}).then(function (oDialog) {
-				that.oView.addDependent(oDialog);
-				that.oCustomReqDialog = oDialog;  // Store reference
-				// Reset model to initial state
-				that._resetCustomRequestModel();
+			}).then((oDialog) => {
+				this.oView.addDependent(oDialog);
+				this.oCustomReqDialog = oDialog; // Store reference
+				this._resetCustomRequestModel();
 				oDialog.open();
 			});
 		},
@@ -1057,7 +1083,7 @@ sap.ui.define([
 			// active search filters on the table do not hide deposits needed for interpolation.
 			const oTempBinding = oTableBinding.getModel().bindList(oTableBinding.getPath());
 
-			return oTempBinding.requestContexts(0, 1000).then(function (aContexts) {
+			return oTempBinding.requestContexts(0, 100).then(function (aContexts) {
 				// Filter deposits by currency
 				const aDepositsByCurrency = aContexts
 					.map(function (oCtx) { return oCtx.getObject(); })
@@ -1291,7 +1317,6 @@ sap.ui.define([
 		 * On confirmation, closes the dialog, resets the model, and shows a success toast.
 		 */
 		onSubmitCustomRequest: function () {
-			const that = this;
 			const oModel = this.getModel("customRequest");
 			const fAmount = oModel.getProperty("/amount");
 			const sCurrency = oModel.getProperty("/currency");
@@ -1313,18 +1338,18 @@ sap.ui.define([
 				title: this._getText("customReqConfirmTitle"),
 				actions: [MessageBox.Action.YES, MessageBox.Action.NO],
 				emphasizedAction: MessageBox.Action.YES,
-				onClose: function (sAction) {
+				onClose:  (sAction) => {
 					if (sAction === MessageBox.Action.YES) {
 						// Close dialog
-						if (that.oCustomReqDialog) {
-							that.oCustomReqDialog.close();
-							that.oCustomReqDialog.destroy();
-							that.oCustomReqDialog = null;
+						if (this.oCustomReqDialog) {
+							this.oCustomReqDialog.close();
+							this.oCustomReqDialog.destroy();
+							this.oCustomReqDialog = null;
 						}
-						that._resetCustomRequestModel();
+						this._resetCustomRequestModel();
 						
 						// Show success message
-						MessageToast.show(that._getText("customReqSuccessMsg"));
+						MessageToast.show(this._getText("customReqSuccessMsg"));
 					}
 				}
 			});
