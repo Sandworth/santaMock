@@ -137,7 +137,9 @@ sap.ui.define([
 			await oCtx.requestObject();
 			const sDescription = oCtx.getProperty("tenor/description");
 			const fRate = oCtx.getProperty("rate");
+			const sTenor = oCtx.getProperty("tenor_ID");
 			const sCurrency = oCtx.getProperty("currency_ID");
+			const sRateGridID = oCtx.getProperty("ID");
 			const fImporte = this.getModel("request").getProperty("/importeSolicitud");
 
 			const oRateFormat = NumberFormat.getFloatInstance({ decimals: 2, maxFractionDigits: 2 });
@@ -152,9 +154,30 @@ sap.ui.define([
 				title: oBundle.getText("requestConfirmTitle"),
 				actions: [MessageBox.Action.YES, MessageBox.Action.NO],
 				emphasizedAction: MessageBox.Action.YES,
-				onClose: function (sAction) {
+				onClose: async (sAction) => {
 					if (sAction === MessageBox.Action.YES) {
 						MessageToast.show(oBundle.getText("requestSuccessMsg"));
+						const oModel = this.getView().getModel("mainService");
+						const oPayload = {
+							client: {
+								ID: "cb036268-d3c0-46f2-aaf5-5946ae09b549" // hardcoded client ID - replace with dynamic value as needed
+							},
+							rate: { ID: sRateGridID },
+							amount: fImporte,	
+							currencySnapshot: sCurrency,
+							tenorSnapshot: sTenor,
+							rateSnapshot: fRate,
+							status: 1				 // default to '1' (e.g. 'Pending') - adjust as needed
+						};
+						console.log("Payload to be sent to backend:", oPayload);
+						try {
+							await oModel.bindList("/Deposits").create(oPayload);
+							debugger
+						} catch (oError) {
+							debugger
+							console.error("Error creating deposit request:", oError);
+							MessageBox.error(oBundle.getText("requestErrorMsg"));
+						}
 					}
 				}
 			});
