@@ -66,6 +66,25 @@ sap.ui.define([
 			} else {
 				this.getRouter().navTo("main", {}, undefined, true);
 			}
+		},
+
+		/**
+		 * Maps tenor code strings to their equivalent number of months.
+		 * Shared across all controllers that perform tenor-based calculations.
+		 */
+		_DURATION_MONTHS: {
+			"1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6,
+			"7M": 7, "8M": 8, "9M": 9, "10M": 10, "11M": 11, "12M": 12
+		},
+
+		/**
+		 * Converts a tenor code string (e.g., "3M") to its numeric month value.
+		 *
+		 * @param {string} sTenorCode - The tenor code (e.g., "1M", "6M", "12M")
+		 * @returns {number} The number of months represented by the tenor code
+		 */
+		_getTenorMonths: function (sTenorCode) {
+			return this._DURATION_MONTHS[sTenorCode] || 1;
 		}
 	});
 });

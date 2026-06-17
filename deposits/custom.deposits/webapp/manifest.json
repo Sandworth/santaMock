@@ -37,6 +37,17 @@
             "parameters": {},
             "additionalParameters": "allowed"
           }
+        },
+        "Deposits-history": {
+          "semanticObject": "Deposits",
+          "action": "history",
+          "title": "{{Deposits-history.flpTitle}}",
+          "subTitle": "{{Deposits-history.flpSubtitle}}",
+          "icon": "sap-icon://history",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
         }
       }
     }

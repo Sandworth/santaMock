@@ -86,12 +86,6 @@ sap.ui.define([
 			// Initialize customRequest model for Custom Deposit Dialog
 			this._initCustomRequestModel();
 
-			// Tenor code to months mapping for calculations
-			this._DURATION_MONTHS = {
-				"1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6,
-				"7M": 7, "8M": 8, "9M": 9, "10M": 10, "11M": 11, "12M": 12
-			};
-
 			// ----- SmartVariantManagement / FilterBar setup -----
 			this.applyData             = this.applyData.bind(this);
 			this.fetchData             = this.fetchData.bind(this);
@@ -122,6 +116,9 @@ sap.ui.define([
 
 			// Router
 			this.oRouter = this.getRouter();
+
+			// Bind table to the correct OData endpoint based on the FLP intent
+			this._bindTableByIntent();
 		},
 
 		// -------------------------------------------------------
@@ -452,6 +449,7 @@ sap.ui.define([
 
 			if (oCreatedAt.length !== 0 && iTotal === 0) {
 				this.oTable.setShowNoData(true);
+				this.byId("newDepositBtn").setEnabled(true); // Show "New Deposit" button when there are no entries because of filters, but data exists
 				sValue = oCreatedAt[0].getObject().createdAt;
 				const oDate = new Date(sValue);
 				sFormattedRelative = oDateFormat.format(oDate);
@@ -465,11 +463,10 @@ sap.ui.define([
 				sValue = oCreatedAt[0].getObject().createdAt;
 				const oDate = new Date(sValue);
 				sFormattedRelative = oDateFormat.format(oDate);
+				this.byId("newDepositBtn").setEnabled(true); // Show "New Deposit" button when there are entries.
 			}
 			oLabel.setText(this._getText("lastUpdate", [sFormattedRelative]));
-			if (oTitle) {
-				oTitle.setText(this._getText("listTitle", [iTotal]));
-			}
+			oTitle.setText(this._getText("listTitle", [iTotal]));
 		},
 
 		/**
@@ -732,12 +729,64 @@ sap.ui.define([
 		},
 
 		/**
+		 * Reads the FLP intent from the URL hash and binds the table to the matching
+		 * OData endpoint. Also creates the "intent" JSON model (isDisplay / isHistory)
+		 * that view controls can bind to for conditional visibility.
+		 *
+		 * Deposits-display  →  /RateGrid  (filtered to standard tenors, sorted by currency+tenor)
+		 * Deposits-history  →  /Deposits  (all deposit requests, no initial filter/sorter)
+		 *
+		 * @private
+		 */
+		_bindTableByIntent: function () {
+			var sHash = (window.location.hash || "").replace(/^#/, "").split("?")[0];
+			var bIsHistory = sHash === "Deposits-history";
+			//bIsHistory = true // Force history view for testing — to be removed when both views are available in the FLP
+			var bIsDisplay = !bIsHistory;
+
+			// Local model — bind view components to intent/isDisplay or intent/isHistory
+			this.getOwnerComponent().setModel(new JSONModel({ isDisplay: bIsDisplay, isHistory: bIsHistory }), "intent");
+
+			if (bIsHistory) {
+				// Back-office view: full deposit history, no pre-applied filters
+				this.oTable.bindItems({
+					model: "mainService",
+					path: "/Deposits",
+					templateShareable: false,
+					parameters: {
+						$orderby: "createdAt desc"
+					},
+					template: this._buildRowTemplate(["start_date_col", "maturity_date_col", "currency_col", "duration_col", "rate_col"])
+				});
+			} else {
+				// End-user view: rate grid filtered to the four standard tenors
+				this.oTable.bindItems({
+					model: "mainService",
+					path: "/RateGrid",
+					templateShareable: false,
+					sorter: [
+						new Sorter("currency/order"),
+						new Sorter("tenor/order")
+					],
+					parameters: {
+						$filter: "tenor_ID eq '1M' or tenor_ID eq '3M' or tenor_ID eq '6M' or tenor_ID eq '12M'"	
+					},
+					template: this._buildRowTemplate(["currency_col", "duration_col", "rate_col"])
+				});
+			}
+		},
+
+		/**
 		 * Builds a ColumnListItem template with cells ordered to match the given column key array.
 		 * Must match the order of columns in the table aggregation (cell[i] ↔ column[i]).
 		 */
 		_buildRowTemplate: function (aColumnKeys) {
 			var aCells = aColumnKeys.map((sKey) => {
 				switch (sKey) {
+					case "start_date_col":
+						return new MText({ text: "{mainService>startDate}" });
+					case "maturity_date_col":
+						return new MText({ text: "{mainService>maturityDate}" });
 					case "name_col":
 						return new ObjectIdentifier({ title: "{mainService>Name}" });
 					case "duration_col":
@@ -1048,17 +1097,6 @@ sap.ui.define([
 
 				oModel.setProperty("/rateInterpolated", Number.parseFloat(fInterpolatedRate.toFixed(2)));
 			}.bind(this));
-		},
-
-		/**
-		 * Converts a tenor code string (e.g., "3M") to its numeric month value.
-		 *
-		 * @param {string} sTenorCode - The tenor code (e.g., "1M", "6M", "12M")
-		 * @returns {number} The number of months represented by the tenor code
-		 * @private
-		 */
-		_getTenorMonths: function (sTenorCode) {
-			return this._DURATION_MONTHS[sTenorCode] || 1;
 		},
 
 		/**

@@ -1,4 +1,4 @@
-sap.ui.define(["sap/ui/core/format/NumberFormat"], function (NumberFormat) {
+sap.ui.define(["sap/ui/core/format/NumberFormat", "sap/ui/core/format/DateFormat"], function (NumberFormat, DateFormat) {
 	"use strict";
 
 	return {
@@ -79,6 +79,15 @@ sap.ui.define(["sap/ui/core/format/NumberFormat"], function (NumberFormat) {
 				/ (Math.log(fMax) - Math.log(fMin));
 
 			return fScore;
+		},
+
+		dateTimeToDate: function (sDateTime) {
+			if (!sDateTime) {
+				return null;
+			}
+			var oDateFormat = DateFormat.getDateTimeWithTimezoneInstance({showTime: false, showTimezone: false});
+			var oDate = DateFormat.getDateTimeInstance().parse(sDateTime);
+			return oDateFormat.format(oDate);
 		}
 	};
 });

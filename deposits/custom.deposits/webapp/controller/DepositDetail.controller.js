@@ -11,7 +11,6 @@ sap.ui.define([
 	return BaseController.extend("custom.deposits.controller.DepositDetail", {
 
 		onInit: function () {
-			this._DURATION_MONTHS = { "1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6, "7M": 7, "8M": 8, "9M": 9, "10M": 10, "11M": 11, "12M": 12 };
 			this.oOwnerComponent = this.getOwnerComponent();
 			this.oRouter = this.getRouter();
 			this.oModel = this.oOwnerComponent.getModel(); // layout JSON model
@@ -38,17 +37,24 @@ sap.ui.define([
 
 			this._resetSimulation();
 			this._resetRequest();
+			const bIsDisplay = this.getOwnerComponent().getModel('intent').getProperty('/isDisplay');
+			const sPath = bIsDisplay ? `/RateGrid('${sKey}')` : `/Deposits('${sKey}')`;
+			const aSelect = bIsDisplay ? ["currency_ID", "tenor_ID", "rate", "createdAt"] : ["currency_ID", "tenor_ID", "rate", "amount", "createdAt", "startDate", "maturityDate", "status"];
 
 			//const aDeposits = this.getOwnerComponent().getModel("mainService").getProperty("/value");
 			//const iIdx = aDeposits ? aDeposits.findIndex(function (d) { return d.UUID === sKey; }) : -1;
 			//if (iIdx >= 0) {
 			this.getView().bindElement({
 				model: "mainService",
-				path: `/RateGrid('${sKey}')`,
-				parameters: { $select: ["currency_ID", "tenor_ID", "rate"] }
+				path: sPath,
+				parameters: { $select: aSelect }
 			});
 			//}
-			this._filterAccountsByCurrency();
+			if (bIsDisplay) {
+				this._filterAccountsByCurrency();
+			}
+			//const oBindedObject = await this.getView().getBindingContext("mainService").requestObject();
+			//debugger
 		},
 
 		onSimulate: function () {
@@ -134,13 +140,31 @@ sap.ui.define([
 		onRequestDeposit: async function () {
 			const oBundle = this.getResourceBundle();
 			const oCtx = this.getView().getBindingContext("mainService");
-			await oCtx.requestObject();
-			const sDescription = oCtx.getProperty("tenor/description");
-			const fRate = oCtx.getProperty("rate");
-			const sTenor = oCtx.getProperty("tenor_ID");
-			const sCurrency = oCtx.getProperty("currency_ID");
-			const sRateGridID = oCtx.getProperty("ID");
+			const oBindedObject = oCtx.getObject();
+			const sDescription = oBindedObject?.tenor?.description;
+			const fRate = oBindedObject?.rate;
+			const sTenor = oBindedObject?.tenor_ID;
+			const sCurrency = oBindedObject?.currency_ID;
+			const sRateGridID = oBindedObject?.ID;
 			const fImporte = this.getModel("request").getProperty("/importeSolicitud");
+
+			// Compute startDate (now) and maturityDate (now + tenor days) as ISO strings
+			const iTenorDays = this._getTenorMonths(sTenor) * 30;
+			let sStartDate, sMaturityDate;
+			if (typeof Temporal !== "undefined") {
+				const oNow = Temporal.Now.zonedDateTimeISO();
+				sStartDate = oNow.toInstant().toString();
+				// Maturity: UTC midnight on the target day (avoids local-timezone offset shifting the time)
+				const oMaturityDay = oNow.toPlainDate().add({ days: iTenorDays });
+				sMaturityDate = oMaturityDay.toZonedDateTime("UTC").toInstant().toString();
+			} else {
+				const oNow = new Date();
+				sStartDate = oNow.toISOString();
+				const oMaturity = new Date(oNow);
+				oMaturity.setDate(oMaturity.getDate() + iTenorDays);
+				oMaturity.setHours(0, 0, 0, 0);
+				sMaturityDate = oMaturity.toISOString();
+			}
 
 			const oRateFormat = NumberFormat.getFloatInstance({ decimals: 2, maxFractionDigits: 2 });
 
@@ -162,11 +186,13 @@ sap.ui.define([
 							client: {
 								ID: "cb036268-d3c0-46f2-aaf5-5946ae09b549" // hardcoded client ID - replace with dynamic value as needed
 							},
-							rate: { ID: sRateGridID },
-							amount: fImporte,	
-							currencySnapshot: sCurrency,
-							tenorSnapshot: sTenor,
-							rateSnapshot: fRate,
+							rateSnapshot: { ID: sRateGridID },
+							amount: Number.parseFloat(fImporte.toFixed(2)),	
+							currency_ID: sCurrency,
+							tenor_ID: sTenor,
+							rate: fRate,
+							startDate: sStartDate,
+							maturityDate: sMaturityDate, // calculate based on startDate and tenor
 							status: 1				 // default to '1' (e.g. 'Pending') - adjust as needed
 						};
 						console.log("Payload to be sent to backend:", oPayload);

@@ -71,6 +71,20 @@
 					<ObjectStatus title="{i18n>lblDuration}" text="{mainService>tenor/description}"/>
 					<ObjectStatus title="{i18n>lblCurrency}" text="{mainService>currency/description}"/>
 				</l:VerticalLayout>
+				<l:VerticalLayout class="sapUiLargeMarginBegin" visible="{intent>/isHistory}">
+					<ObjectStatus title="{i18n>colStartDate}" text="{
+										parts: [
+											{ path: 'mainService>startDate' }
+										],
+										formatter: 'Formatter.dateTimeToDate'
+										}"/>
+					<ObjectStatus title="{i18n>colMaturityDate}" text="{
+										parts: [
+											{ path: 'mainService>maturityDate' }
+										],
+										formatter: 'Formatter.dateTimeToDate'
+										}"/>
+				</l:VerticalLayout>
 			</HBox>
 		</uxap:headerContent>
 		<!-- =========================================================== -->
@@ -80,7 +94,7 @@
 			<!-- Simulation -->
 			<uxap:ObjectPageSection titleUppercase="false" title="{i18n>secSimulation}">
 				<uxap:subSections>
-					<uxap:ObjectPageSubSection showTitle="false">
+					<uxap:ObjectPageSubSection showTitle="false" visible="{intent>/isDisplay}">
 						<uxap:blocks>
 							<VBox class="sapUiSmallMarginTopBottom">
 								<HBox alignItems="End">
@@ -155,7 +169,7 @@
 			<!-- Request Deposit -->
 			<uxap:ObjectPageSection titleUppercase="false" title="{i18n>secRequest}">
 				<uxap:subSections>
-					<uxap:ObjectPageSubSection showTitle="false">
+					<uxap:ObjectPageSubSection showTitle="false" visible="{intent>/isDisplay}">
 						<uxap:blocks>
 							<VBox class="sapUiSmallMarginTopBottom">
 								<Label text="{i18n>reqAccountLabel}" required="true" />
@@ -171,14 +185,14 @@
 									<core:ListItem
 											key="{request>cuentaCorriente}"
 											text="{request>nombre} - {request>cuentaCorriente}"
-										additionalText="{
-											parts: [
-												{ path: 'request>saldoInfoCent' },
-												{ path: 'request>currency' }
-											],
-											formatter: 'Formatter.formatCurrency'
-										}" />
-								</ComboBox>
+											additionalText="{
+												parts: [
+													{ path: 'request>saldoInfoCent' },
+													{ path: 'request>currency' }
+												],
+												formatter: 'Formatter.formatCurrency'
+											}" />
+									</ComboBox>
 								<Label text="{i18n>reqAmountLabel}" required="true" class="sapUiSmallMarginTop" />
 								<HBox >
 								<Input
@@ -211,7 +225,7 @@
 			</uxap:ObjectPageSection>
 		</uxap:sections>
 		<uxap:footer>
-			<OverflowToolbar>
+			<OverflowToolbar visible="{intent>/isDisplay}">
 				<ToolbarSpacer/>
 				<Button
 					id="btnRequestDeposit"
