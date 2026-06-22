@@ -155,6 +155,39 @@
                                     />
                                 </fb:control>
                             </fb:FilterGroupItem>
+
+                            <!-- Start Date (history only) -->
+                            <fb:FilterGroupItem
+                                name="StartDate"
+                                label="{i18n>filterStartDate}"
+                                groupName="Group1"
+                                visibleInFilterBar="true"
+                                visible="{intent>/isHistory}"
+                            >
+                                <fb:control>
+                                    <DateRangeSelection
+                                        id="filterStartDate"
+                                        change=".onSelectionChange"
+                                    />
+                                </fb:control>
+                            </fb:FilterGroupItem>
+
+                            <!-- Maturity Date (history only) -->
+                            <fb:FilterGroupItem
+                                name="MaturityDate"
+                                label="{i18n>filterMaturityDate}"
+                                groupName="Group1"
+                                visibleInFilterBar="true"
+                                visible="{intent>/isHistory}"
+                            >
+                                <fb:control>
+                                    <DateRangeSelection
+                                        id="filterMaturityDate"
+                                        change=".onSelectionChange"
+                                    />
+                                </fb:control>
+                            </fb:FilterGroupItem>
+
                         </fb:filterGroupItems>
                     </fb:FilterBar>
                 </f:content>

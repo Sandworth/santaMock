@@ -86,7 +86,26 @@ sap.ui.define([
 			// Initialize customRequest model for Custom Deposit Dialog
 			this._initCustomRequestModel();
 
+			// ----- Detect intent early — must happen before SVM initialise() -----
+			var sHash      = (window.location.hash || "").replace(/^#/, "").split("?")[0];
+			var bIsHistory = sHash === "Deposits-history";
+			//bIsHistory = true // Force history view for testing — to be removed when both views are available in the FLP
+
+			var bIsDisplay = !bIsHistory;
+
+			// Intent model — consumed by view bindings (visible, enabled, etc.)
+			this.getOwnerComponent().setModel(
+				new JSONModel({ isDisplay: bIsDisplay, isHistory: bIsHistory }),
+				"intent"
+			);
+
 			// ----- SmartVariantManagement / FilterBar setup -----
+			// Set a distinct persistencyKey per intent BEFORE initialise() so each
+			// tile gets its own isolated variant storage slot in SVM.
+			this.oFilterBar.setPersistencyKey(
+				bIsHistory ? "DepositsHistoryFilterBar" : "DepositsDisplayFilterBar"
+			);
+
 			this.applyData             = this.applyData.bind(this);
 			this.fetchData             = this.fetchData.bind(this);
 			this.getFiltersWithValues  = this.getFiltersWithValues.bind(this);
@@ -140,6 +159,14 @@ sap.ui.define([
 					value = (this._aRateTokens || []).map((oToken) => {
 						return { text: oToken.getText(), range: oToken.data("range") };
 					});
+				} else if (oFilterItem.getName() === "StartDate" || oFilterItem.getName() === "MaturityDate") {
+					// Serialize as ISO strings — DateRangeSelection.getValue() is locale-dependent
+					const oFrom = oControl.getDateValue();
+					const oTo   = oControl.getSecondDateValue();
+					value = {
+						from: oFrom ? oFrom.toISOString() : null,
+						to:   oTo   ? oTo.toISOString()   : null
+					};
 				} else if (oControl.getSelectedKeys) {
 					value = oControl.getSelectedKeys();
 				} else if (oControl.getSelectedKey) {
@@ -168,7 +195,12 @@ sap.ui.define([
 			aData.forEach(function (oDataObject) {
 				const oControl = this.oFilterBar.determineControlByName(oDataObject.fieldName, oDataObject.groupName);
 				if (!oControl) { return; }
-				if (oDataObject.fieldName === "Rate") {
+				if (oDataObject.fieldName === "StartDate" || oDataObject.fieldName === "MaturityDate") {
+					// Restore from serialized ISO strings
+					const oData = oDataObject.fieldData || {};
+					oControl.setDateValue(oData.from ? new Date(oData.from) : null);
+					oControl.setSecondDateValue(oData.to ? new Date(oData.to) : null);
+				} else if (oDataObject.fieldName === "Rate") {
 					// Restore tokens from serialized range objects
 					const aSerialised = Array.isArray(oDataObject.fieldData) ? oDataObject.fieldData : [];
 					this._aRateTokens = aSerialised.map(function (oEntry) {
@@ -257,6 +289,26 @@ sap.ui.define([
 				this.aTableFilters.push(new Filter({ filters: aCurFilters, and: false }));
 			}
 
+			// Start Date (DateRangeSelection — history intent only)
+			const oStartDateCtrl = this.oView.byId("filterStartDate");
+			if (oStartDateCtrl) {
+				const oStartFrom = oStartDateCtrl.getDateValue();
+				const oStartTo   = oStartDateCtrl.getSecondDateValue();
+				if (oStartFrom && oStartTo) {
+					this.aTableFilters.push(new Filter("startDate", FilterOperator.BT, oStartFrom.toISOString(), oStartTo.toISOString()));
+				}
+			}
+
+			// Maturity Date (DateRangeSelection — history intent only)
+			const oMaturityCtrl = this.oView.byId("filterMaturityDate");
+			if (oMaturityCtrl) {
+				const oMaturityFrom = oMaturityCtrl.getDateValue();
+				const oMaturityTo   = oMaturityCtrl.getSecondDateValue();
+				if (oMaturityFrom && oMaturityTo) {
+					this.aTableFilters.push(new Filter("maturityDate", FilterOperator.BT, oMaturityFrom.toISOString(), oMaturityTo.toISOString()));
+				}
+			}
+
 			// Rate (ValueHelpDialog tokens — range data stored as custom data on each token)
 			if (this._aRateTokens && this._aRateTokens.length > 0) {
 				const aRateFilters = this._aRateTokens.map(function (oToken) {
@@ -311,6 +363,10 @@ sap.ui.define([
 			const oRateCtrl = this.oView.byId("filterRate");
 			if (oRateCtrl) { oRateCtrl.setValue(""); }
 			this._aRateTokens = [];
+			const oStartDateCtrl = this.oView.byId("filterStartDate");
+			if (oStartDateCtrl) { oStartDateCtrl.setDateValue(null); oStartDateCtrl.setSecondDateValue(null); }
+			const oMaturityCtrl = this.oView.byId("filterMaturityDate");
+			if (oMaturityCtrl) { oMaturityCtrl.setDateValue(null); oMaturityCtrl.setSecondDateValue(null); }
 
 			this.oTable.getBinding("items").filter([]);
 			this.oTable.setShowOverlay(false);
@@ -739,13 +795,8 @@ sap.ui.define([
 		 * @private
 		 */
 		_bindTableByIntent: function () {
-			var sHash = (window.location.hash || "").replace(/^#/, "").split("?")[0];
-			var bIsHistory = sHash === "Deposits-history";
-			//bIsHistory = true // Force history view for testing — to be removed when both views are available in the FLP
-			var bIsDisplay = !bIsHistory;
-
-			// Local model — bind view components to intent/isDisplay or intent/isHistory
-			this.getOwnerComponent().setModel(new JSONModel({ isDisplay: bIsDisplay, isHistory: bIsHistory }), "intent");
+			// Intent model was already created in onInit before SVM initialise().
+			var bIsHistory = this.getOwnerComponent().getModel("intent").getProperty("/isHistory");
 
 			if (bIsHistory) {
 				// Back-office view: full deposit history, no pre-applied filters
