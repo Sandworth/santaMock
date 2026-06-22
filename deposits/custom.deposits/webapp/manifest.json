@@ -100,7 +100,7 @@
         "type": "sap.ui.model.odata.v4.ODataModel",
         "settings": {
           "operationMode": "Server",
-          "autoExpandSelect": true, 
+          "autoExpandSelect": false, 
           "earlyRequests": true
         }
       },

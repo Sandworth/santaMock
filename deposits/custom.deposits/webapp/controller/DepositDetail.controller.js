@@ -40,14 +40,14 @@ sap.ui.define([
 			const bIsDisplay = this.getOwnerComponent().getModel('intent').getProperty('/isDisplay');
 			const sPath = bIsDisplay ? `/RateGrid('${sKey}')` : `/Deposits('${sKey}')`;
 			const aSelect = bIsDisplay ? ["currency_ID", "tenor_ID", "rate", "createdAt"] : ["currency_ID", "tenor_ID", "rate", "amount", "createdAt", "startDate", "maturityDate", "status"];
-
+			const sExpand = bIsDisplay ? "currency,tenor" : "currency,tenor";
 			//const aDeposits = this.getOwnerComponent().getModel("mainService").getProperty("/value");
 			//const iIdx = aDeposits ? aDeposits.findIndex(function (d) { return d.UUID === sKey; }) : -1;
 			//if (iIdx >= 0) {
 			this.getView().bindElement({
 				model: "mainService",
 				path: sPath,
-				parameters: { $select: aSelect }
+				parameters: { $select: aSelect, $expand: sExpand }
 			});
 			//}
 			if (bIsDisplay) {
@@ -198,9 +198,7 @@ sap.ui.define([
 						console.log("Payload to be sent to backend:", oPayload);
 						try {
 							await oModel.bindList("/Deposits").create(oPayload);
-							debugger
 						} catch (oError) {
-							debugger
 							console.error("Error creating deposit request:", oError);
 							MessageBox.error(oBundle.getText("requestErrorMsg"));
 						}

@@ -80,15 +80,15 @@
                                     >
                                         <core:ListItem
                                             key="EUR"
-                                            text="EUR - Euro"
+                                            text="{i18n>currency_EUR}"
                                         />
                                         <core:ListItem
                                             key="USD"
-                                            text="USD - US Dollar"
+                                            text="{i18n>currency_USD}"
                                         />
                                         <core:ListItem
                                             key="GBP"
-                                            text="GBP - British Pound"
+                                            text="{i18n>currency_GBP}"
                                         />
                                     </MultiComboBox>
                                 </fb:control>
@@ -293,6 +293,12 @@
                     >
                         <Text text="{i18n>colMaturityDate}" />
                     </Column>
+                    <Column
+                        visible="{intent>/isHistory}"
+                        app:p13nKey="amount_col"
+                    >
+                        <Text text="{i18n>colAmount}" />
+                    </Column>
                     <Column app:p13nKey="currency_col">
                         <Text text="{i18n>colCurrency}" />
                     </Column>
@@ -310,41 +316,9 @@
 					</Column> -->
                 </columns>
 
-                <!-- Row template -->
-                <items>
-                    <ColumnListItem
-                        type="Navigation"
-                        press=".onListItemPress"
-                        class="listItemCustHeight"
-                    >
-                        <cells>
-                            <Text
-                                text="{
-										parts: [
-											{ path: 'mainService>startDate' }
-										],
-										formatter: 'Formatter.dateTimeToDate'
-										}"
-                            />
-                            <Text
-                                text="{
-										path: 'mainService>maturityDate',
-										formatter: 'Formatter.dateTimeToDate'
-										}"
-                            />
-                            <Text text="{mainService>currency/description}" />
-                            <Text text="{mainService>tenor/description}" />
-                            <ObjectNumber
-                                number="{
-									path: 'mainService>rate',
-									type: 'Float',
-									formatOptions: { decimals: 2 }
-								}"
-                                unit="%"
-                            />
-                        </cells>
-                    </ColumnListItem>
-                </items>
+                <!-- Row template is built programmatically in _buildRowTemplate()
+                     based on the detected FLP intent (display vs. history).
+                     No static items here. -->
             </Table>
         </f:content>
     </f:DynamicPage>

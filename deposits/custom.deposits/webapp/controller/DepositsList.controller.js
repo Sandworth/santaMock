@@ -105,11 +105,11 @@ sap.ui.define([
 			this.oSmartVariantManagement.initialise(function () {}, this.oFilterBar);
 
 			// ----- p13n Engine setup -----
-			this._registerForP13n();
+			//this._registerForP13n();
 
 			// Default sort: EUR → USD → GBP, then by tenor order
 			this._aDefaultSorters = [
-				new Sorter("createdAt", true), // Default sort by creation date descending
+				//new Sorter("createdAt", true), // Default sort by creation date descending
 				new Sorter("currency/order"),
 				new Sorter("tenor/order")
 			];
@@ -754,9 +754,10 @@ sap.ui.define([
 					path: "/Deposits",
 					templateShareable: false,
 					parameters: {
+						$expand: "currency,tenor",
 						$orderby: "createdAt desc"
 					},
-					template: this._buildRowTemplate(["start_date_col", "maturity_date_col", "currency_col", "duration_col", "rate_col"])
+					template: this._buildRowTemplate(["start_date_col", "maturity_date_col", "amount_col", "currency_col", "duration_col", "rate_col"])
 				});
 			} else {
 				// End-user view: rate grid filtered to the four standard tenors
@@ -769,9 +770,10 @@ sap.ui.define([
 						new Sorter("tenor/order")
 					],
 					parameters: {
+						$expand: "currency,tenor",
 						$filter: "tenor_ID eq '1M' or tenor_ID eq '3M' or tenor_ID eq '6M' or tenor_ID eq '12M'"	
 					},
-					template: this._buildRowTemplate(["currency_col", "duration_col", "rate_col"])
+					template: this._buildRowTemplate([null, null, null, "currency_col", "duration_col", "rate_col"])
 				});
 			}
 		},
@@ -784,13 +786,19 @@ sap.ui.define([
 			var aCells = aColumnKeys.map((sKey) => {
 				switch (sKey) {
 					case "start_date_col":
-						return new MText({ text: "{mainService>startDate}" });
+						return new MText({ text: {parts: [{ path: "mainService>startDate" }], formatter: Formatter.dateTimeToDate} });
+						//return new MText({ text: "{mainService>startDate}" }); // TODO: Check hour precision.
 					case "maturity_date_col":
-						return new MText({ text: "{mainService>maturityDate}" });
+						return new MText({ text: {parts: [{ path: "mainService>maturityDate" }], formatter: Formatter.dateTimeToDate} });
+						//return new MText({ text: "{mainService>maturityDate}" }); // TODO: Check hour precision.
 					case "name_col":
 						return new ObjectIdentifier({ title: "{mainService>Name}" });
 					case "duration_col":
 						return new MText({ text: "{mainService>tenor/description}" });
+					case "amount_col":
+						return new MText({
+							text: { path: "mainService>amount", type: new FloatType({ decimals: 2, maxFractionDigits: 2 }) }
+						});
 					case "currency_col":
 						return new MText({ text: "{mainService>currency/description}" });
 					case "rate_col":
@@ -1376,8 +1384,45 @@ sap.ui.define([
 				title: this._getText("customReqConfirmTitle"),
 				actions: [MessageBox.Action.YES, MessageBox.Action.NO],
 				emphasizedAction: MessageBox.Action.YES,
-				onClose:  (sAction) => {
+				onClose: async (sAction) => {
 					if (sAction === MessageBox.Action.YES) {
+						// Compute startDate (now) and maturityDate (now + tenorDays) as ISO strings
+						let sStartDate, sMaturityDate;
+						if (typeof Temporal !== "undefined") {
+							const oNow = Temporal.Now.zonedDateTimeISO();
+							sStartDate = oNow.toInstant().toString();
+							const oMaturityDay = oNow.toPlainDate().add({ days: iTenorDays });
+							sMaturityDate = oMaturityDay.toZonedDateTime("UTC").toInstant().toString();
+						} else {
+							const oNow = new Date();
+							sStartDate = oNow.toISOString();
+							const oMaturity = new Date(oNow);
+							oMaturity.setDate(oMaturity.getDate() + iTenorDays);
+							oMaturity.setHours(0, 0, 0, 0);
+							sMaturityDate = oMaturity.toISOString();
+						}
+
+						const oPayload = {
+							client: {
+								ID: "cb036268-d3c0-46f2-aaf5-5946ae09b549" // hardcoded client ID - replace with dynamic value as needed
+							},
+							amount: Number.parseFloat(Number(fAmount).toFixed(2)),
+							currency_ID: sCurrency,
+							tenor_ID: "CT", // "Custom Tenor"
+							rate: fRate,
+							startDate: sStartDate,
+							maturityDate: sMaturityDate,
+							status: 1 // default to '1' (e.g. 'Pending') - adjust as needed
+						};
+
+						try {
+							await this.getView().getModel("mainService").bindList("/Deposits").create(oPayload);
+						} catch (oError) {
+							console.error("Error creating custom deposit request:", oError);
+							MessageBox.error(this._getText("customReqErrorMsg"));
+							return;
+						}
+
 						// Close dialog
 						if (this.oCustomReqDialog) {
 							this.oCustomReqDialog.close();
@@ -1385,7 +1430,7 @@ sap.ui.define([
 							this.oCustomReqDialog = null;
 						}
 						this._resetCustomRequestModel();
-						
+
 						// Show success message
 						MessageToast.show(this._getText("customReqSuccessMsg"));
 					}
