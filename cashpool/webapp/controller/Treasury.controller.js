@@ -1334,7 +1334,9 @@ sap.ui.define([
             oModel.setProperty("/bancos", aFiltered);
         },
 
-        onCuentaOrigenSelectionChange() {
+        onCuentaOrigenSelectionChange(oEvent) {
+            this.byId("bancosListTransferStep2").getAggregation("items").map(e => {e.getContent()[0].getContent()[0].getSelectedItem()?.setSelected(false)})
+            oEvent.getParameter("listItem").setSelected(true);
             this._updateTransferNavState(1);
         },
 
@@ -1472,6 +1474,7 @@ sap.ui.define([
             oModel.setProperty("/preparedTransfer", oPreparedTransfer);
             MessageToast.show(this._oResourceBundle.getText("msgTransferPrepared", [oReview.importe]));
             if (this._transferWizardDialog) {
+                this.onAnotherButtonPress(oPreparedTransfer);
                 this._transferWizardDialog.close();
             }
         },
@@ -1480,36 +1483,48 @@ sap.ui.define([
             const oTreasureModel = this.getView().getModel("Cashpool");
             const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
             const oToPostBank = {
-                    "destinationName": "DS9",
-                    "valueDate": "2026-06-02",
-                    "payingCompanyCode": "2010",
-                    "payingBankAccount": "0123456789",
-                    "payingHouseBank": "SANT0",
-                    "payingHouseBankAccount": "0",
-                    "payeeHouseBank": "CAIX0",
-                    "payeeHouseBankAccount": "0",
-                    "paymentRequestAmountInPaytCrcy": 99.99,
-                    "paymentRequestCurrency": "EUR",
-                    "payeeBankAccount": "6678764260",
-                    "payeeCompanyCode": "2010",
-                    "bankTransferReleaseAndPay": true
-                }
+                                "destinationName": "DS9",
+                                "valueDate": new Date().toISOString(),
+                                "payingCompanyCode": "2000",
+                                "payingBankAccount": "0123456789",
+                                "payingHouseBank": "SANT0",
+                                "payingHouseBankAccount": "0",
+                                "payeeHouseBank": "SANT1",
+                                "payeeHouseBankAccount": "1",
+                                "paymentRequestAmountInPaytCrcy": oTransferObject.importe,
+                                "paymentRequestCurrency": "EUR",
+                                "payeeBankAccount": "1234567899",
+                                "payeeCompanyCode": "2000",
+                                "bankTransferReleaseAndPay": true
+                                };
                 
-                oContext.setParameter("postBankTransferData", oToPostBank);
-
-                oContext.execute().then(() => {
+                //oContext.setParameter("parameters", oToPostBank);
+                oContext.setParameter("parameters", oToPostBank).invoke().then(() => {
                     var oActionContext = oContext.getBoundContext();
                     var sError = oActionContext.getObject().error;
                     if (sError) {
                         MessageToast.show("Error from backend: " + sError);
                         return;
                     } else {
-                    console.log(sError);                    
-                    MessageToast.show("Bank transfer posted successfully!");}
-
-                }).catch((oError) => {
+                        console.log(sError);                    
+                        MessageToast.show("Bank transfer posted successfully!");
+                    }
+                    }).catch((oError) => {
                     MessageToast.show("Error posting bank transfer: " + oError.error.message);
                 });
+
+                // oContext.execute().then(() => {
+                //     var oActionContext = oContext.getBoundContext();
+                //     var sError = oActionContext.getObject().error;
+                //     if (sError) {
+                //         MessageToast.show("Error from backend: " + sError);
+                //         return;
+                //     } else {
+                //     console.log(sError);                    
+                //     MessageToast.show("Bank transfer posted successfully!");}
+                // }).catch((oError) => {
+                //     MessageToast.show("Error posting bank transfer: " + oError.error.message);
+                // });
             }
     });
 });
