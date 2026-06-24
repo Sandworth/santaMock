@@ -1,0 +1,52 @@
+_schema-version: "3.2"
+ID: treasury-suite-shared-infra
+description: Shared infrastructure resources for the Treasury Suite (cashpool + deposits)
+version: 0.0.1
+modules:
+- name: treasury-suite-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: treasury-suite-destination-service
+    parameters:
+      content-target: true
+  - name: cash-app-auth
+    parameters:
+      service-key:
+        name: cash-app-auth-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Authentication: OAuth2UserTokenExchange
+          Name: treasury_suite_uaa
+          ServiceInstanceName: cash-app-auth
+          ServiceKeyName: cash-app-auth-key
+          sap.cloud.service: treasury-suite
+        existing_destinations_policy: update
+  build-parameters:
+    no-source: true
+resources:
+- name: treasury-suite-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: treasury-suite-destination-service
+    service-plan: lite
+- name: cash-app-auth
+  type: org.cloudfoundry.existing-service
+  parameters:
+    service-name: cash-app-auth
+parameters:
+  enable-parallel-deployments: true

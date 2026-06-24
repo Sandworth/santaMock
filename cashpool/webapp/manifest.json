@@ -131,6 +131,6 @@
   },
   "sap.cloud": {
     "public": true,
-    "service": "cashpoolappcashpool"
+    "service": "treasury-suite"
   }
 }

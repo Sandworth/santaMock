@@ -6,21 +6,17 @@ modules:
 - name: customdeposits-destination-content
   type: com.sap.application.content
   requires:
-  - name: customdeposits-destination-service
+  - name: treasury-suite-destination-service
     parameters:
       content-target: true
   - name: customdeposits-repo-host
     parameters:
       service-key:
         name: customdeposits-repo-host-key
-  - name: customdeposits-uaa
+  - name: cash-app-auth
     parameters:
       service-key:
-        name: customdeposits-uaa-key
-  - name: ui5-flexibility-keyuser
-    parameters:
-      service-key:
-        name: customdeposits-ui5-flexibility-keyuser-key
+        name: cash-app-auth-key
   parameters:
     content:
       instance:
@@ -28,12 +24,7 @@ modules:
         - Name: customdeposits_html_repo_host
           ServiceInstanceName: customdeposits-html5-service
           ServiceKeyName: customdeposits-repo-host-key
-          sap.cloud.service: customdeposits
-        - Authentication: OAuth2UserTokenExchange
-          Name: customdeposits_uaa
-          ServiceInstanceName: customdeposits-xsuaa-service
-          ServiceKeyName: customdeposits-uaa-key
-          sap.cloud.service: customdeposits
+          sap.cloud.service: treasury-suite
         existing_destinations_policy: update
   build-parameters:
     no-source: true
@@ -62,37 +53,20 @@ modules:
     - npm run build:cf
     supported-platforms: []
 resources:
-- name: customdeposits-destination-service
-  type: org.cloudfoundry.managed-service
-  parameters:
-    config:
-      HTML5Runtime_enabled: true
-      init_data:
-        instance:
-          destinations:
-          - Authentication: NoAuthentication
-            Name: ui5
-            ProxyType: Internet
-            Type: HTTP
-            URL: https://ui5.sap.com
-          existing_destinations_policy: update
-      version: 1.0.0
-    service: destination
-    service-name: customdeposits-destination-service
-    service-plan: lite
-- name: customdeposits-uaa
-  type: org.cloudfoundry.managed-service
-  parameters:
-    path: ./xs-security.json
-    service: xsuaa
-    service-name: customdeposits-xsuaa-service
-    service-plan: application
 - name: customdeposits-repo-host
   type: org.cloudfoundry.managed-service
   parameters:
     service: html5-apps-repo
     service-name: customdeposits-html5-service
     service-plan: app-host
+- name: treasury-suite-destination-service
+  type: org.cloudfoundry.existing-service
+  parameters:
+    service-name: treasury-suite-destination-service
+- name: cash-app-auth
+  type: org.cloudfoundry.existing-service
+  parameters:
+    service-name: cash-app-auth
 - name: ui5-flexibility-keyuser
   type: org.cloudfoundry.managed-service
   parameters:

@@ -165,6 +165,6 @@
   },
   "sap.cloud": {
     "public": true,
-    "service": "customdeposits"
+    "service": "treasury-suite"
   }
 }

@@ -6,17 +6,17 @@ modules:
 - name: cashpoolappcashpool-destination-content
   type: com.sap.application.content
   requires:
-  - name: cashpoolappcashpool-destination-service
+  - name: treasury-suite-destination-service
     parameters:
       content-target: true
   - name: cashpoolappcashpool-repo-host
     parameters:
       service-key:
         name: cashpoolappcashpool-repo-host-key
-  - name: cashpoolappcashpool-uaa
+  - name: cash-app-auth
     parameters:
       service-key:
-        name: cashpoolappcashpool-uaa-key
+        name: cash-app-auth-key
   parameters:
     content:
       instance:
@@ -24,12 +24,7 @@ modules:
         - Name: cashpoolappcashpool_html_repo_host
           ServiceInstanceName: cashpoolappcashpool-html5-service
           ServiceKeyName: cashpoolappcashpool-repo-host-key
-          sap.cloud.service: cashpoolappcashpool
-        - Authentication: OAuth2UserTokenExchange
-          Name: cashpoolappcashpool_uaa
-          ServiceInstanceName: cashpoolappcashpool-xsuaa-service
-          ServiceKeyName: cashpoolappcashpool-uaa-key
-          sap.cloud.service: cashpoolappcashpool
+          sap.cloud.service: treasury-suite
         existing_destinations_policy: update
   build-parameters:
     no-source: true
@@ -58,37 +53,20 @@ modules:
     - npm run build:cf
     supported-platforms: []
 resources:
-- name: cashpoolappcashpool-destination-service
-  type: org.cloudfoundry.managed-service
-  parameters:
-    config:
-      HTML5Runtime_enabled: true
-      init_data:
-        instance:
-          destinations:
-          - Authentication: NoAuthentication
-            Name: ui5
-            ProxyType: Internet
-            Type: HTTP
-            URL: https://ui5.sap.com
-          existing_destinations_policy: update
-      version: 1.0.0
-    service: destination
-    service-name: cashpoolappcashpool-destination-service
-    service-plan: lite
-- name: cashpoolappcashpool-uaa
-  type: org.cloudfoundry.managed-service
-  parameters:
-    path: ./xs-security.json
-    service: xsuaa
-    service-name: cashpoolappcashpool-xsuaa-service
-    service-plan: application
 - name: cashpoolappcashpool-repo-host
   type: org.cloudfoundry.managed-service
   parameters:
     service: html5-apps-repo
     service-name: cashpoolappcashpool-html5-service
     service-plan: app-host
+- name: treasury-suite-destination-service
+  type: org.cloudfoundry.existing-service
+  parameters:
+    service-name: treasury-suite-destination-service
+- name: cash-app-auth
+  type: org.cloudfoundry.existing-service
+  parameters:
+    service-name: cash-app-auth
 parameters:
   deploy_mode: html5-repo
   enable-parallel-deployments: true
