@@ -5,76 +5,84 @@
     xmlns:viz="sap.viz.ui5.controls"
     xmlns:viz.data="sap.viz.ui5.data"
     xmlns:viz.feeds="sap.viz.ui5.controls.common.feeds"
-    core:require="{Currency: 'sap/ui/model/type/Currency'}">
-
-    <f:DynamicPage fitContent="true">
-
-            <!-- DynamicPage Title -->
-            <f:title>
-                <f:DynamicPageTitle>
-                    <f:heading>
-                        <Title text=""/>
-                    </f:heading>
-                </f:DynamicPageTitle>
-        </f:title>
-
-        <!-- DynamicPage Header — VizFrame column chart (hidden on collapse) -->
-            <f:header>
-                <f:DynamicPageHeader pinnable="false">
-                    <viz:VizFrame
-                    id="saldosVizFrame"
-                    vizType="column"
-                    height="220px"
-                    width="100%">
-                        <viz:dataset>
-                            <viz.data:FlattenedDataset data="{empresas>/empresas}">
-                                <viz.data:dimensions>
-                                    <viz.data:DimensionDefinition
-                                    name="razonSocial"
-                                    value="{razonSocial}"/>
-                                </viz.data:dimensions>
-                                <viz.data:measures>
-                                    <viz.data:MeasureDefinition
-                                    name="balance"
-                                    value="{balance}"/>
-                                </viz.data:measures>
-                            </viz.data:FlattenedDataset>
-                        </viz:dataset>
-                        <viz:feeds>
-                            <viz.feeds:FeedItem
-                            uid="categoryAxis"
-                            type="Dimension"
-                            values="razonSocial"/>
-                            <viz.feeds:FeedItem
-                            uid="valueAxis"
-                            type="Measure"
-                            values="balance"/>
-                        </viz:feeds>
-                    </viz:VizFrame>
-                </f:DynamicPageHeader>
-            </f:header>
-
-        <!-- DynamicPage Content — Empresas list -->
-            <f:content>
-                <List
-                backgroundDesign="Transparent"
-                class="sapUiContentPadding"
-                showSeparators="None"
-                width="100%"
-                items="{empresas>/empresas}">
-                    <CustomListItem type="Inactive">
-                        <Panel class="sapUiTinyMargin">
-                            <HBox justifyContent="SpaceBetween" width="100%">
-                                <VBox justifyContent="SpaceBetween" class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom">
-                                    <HBox alignItems="Center">
-                                        <Title text="{empresas>razonSocial}" titleStyle="H3" class="sapUiSmallMarginEnd sapUiTinyMarginTop"/>
-                                        <Button icon="sap-icon://edit" type="Transparent"/>
-                                    </HBox>
-                                    <Label text="CIF: {empresas>cif}"/>
-                                </VBox>
-                                <VBox alignItems="End" class="sapUiSmallMarginEnd sapUiSmallMarginTopBottom">
-                                    <Label text="Total Balance"/>
-                                    <Title text="{
+    core:require="{Currency: 'sap/ui/model/type/Currency'}"
+>
+    <VBox>
+        <viz:VizFrame
+            id="saldosVizFrame"
+            vizType="column"
+            height="220px"
+            width="100%"
+        >
+            <viz:dataset>
+                <viz.data:FlattenedDataset data="{empresas>/empresas}">
+                    <viz.data:dimensions>
+                        <viz.data:DimensionDefinition
+                            name="razonSocial"
+                            value="{razonSocial}"
+                        />
+                    </viz.data:dimensions>
+                    <viz.data:measures>
+                        <viz.data:MeasureDefinition
+                            name="balance"
+                            value="{balance}"
+                        />
+                    </viz.data:measures>
+                </viz.data:FlattenedDataset>
+            </viz:dataset>
+            <viz:feeds>
+                <viz.feeds:FeedItem
+                    uid="categoryAxis"
+                    type="Dimension"
+                    values="razonSocial"
+                />
+                <viz.feeds:FeedItem
+                    uid="valueAxis"
+                    type="Measure"
+                    values="balance"
+                />
+            </viz:feeds>
+        </viz:VizFrame>
+        <List
+            backgroundDesign="Transparent"
+            class="sapUiContentPadding"
+            showSeparators="None"
+            width="100%"
+            items="{Cashpool>/Companies}"
+        >
+            <CustomListItem type="Inactive">
+                <Panel
+                    class="sapUiTinyMargin"
+                    width="99%"
+                >
+                    <HBox
+                        justifyContent="SpaceBetween"
+                        width="100%"
+                    >
+                        <VBox
+                            justifyContent="SpaceBetween"
+                            class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom"
+                        >
+                            <HBox alignItems="Center">
+                                <Title
+                                    text="{Cashpool>name}"
+                                    titleStyle="H3"
+                                    class="sapUiSmallMarginEnd sapUiTinyMarginTop"
+                                />
+                                <Button
+                                    icon="sap-icon://edit"
+                                    type="Transparent"
+                                />
+                            </HBox>
+                            <Label text="CIF: {Cashpool>cif}" />
+                        </VBox>
+                        <VBox
+                            alignItems="End"
+                            class="sapUiSmallMarginEnd sapUiSmallMarginTopBottom"
+                        >
+                            <Label text="Total Balance" />
+                            <Title
+                                text="{
                                                 parts: [
                                                     {path: 'empresas>balance'},
                                                     {path: 'empresas>currency'}
@@ -85,14 +93,12 @@
                                                     showMeasure: true
                                                 }
                                             }"
-                                            titleStyle="H3"/>
-                                </VBox>
-                            </HBox>
-                        </Panel>
-                    </CustomListItem>
-                </List>
-            </f:content>
-
-        </f:DynamicPage>
-
+                                titleStyle="H3"
+                            />
+                        </VBox>
+                    </HBox>
+                </Panel>
+            </CustomListItem>
+        </List>
+    </VBox>
 </core:FragmentDefinition>

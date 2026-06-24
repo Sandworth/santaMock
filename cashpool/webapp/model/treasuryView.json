@@ -1,0 +1,149 @@
+{
+  "selectedTab": "tab1",
+  "tabs": [
+    {
+      "key": "tab1",
+      "textKey": "tabConsultaSaldos"
+    },
+    {
+      "key": "tab2",
+      "textKey": "tabTransferenciasManual"
+    },
+    {
+      "key": "tab3",
+      "textKey": "tabTransferenciasAuto"
+    },
+    {
+      "key": "tab4",
+      "textKey": "tabAprobaciones"
+    }
+  ],
+  "transferencias": [
+    {
+      "razonSocial": "Industrias Galán S.A.",
+      "cif": "A28345671",
+      "fecha": "11/05/2026",
+      "origen": {
+        "bancoKey": "bancoA",
+        "oficina": "0049",
+        "cuenta": "00491555-11-0123456789"
+      },
+      "destino": {
+        "bancoKey": "bancoA",
+        "oficina": "0049",
+        "cuenta": "00491522-12-9876598765"
+      },
+      "saldoAntes": {
+        "monto": 100000,
+        "moneda": "EUR"
+      },
+      "saldoProgramado": {
+        "monto": 0,
+        "moneda": "EUR"
+      },
+      "valorTransferencia": {
+        "monto": 10000,
+        "moneda": "EUR"
+      },
+      "status": {
+        "textKey": "statusPendiente",
+        "state": "Warning"
+      }
+    },
+    {
+      "razonSocial": "Industrias Galán S.A.",
+      "cif": "A28345671",
+      "fecha": "21/04/2026",
+      "origen": {
+        "bancoKey": "bancoC",
+        "oficina": "2100",
+        "cuenta": "21006428-10-1234567890"
+      },
+      "destino": {
+        "bancoKey": "bancoD",
+        "oficina": "0281",
+        "cuenta": "02815678-10-1234567890"
+      },
+      "saldoAntes": {
+        "monto": 50000,
+        "moneda": "EUR"
+      },
+      "saldoProgramado": {
+        "monto": 0,
+        "moneda": "EUR"
+      },
+      "valorTransferencia": {
+        "monto": 5000,
+        "moneda": "EUR"
+      },
+      "status": {
+        "textKey": "statusAprobada",
+        "state": "Success"
+      }
+    },
+    {
+      "razonSocial": "Tecnologías Vega S.L.",
+      "cif": "B81234567",
+      "fecha": "20/04/2026",
+      "origen": {
+        "bancoKey": "bancoE",
+        "oficina": "0128",
+        "cuenta": "01289414-10-1234567890"
+      },
+      "destino": {
+        "bancoKey": "bancoF",
+        "oficina": "0182",
+        "cuenta": "01822357-14-627550077"
+      },
+      "saldoAntes": {
+        "monto": 75000,
+        "moneda": "GBP"
+      },
+      "saldoProgramado": {
+        "monto": 0,
+        "moneda": "GBP"
+      },
+      "valorTransferencia": {
+        "monto": 5000,
+        "moneda": "GBP"
+      },
+      "status": {
+        "textKey": "statusRechazada",
+        "state": "Error"
+      }
+    },
+    {
+      "razonSocial": "Distribuciones Montero S.A.",
+      "cif": "A46789012",
+      "fecha": "19/04/2026",
+      "origen": {
+        "bancoKey": "bancoB",
+        "oficina": "20800970",
+        "cuenta": "2080-20-9876598765"
+      },
+      "destino": {
+        "bancoKey": "bancoC",
+        "oficina": "2100",
+        "cuenta": "21002151-41-2233355555"
+      },
+      "saldoAntes": {
+        "monto": 62000,
+        "moneda": "USD"
+      },
+      "saldoProgramado": {
+        "monto": 15000,
+        "moneda": "USD"
+      },
+      "valorTransferencia": {
+        "monto": 4700,
+        "moneda": "USD"
+      },
+      "status": {
+        "textKey": "statusPendiente",
+        "state": "Warning"
+      }
+    }
+  ],
+  "transferenciasAgrupadas": [],
+  "_transferenciasAgrupadasAll": []
+}
