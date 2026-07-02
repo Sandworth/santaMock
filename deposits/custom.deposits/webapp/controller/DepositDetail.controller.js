@@ -14,6 +14,7 @@ sap.ui.define([
 			this.oOwnerComponent = this.getOwnerComponent();
 			this.oRouter = this.getRouter();
 			this.oModel = this.oOwnerComponent.getModel(); // layout JSON model
+			Formatter.init(this.getResourceBundle());
 
 			this.setModel(new JSONModel({
 				amount: null,
@@ -41,20 +42,17 @@ sap.ui.define([
 			const sPath = bIsDisplay ? `/RateGrid('${sKey}')` : `/Deposits('${sKey}')`;
 			const aSelect = bIsDisplay ? ["currency_ID", "tenor_ID", "rate", "createdAt"] : ["currency_ID", "tenor_ID", "rate", "amount", "createdAt", "startDate", "maturityDate", "status"];
 			const sExpand = bIsDisplay ? "currency,tenor" : "currency,tenor";
-			//const aDeposits = this.getOwnerComponent().getModel("mainService").getProperty("/value");
-			//const iIdx = aDeposits ? aDeposits.findIndex(function (d) { return d.UUID === sKey; }) : -1;
-			//if (iIdx >= 0) {
+
 			this.getView().bindElement({
 				model: "mainService",
 				path: sPath,
 				parameters: { $select: aSelect, $expand: sExpand }
 			});
-			//}
+
 			if (bIsDisplay) {
 				this._filterAccountsByCurrency();
 			}
-			//const oBindedObject = await this.getView().getBindingContext("mainService").requestObject();
-			//debugger
+
 		},
 
 		onSimulate: function () {
@@ -65,7 +63,6 @@ sap.ui.define([
 			const sValue = oInput.getValue();
 
 			if (!fAmount || fAmount <= 10000000 || sValue <= 10000000) {
-				//this._resetSimulation();
 				oInput.setValueState("Error");
 				oSimModel.setProperty("/interest", 0);
 				oSimModel.setProperty("/total", 0);
@@ -97,10 +94,6 @@ sap.ui.define([
 			if (oSimModel) {
 				oSimModel.setData({ amount: null, interest: 0, total: 0, currency: "", hasResult: false });
 			}
-			// const oInput = this.getView().byId("simAmountInput");
-			// if (oInput) {
-			// 	oInput.setValueState("None");
-			// }
 		},
 
 		_resetRequest: function () {

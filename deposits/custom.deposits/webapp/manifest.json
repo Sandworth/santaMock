@@ -18,7 +18,7 @@
     },
     "dataSources": {
       "mainService": {
-        "uri": "/odata/deposits/",
+        "uri": "/odata/",
         "type": "OData",
         "settings": {
           "odataVersion": "4.0"

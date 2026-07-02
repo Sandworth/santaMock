@@ -27,7 +27,8 @@ server:
         backend:
           - path: /odata
             pathReplace: /
-            destination: Deposits_Destination
+            destination: Deposits_Destination #Destination for client sub-accunt
+            #destination: BackOffice_Destination #Destination for Santander sub-accunt
     - name: fiori-tools-appreload
       afterMiddleware: compression
       configuration:

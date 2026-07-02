@@ -232,10 +232,9 @@
                         <ToolbarSpacer />
                         <u:FileUploader
                             id="fileUploader"
+                            width="15rem"
                             name="myFileUpload"
-                            tooltip="Upload your file to the local server"
                             visible="{intent>/isHistory}"
-                            uploadComplete=".handleUploadComplete"
                         />
                         <Button
                             text="Upload File"

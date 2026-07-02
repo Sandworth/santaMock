@@ -6,6 +6,7 @@
 	core:require="{
 		Float: 'sap/ui/model/type/Float',
 		Date: 'sap/ui/model/type/Date',
+		CurrencyType: 'sap/ui/model/type/Currency',
 		Formatter: 'custom/deposits/model/formatter'
 	}"    >
     <Dialog
@@ -88,12 +89,13 @@
 								key="{customRequest>cuentaCorriente}"
 								text="{customRequest>nombre} - {customRequest>cuentaCorriente}"
 								additionalText="{
-											parts: [
-												{ path: 'customRequest>saldoInfoCent' },
-												{ path: 'customRequest>currency' }
-											],
-											formatter: 'Formatter.formatCurrency'
-										}" />
+                                            parts: [
+                                                { path: 'customRequest>saldoInfoCent' },
+                                                { path: 'customRequest>currency' }
+                                            ],
+                                            type: 'CurrencyType',
+                                            formatOptions: { currencyCode : false }
+                                        }" />
                     </ComboBox>
 
                 <!-- PASO 5: Importe + Botón Calcular -->

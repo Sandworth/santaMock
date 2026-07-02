@@ -3,6 +3,15 @@ sap.ui.define(["sap/ui/core/format/NumberFormat", "sap/ui/core/format/DateFormat
 
 	return {
 		/**
+		 * Initializes the formatter with the application's ResourceBundle.
+		 * Must be called once from the controller's onInit before any i18n-dependent formatter is used.
+		 * @param {sap.base.i18n.ResourceBundle} oResourceBundle
+		 */
+		init: function (oResourceBundle) {
+			this._oBundle = oResourceBundle;
+		},
+
+		/**
 		 * Converts a value to uppercase.
 		 * @param {string} value - The value to convert
 		 * @returns {string|undefined} The uppercase value, or undefined if input is null/falsy
@@ -43,7 +52,7 @@ sap.ui.define(["sap/ui/core/format/NumberFormat", "sap/ui/core/format/DateFormat
 				decimals: 2,
 				maxFractionDigits: 2
 			});
-			return oFormat.format(fAmount) + " " + sCurrency;
+			return `${oFormat.format(fAmount)} ${sCurrency}`;
 		},
 
 		/**
@@ -88,6 +97,25 @@ sap.ui.define(["sap/ui/core/format/NumberFormat", "sap/ui/core/format/DateFormat
 			var oDateFormat = DateFormat.getDateTimeWithTimezoneInstance({showTime: false, showTimezone: false});
 			var oDate = DateFormat.getDateTimeInstance().parse(sDateTime);
 			return oDateFormat.format(oDate);
+		},
+
+		/**
+		 * Builds a localized deposit title combining tenor description and currency plural name.
+		 * Reads the i18n model from the bound control's context to resolve both the connector
+		 * word ("in" / "en") and the currency plural ("US Dollars" / "Dólares Americanos").
+		 * @param {string} sTenorDesc  - Tenor description, e.g. "3 Months" / "3 Meses"
+		 * @param {string} sCurrencyId - Currency code, e.g. "USD", "EUR", "GBP"
+		 * @returns {string} e.g. "3 Months in US Dollars" / "3 Meses en Dólares Americanos"
+		 */
+		formatDepositTitle: function (sTenorDesc, sCurrencyId) {
+			if (!sTenorDesc || !sCurrencyId) {
+				return sTenorDesc || "";
+			}
+			var oBundle = this._oBundle;
+			if (!oBundle) { return sTenorDesc; }
+			var sConnector = oBundle.getText("titleCurrencyConnector");
+			var sCurrencyPlural = oBundle.getText(`currency_${sCurrencyId}_plural`);
+			return `${sTenorDesc} ${sConnector} ${sCurrencyPlural}`;
 		}
 	};
 });

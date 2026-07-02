@@ -1366,12 +1366,12 @@ sap.ui.define([
 			const oFileUploader = this.byId("fileUploader");
 			const oFile = oFileUploader.getFocusDomRef().files[0];
 			// set Table busy while processing
-			this.oTable.setBusy(true);
+			oFileUploader.setBusy(true);
 			let sBase64 = "";
 			let oToSend;
 			if (!oFile) {
 				MessageToast.show(this._getText("uploadNoFile"));
-				this.oTable.setBusy(false);
+				oFileUploader.setBusy(false);
 				return;
 			}
 
@@ -1394,7 +1394,8 @@ sap.ui.define([
 				}).catch(() => {
 					MessageToast.show(this._getText("uploadError"));
 				}).finally(() => {
-					this.oTable.setBusy(false);
+					oFileUploader.setBusy(false);
+					oFileUploader.clear();
 				});
 
 			};
@@ -1402,7 +1403,8 @@ sap.ui.define([
 			reader.onerror = (e) => {
 				console.error("Error reading file:", e);
 				MessageToast.show(this._getText("uploadError"));
-				this.oTable.setBusy(false);
+				oFileUploader.setBusy(false);
+				oFileUploader.clear();
 			};
 
 			reader.readAsDataURL(oFile);
