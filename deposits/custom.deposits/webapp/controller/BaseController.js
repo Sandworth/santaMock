@@ -69,22 +69,24 @@ sap.ui.define([
 		},
 
 		/**
-		 * Maps tenor code strings to their equivalent number of months.
+		 * Maps tenor code strings to their equivalent number of days.
+		 * 1W = 7 days; each monthly tenor uses 30 days per month.
 		 * Shared across all controllers that perform tenor-based calculations.
 		 */
-		_DURATION_MONTHS: {
-			"1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6,
-			"7M": 7, "8M": 8, "9M": 9, "10M": 10, "11M": 11, "12M": 12
+		_DURATION_DAYS: {
+			"1W": 7,
+			"1M": 30, "2M": 60, "3M": 90, "4M": 120, "5M": 150, "6M": 180,
+			"7M": 210, "8M": 240, "9M": 270, "10M": 300, "11M": 330, "12M": 360
 		},
 
 		/**
-		 * Converts a tenor code string (e.g., "3M") to its numeric month value.
+		 * Converts a tenor code string (e.g., "3M", "1W") to its numeric day value.
 		 *
-		 * @param {string} sTenorCode - The tenor code (e.g., "1M", "6M", "12M")
-		 * @returns {number} The number of months represented by the tenor code
+		 * @param {string} sTenorCode - The tenor code (e.g., "1W", "1M", "6M", "12M")
+		 * @returns {number} The number of days represented by the tenor code
 		 */
-		_getTenorMonths: function (sTenorCode) {
-			return this._DURATION_MONTHS[sTenorCode] || 1;
+		_getTenorDays: function (sTenorCode) {
+			return this._DURATION_DAYS[sTenorCode] || 30;
 		}
 	});
 });

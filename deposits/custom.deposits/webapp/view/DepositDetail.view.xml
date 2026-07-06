@@ -305,6 +305,8 @@
                         editable="false"
                         layout="ResponsiveGridLayout"
                     >
+                        <Label visible="{intent>/isSantander}" text="{i18n>colClient}" />
+                        <Text visible="{intent>/isSantander}" text="{mainService>client/name}" />
                         <Label text="{i18n>colAmount}" />
                         <Text
                             text="{

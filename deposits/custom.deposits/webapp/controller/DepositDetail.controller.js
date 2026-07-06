@@ -39,9 +39,14 @@ sap.ui.define([
 			this._resetSimulation();
 			this._resetRequest();
 			const bIsDisplay = this.getOwnerComponent().getModel('intent').getProperty('/isDisplay');
+			const bIsSantander = this.getOwnerComponent().getModel('intent').getProperty('/isSantander');
 			const sPath = bIsDisplay ? `/RateGrid('${sKey}')` : `/Deposits('${sKey}')`;
 			const aSelect = bIsDisplay ? ["currency_ID", "tenor_ID", "rate", "createdAt"] : ["currency_ID", "tenor_ID", "rate", "amount", "createdAt", "startDate", "maturityDate", "status"];
-			const sExpand = bIsDisplay ? "currency,tenor" : "currency,tenor";
+			let sExpand = bIsDisplay ? "currency,tenor" : "currency,tenor";
+			if (bIsSantander) {
+				aSelect.push("client_ID");
+				sExpand += ",client";
+			}
 
 			this.getView().bindElement({
 				model: "mainService",
@@ -76,8 +81,8 @@ sap.ui.define([
 			const sDuration = oCtx.getProperty("tenor_ID");
 			const sCurrency = oCtx.getProperty("currency_ID");
 
-			const iMonths = this._DURATION_MONTHS[sDuration] || 1;
-			const fInterest = fAmount * (fRate / 100) * (iMonths / 12);
+			const iDays = this._getTenorDays(sDuration);
+			const fInterest = fAmount * (fRate / 100) * (iDays / 360);
 			const fTotal = fAmount + fInterest;
 
 			oSimModel.setData({
@@ -142,7 +147,7 @@ sap.ui.define([
 			const fImporte = this.getModel("request").getProperty("/importeSolicitud");
 
 			// Compute startDate (now) and maturityDate (now + tenor days) as ISO strings
-			const iTenorDays = this._getTenorMonths(sTenor) * 30;
+			const iTenorDays = this._getTenorDays(sTenor);
 			let sStartDate, sMaturityDate;
 			if (typeof Temporal !== "undefined") {
 				const oNow = Temporal.Now.zonedDateTimeISO();
@@ -176,10 +181,7 @@ sap.ui.define([
 						MessageToast.show(oBundle.getText("requestSuccessMsg"));
 						const oModel = this.getView().getModel("mainService");
 						const oPayload = {
-							client: {
-								ID: "cb036268-d3c0-46f2-aaf5-5946ae09b549" // hardcoded client ID - replace with dynamic value as needed
-							},
-							rateSnapshot: { ID: sRateGridID },
+							rateSnapshot_ID: sRateGridID,
 							amount: Number.parseFloat(fImporte.toFixed(2)),	
 							currency_ID: sCurrency,
 							tenor_ID: sTenor,

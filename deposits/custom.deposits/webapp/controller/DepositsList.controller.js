@@ -88,6 +88,7 @@ sap.ui.define([
 
 			// ----- Detect intent early — must happen before SVM initialise() -----
 			var sHash      = (window.location.hash || "").replace(/^#/, "").split("?")[0];
+			var bIsSantander = window.location.host.startsWith("santander"); // Check if the app is running in the Santander environment
 			var bIsHistory = sHash === "Deposits-history";
 			//bIsHistory = true // Force history view for testing — to be removed when both views are available in the FLP
 
@@ -95,7 +96,7 @@ sap.ui.define([
 
 			// Intent model — consumed by view bindings (visible, enabled, etc.)
 			this.getOwnerComponent().setModel(
-				new JSONModel({ isDisplay: bIsDisplay, isHistory: bIsHistory }),
+				new JSONModel({ isDisplay: bIsDisplay, isHistory: bIsHistory, isSantander: bIsSantander }),
 				"intent"
 			);
 
@@ -289,6 +290,16 @@ sap.ui.define([
 				this.aTableFilters.push(new Filter({ filters: aCurFilters, and: false }));
 			}
 
+			// Client (MultiComboBox — Santander intent only)
+			const oClientCtrl = this.oView.byId("filterClient");
+			const aClients = oClientCtrl ? oClientCtrl.getSelectedKeys() : [];
+			if (aClients.length > 0) {
+				const aClientFilters = aClients.map(function (sKey) {
+					return new Filter("client_ID", FilterOperator.EQ, sKey);
+				});
+				this.aTableFilters.push(new Filter({ filters: aClientFilters, and: false }));
+			}
+
 			// Start Date (DateRangeSelection — history intent only)
 			const oStartDateCtrl = this.oView.byId("filterStartDate");
 			if (oStartDateCtrl) {
@@ -363,6 +374,8 @@ sap.ui.define([
 			const oRateCtrl = this.oView.byId("filterRate");
 			if (oRateCtrl) { oRateCtrl.setValue(""); }
 			this._aRateTokens = [];
+			const oClientCtrl = this.oView.byId("filterClient");
+			if (oClientCtrl) { oClientCtrl.setSelectedKeys([]); }
 			const oStartDateCtrl = this.oView.byId("filterStartDate");
 			if (oStartDateCtrl) { oStartDateCtrl.setDateValue(null); oStartDateCtrl.setSecondDateValue(null); }
 			const oMaturityCtrl = this.oView.byId("filterMaturityDate");
@@ -797,18 +810,20 @@ sap.ui.define([
 		_bindTableByIntent: function () {
 			// Intent model was already created in onInit before SVM initialise().
 			var bIsHistory = this.getOwnerComponent().getModel("intent").getProperty("/isHistory");
+			var bIsSantander = this.getOwnerComponent().getModel("intent").getProperty("/isSantander");
 
 			if (bIsHistory) {
 				// Back-office view: full deposit history, no pre-applied filters
+				const sExpand = bIsSantander ? "currency,tenor,client" : "currency,tenor";
 				this.oTable.bindItems({
 					model: "mainService",
 					path: "/Deposits",
 					templateShareable: false,
 					parameters: {
-						$expand: "currency,tenor",
+						$expand: sExpand,
 						$orderby: "createdAt desc"
 					},
-					template: this._buildRowTemplate(["start_date_col", "maturity_date_col", "amount_col", "currency_col", "duration_col", "rate_col"])
+					template: this._buildRowTemplate(["client_col", "start_date_col", "maturity_date_col", "amount_col", "currency_col", "duration_col", "rate_col"])
 				});
 			} else {
 				// End-user view: rate grid filtered to the four standard tenors
@@ -824,7 +839,7 @@ sap.ui.define([
 						$expand: "currency,tenor",
 						$filter: "tenor_ID eq '1M' or tenor_ID eq '3M' or tenor_ID eq '6M' or tenor_ID eq '12M'"	
 					},
-					template: this._buildRowTemplate([null, null, null, "currency_col", "duration_col", "rate_col"])
+					template: this._buildRowTemplate([null, null, null, null, "currency_col", "duration_col", "rate_col"])
 				});
 			}
 		},
@@ -836,6 +851,8 @@ sap.ui.define([
 		_buildRowTemplate: function (aColumnKeys) {
 			var aCells = aColumnKeys.map((sKey) => {
 				switch (sKey) {
+					case "client_col":
+						return new MText({ text: "{mainService>client/name}" });
 					case "start_date_col":
 						return new MText({ text: {parts: [{ path: "mainService>startDate" }], formatter: Formatter.dateTimeToDate} });
 						//return new MText({ text: "{mainService>startDate}" }); // TODO: Check hour precision.
@@ -1080,7 +1097,7 @@ sap.ui.define([
 			oModel.setProperty("/step5Enabled", false);
 
 			// Interpolate rate (async OData V4), then filter accounts and unlock step 4
-			this._interpolateRate(fTenorMonths, oModel.getProperty("/currency")).then(function () {
+			this._interpolateRate(iTenorDays, oModel.getProperty("/currency")).then(function () {
 				this._filterAccountsByCurrency();
 				oModel.setProperty("/step4Enabled", true);
 			}.bind(this));
@@ -1121,31 +1138,31 @@ sap.ui.define([
 		 * @returns {Promise<void>} Promise that resolves once the rate is written to the model
 		 * @private
 		 */
-		_interpolateRate: function (fTenorMonths, sCurrency) {
+		_interpolateRate: function (fTenorDays, sCurrency) {
 			const oModel = this.getModel("customRequest");
 
-			// Get deposits bracketing fTenorMonths (Promise — OData V4 binding)
-			return this._getDepositsByTenorAndCurrency(fTenorMonths, sCurrency).then(function (oDepositPair) {
+			// Get deposits bracketing fTenorDays (Promise — OData V4 binding)
+			return this._getDepositsByTenorAndCurrency(fTenorDays, sCurrency).then(function (oDepositPair) {
 				let fInterpolatedRate = 0;
 
 				if (oDepositPair.lower && oDepositPair.upper) {
 					// Both lower and upper tenors exist — interpolate linearly
 					const fRateLower = 	Number.parseFloat(oDepositPair.lower.rate);
 					const fRateUpper = 	Number.parseFloat(oDepositPair.upper.rate);
-					const iTenorLowerMonths = this._getTenorMonths(oDepositPair.lower.tenor_ID);
-					const iTenorUpperMonths = this._getTenorMonths(oDepositPair.upper.tenor_ID);
+					const iTenorLowerDays = this._getTenorDays(oDepositPair.lower.tenor_ID);
+					const iTenorUpperDays = this._getTenorDays(oDepositPair.upper.tenor_ID);
 
-					if (iTenorLowerMonths === iTenorUpperMonths) {
+					if (iTenorLowerDays === iTenorUpperDays) {
 						// Exact tenor match — lower and upper point to the same deposit, no interpolation needed
 						fInterpolatedRate = fRateLower;
 					} else {
 						// Linear interpolation formula
 						fInterpolatedRate = fRateLower +
 							(fRateUpper - fRateLower) *
-							(fTenorMonths - iTenorLowerMonths) /
-							(iTenorUpperMonths - iTenorLowerMonths);
+							(fTenorDays - iTenorLowerDays) /
+							(iTenorUpperDays - iTenorLowerDays);
 					}
-					console.log("Interpolating rate: lower=" + fRateLower + " at " + iTenorLowerMonths + " months, upper=" + fRateUpper + " at " + iTenorUpperMonths + " months, target tenor=" + fTenorMonths + " months => interpolated rate=" + fInterpolatedRate);
+					console.log("Interpolating rate: lower=" + fRateLower + " at " + iTenorLowerDays + " days, upper=" + fRateUpper + " at " + iTenorUpperDays + " days, target tenor=" + fTenorDays + " days => interpolated rate=" + fInterpolatedRate);
 				} else if (oDepositPair.single) {
 					// Only one deposit exists (at or closest to tenor)
 					fInterpolatedRate = oDepositPair.single.rate;
@@ -1165,12 +1182,12 @@ sap.ui.define([
 		 * Uses the OData V4 list binding of the deposits table to fetch all rows via
 		 * requestContexts(), bypassing any active search filters applied to the table.
 		 *
-		 * @param {number} fTenorMonths - The target tenor in months
+		 * @param {number} fTenorDays - The target tenor in days
 		 * @param {string} sCurrency - The currency code
 		 * @returns {Promise<{lower?: object, upper?: object, single?: object}>} Promise resolving to the bounding deposits
 		 * @private
 		 */
-		_getDepositsByTenorAndCurrency: function (fTenorMonths, sCurrency) {
+		_getDepositsByTenorAndCurrency: function (fTenorDays, sCurrency) {
 			const oTableBinding = this.oTable.getBinding("items");
 			if (!oTableBinding) {
 				return Promise.resolve({});
@@ -1194,13 +1211,13 @@ sap.ui.define([
 
 				for (let i = 0; i < aDepositsByCurrency.length; i++) {
 					const oDeposit = aDepositsByCurrency[i];
-					const iTenorMonths = this._getTenorMonths(oDeposit.tenor_ID);
+					const iTenorDays = this._getTenorDays(oDeposit.tenor_ID);
 
-					if (iTenorMonths <= fTenorMonths && (!oLower || iTenorMonths > this._getTenorMonths(oLower.tenor_ID))) {
+					if (iTenorDays <= fTenorDays && (!oLower || iTenorDays > this._getTenorDays(oLower.tenor_ID))) {
 						oLower = oDeposit;
 					}
 
-					if (iTenorMonths >= fTenorMonths && (!oUpper || iTenorMonths < this._getTenorMonths(oUpper.tenor_ID))) {
+					if (iTenorDays >= fTenorDays && (!oUpper || iTenorDays < this._getTenorDays(oUpper.tenor_ID))) {
 						oUpper = oDeposit;
 					}
 				}
@@ -1389,8 +1406,6 @@ sap.ui.define([
 				oContext.setParameter("parameters", oToSend);
 				oContext.execute().then(() => {
 					MessageToast.show(this._getText("uploadSuccess"));
-					// then refresh mainService model to get the new deposit in the table
-					this.getView().getModel("mainService").refresh();
 				}).catch(() => {
 					MessageToast.show(this._getText("uploadError"));
 				}).finally(() => {

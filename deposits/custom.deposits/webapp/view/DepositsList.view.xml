@@ -187,6 +187,26 @@
                                     />
                                 </fb:control>
                             </fb:FilterGroupItem>
+                            <fb:FilterGroupItem 
+                                name="Client"
+                                label="{i18n>filterClient}"
+                                groupName="Group1"
+                                visibleInFilterBar="true"
+                                visible="{intent>/isSantander}"
+                            >
+                                <fb:control>
+                                    <MultiComboBox
+                                        id="filterClient"
+                                        selectionChange=".onSelectionChange"
+                                        items="{mainService>/Client}"
+                                    >
+                                        <core:ListItem
+                                            key="{mainService>ID}"
+                                            text="{mainService>name}"
+                                        />
+                                    </MultiComboBox>
+                                </fb:control>
+                            </fb:FilterGroupItem>
 
                         </fb:filterGroupItems>
                     </fb:FilterBar>
@@ -234,11 +254,11 @@
                             id="fileUploader"
                             width="15rem"
                             name="myFileUpload"
-                            visible="{intent>/isHistory}"
+                            visible="{intent>/isSantander}"
                         />
                         <Button
                             text="Upload File"
-                            visible="{intent>/isHistory}"
+                            visible="{intent>/isSantander}"
                             press=".handleUploadPress"
                         />
                         <Button
@@ -313,6 +333,12 @@
 
                 <!-- Columns -->
                 <columns>
+                    <Column 
+                        visible="{intent>/isSantander}"
+                        app:p13nkey="client_col"
+                    >
+                        <Text text="{i18n>colClient}" />
+                    </Column>
                     <Column
                         visible="{intent>/isHistory}"
                         app:p13nKey="start_date_col"
