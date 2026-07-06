@@ -69,7 +69,7 @@
                             <!-- Currency -->
                             <fb:FilterGroupItem
                                 name="Currency"
-                                label="{i18n>filterCurrency}"
+                                label="{i18n>lblCurrency}"
                                 groupName="Group1"
                                 visibleInFilterBar="true"
                             >
@@ -97,7 +97,7 @@
                             <!-- Duration -->
                             <fb:FilterGroupItem
                                 name="Duration"
-                                label="{i18n>filterDuration}"
+                                label="{i18n>lblDuration}"
                                 groupName="Group1"
                                 visibleInFilterBar="true"
                             >
@@ -142,7 +142,7 @@
                             <!-- Rate -->
                             <fb:FilterGroupItem
                                 name="Rate"
-                                label="{i18n>filterRate}"
+                                label="{i18n>lblRate}"
                                 groupName="Group1"
                                 visibleInFilterBar="true"
                             >
@@ -159,7 +159,7 @@
                             <!-- Start Date (history only) -->
                             <fb:FilterGroupItem
                                 name="StartDate"
-                                label="{i18n>filterStartDate}"
+                                label="{i18n>lblStartDate}"
                                 groupName="Group1"
                                 visibleInFilterBar="true"
                                 visible="{intent>/isHistory}"
@@ -175,7 +175,7 @@
                             <!-- Maturity Date (history only) -->
                             <fb:FilterGroupItem
                                 name="MaturityDate"
-                                label="{i18n>filterMaturityDate}"
+                                label="{i18n>lblMaturityDate}"
                                 groupName="Group1"
                                 visibleInFilterBar="true"
                                 visible="{intent>/isHistory}"
@@ -189,7 +189,7 @@
                             </fb:FilterGroupItem>
                             <fb:FilterGroupItem 
                                 name="Client"
-                                label="{i18n>filterClient}"
+                                label="{i18n>lblClient}"
                                 groupName="Group1"
                                 visibleInFilterBar="true"
                                 visible="{intent>/isSantander}"
@@ -337,19 +337,19 @@
                         visible="{intent>/isSantander}"
                         app:p13nkey="client_col"
                     >
-                        <Text text="{i18n>colClient}" />
+                        <Text text="{i18n>lblClient}" />
                     </Column>
                     <Column
                         visible="{intent>/isHistory}"
                         app:p13nKey="start_date_col"
                     >
-                        <Text text="{i18n>colStartDate}" />
+                        <Text text="{i18n>lblStartDate}" />
                     </Column>
                     <Column
                         visible="{intent>/isHistory}"
                         app:p13nKey="maturity_date_col"
                     >
-                        <Text text="{i18n>colMaturityDate}" />
+                        <Text text="{i18n>lblMaturityDate}" />
                     </Column>
                     <Column
                         visible="{intent>/isHistory}"
@@ -358,13 +358,13 @@
                         <Text text="{i18n>colAmount}" />
                     </Column>
                     <Column app:p13nKey="currency_col">
-                        <Text text="{i18n>colCurrency}" />
+                        <Text text="{i18n>lblCurrency}" />
                     </Column>
                     <Column app:p13nKey="duration_col">
-                        <Text text="{i18n>colDuration}" />
+                        <Text text="{i18n>lblDuration}" />
                     </Column>
                     <Column app:p13nKey="rate_col">
-                        <Text text="{i18n>colRate}" />
+                        <Text text="{i18n>lblRate}" />
                     </Column>
                     <!-- <Column app:p13nKey="name_col">
 						<Text text="{i18n>colName}" />

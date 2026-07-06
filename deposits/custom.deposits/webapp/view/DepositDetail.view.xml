@@ -53,7 +53,7 @@
                 </uxap:snappedContent>
                 <uxap:expandedContent>
                     <ObjectStatus
-                        title="{i18n>colRate}"
+                        title="{i18n>lblRate}"
                         text="{
 							path: 'mainService>rate',
 							type: 'Float',
@@ -100,7 +100,7 @@
                     visible="{intent>/isHistory}"
                 >
                     <ObjectStatus
-                        title="{i18n>colStartDate}"
+                        title="{i18n>lblStartDate}"
                         text="{
 										parts: [
 											{ path: 'mainService>startDate' }
@@ -109,7 +109,7 @@
 										}"
                     />
                     <ObjectStatus
-                        title="{i18n>colMaturityDate}"
+                        title="{i18n>lblMaturityDate}"
                         text="{
 										parts: [
 											{ path: 'mainService>maturityDate' }
@@ -305,7 +305,7 @@
                         editable="false"
                         layout="ResponsiveGridLayout"
                     >
-                        <Label visible="{intent>/isSantander}" text="{i18n>colClient}" />
+                        <Label visible="{intent>/isSantander}" text="{i18n>lblClient}" />
                         <Text visible="{intent>/isSantander}" text="{mainService>client/name}" />
                         <Label text="{i18n>colAmount}" />
                         <Text
