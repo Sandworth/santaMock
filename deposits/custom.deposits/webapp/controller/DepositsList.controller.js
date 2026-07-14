@@ -25,6 +25,7 @@ sap.ui.define([
 	"sap/ui/core/Fragment",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/core/format/DateFormat",
+	"sap/ui/core/ListItem",
 	"../model/formatter"
 ], function (
 	BaseController,
@@ -53,6 +54,7 @@ sap.ui.define([
 	Fragment,
 	NumberFormat,
 	DateFormat,
+	ListItem,
 	Formatter
 ) {
 	"use strict";
@@ -72,7 +74,7 @@ sap.ui.define([
 		 * Sets up control references, models, SmartVariantManagement, FilterBar,
 		 * p13n Engine registration, default sorters, and router.
 		 */
-		onInit: function () {
+		onInit: async function () {
 			this.oView = this.getView();
 
 			// Cache control references
@@ -87,12 +89,12 @@ sap.ui.define([
 			this._initCustomRequestModel();
 
 			// ----- Detect intent early — must happen before SVM initialise() -----
-			var sHash      = (window.location.hash || "").replace(/^#/, "").split("?")[0];
-			var bIsSantander = window.location.host.startsWith("santander"); // Check if the app is running in the Santander environment
-			var bIsHistory = sHash === "Deposits-history";
+			const sHash        = (window.location.hash || "").replace(/^#/, "").split("?")[0];
+			const bIsSantander = window.location.host.startsWith("santander"); // Check if the app is running in the Santander environment
+			const bIsHistory   = sHash === "Deposits-history";
 			//bIsHistory = true // Force history view for testing — to be removed when both views are available in the FLP
 
-			var bIsDisplay = !bIsHistory;
+			const bIsDisplay = !bIsHistory;
 
 			// Intent model — consumed by view bindings (visible, enabled, etc.)
 			this.getOwnerComponent().setModel(
@@ -137,8 +139,8 @@ sap.ui.define([
 			// Router
 			this.oRouter = this.getRouter();
 
-			// Bind table to the correct OData endpoint based on the FLP intent
-			this._bindTableByIntent();
+			// Bind table and dependent aggregations to the correct OData endpoints based on the FLP intent
+			await this._bindItemsByIntent();
 		},
 
 		// -------------------------------------------------------
@@ -807,40 +809,98 @@ sap.ui.define([
 		 *
 		 * @private
 		 */
-		_bindTableByIntent: function () {
+		_bindItemsByIntent: async function () {
 			// Intent model was already created in onInit before SVM initialise().
 			var bIsHistory = this.getOwnerComponent().getModel("intent").getProperty("/isHistory");
 			var bIsSantander = this.getOwnerComponent().getModel("intent").getProperty("/isSantander");
+			var oMainModel = this.getOwnerComponent().getModel("mainService");
 
-			if (bIsHistory) {
-				// Back-office view: full deposit history, no pre-applied filters
-				const sExpand = bIsSantander ? "currency,tenor,client" : "currency,tenor";
-				this.oTable.bindItems({
-					model: "mainService",
-					path: "/Deposits",
-					templateShareable: false,
-					parameters: {
-						$expand: sExpand,
-						$orderby: "createdAt desc"
-					},
-					template: this._buildRowTemplate(["client_col", "start_date_col", "maturity_date_col", "amount_col", "currency_col", "duration_col", "rate_col"])
-				});
-			} else {
-				// End-user view: rate grid filtered to the four standard tenors
-				this.oTable.bindItems({
-					model: "mainService",
-					path: "/RateGrid",
-					templateShareable: false,
-					sorter: [
-						new Sorter("currency/order"),
-						new Sorter("tenor/order")
-					],
-					parameters: {
-						$expand: "currency,tenor",
-						$filter: "tenor_ID eq '1M' or tenor_ID eq '3M' or tenor_ID eq '6M' or tenor_ID eq '12M'"	
-					},
-					template: this._buildRowTemplate([null, null, null, null, "currency_col", "duration_col", "rate_col"])
-				});
+			try {
+				if (bIsHistory) {
+					// Probe authorization/read access first. OData V4 failures are async and are not caught by bindItems() try/catch.
+					const oDepositsProbe = oMainModel.bindList("/Deposits", null, null, null);
+					try {
+						await oDepositsProbe.requestContexts(0, 1);
+					} finally {
+						oDepositsProbe.destroy();
+					}
+
+					// Back-office view: full deposit history, no pre-applied filters
+					const sExpand = bIsSantander ? "currency,tenor,client" : "currency,tenor";
+					this.oTable.bindItems({
+						model: "mainService",
+						path: "/Deposits",
+						templateShareable: false,
+						parameters: {
+							$expand: sExpand,
+							$orderby: "createdAt desc"
+						},
+						template: this._buildRowTemplate(["client_col", "start_date_col", "maturity_date_col", "amount_col", "currency_col", "duration_col", "rate_col"])
+					});
+				} else {
+					// Probe authorization/read access first. OData V4 failures are async and are not caught by bindItems() try/catch.
+					const oRateGridProbe = oMainModel.bindList("/RateGrid", null, null, null);
+					try {
+						await oRateGridProbe.requestContexts(0, 1);
+					} finally {
+						oRateGridProbe.destroy();
+					}
+
+					// End-user view: rate grid filtered to the four standard tenors
+					this.oTable.bindItems({
+						model: "mainService",
+						path: "/RateGrid",
+						templateShareable: false,
+						sorter: [
+							new Sorter("currency/order"),
+							new Sorter("tenor/order")
+						],
+						parameters: {
+							$expand: "currency,tenor",
+							$filter: "tenor_ID eq '1M' or tenor_ID eq '3M' or tenor_ID eq '6M' or tenor_ID eq '12M'"	
+						},
+						template: this._buildRowTemplate([null, null, null, null, "currency_col", "duration_col", "rate_col"])
+					});
+				}
+
+				// Bind filterClient items only in Santander environment — avoids OData error on /Client entity
+				if (bIsSantander) {
+					const oClientCtrl = this.oView.byId("filterClient");
+					if (oClientCtrl) {
+						const oClientProbe = oMainModel.bindList("/Client", null, null, null);
+						try {
+							await oClientProbe.requestContexts(0, 1);
+							oClientCtrl.bindItems({
+								model: "mainService",
+								path: "/Client",
+								template: new ListItem({
+									key: "{mainService>ID}",
+									text: "{mainService>name}"
+								})
+							});
+						} catch (oClientError) {
+							console.log(oClientError);
+							oClientCtrl.unbindItems();
+						} finally {
+							oClientProbe.destroy();
+						}
+					}
+				}
+			} catch (oError) {
+				console.log(oError);
+				this.oTable.setShowNoData(true);
+				this.oTable.setNoData(
+					new IllustratedMessage({
+						// description: this._getText("noDataDescription"), // To be added in i18n when decided
+						description: "Permisos error.", // To be added in i18n when decided
+						illustrationType: "sapIllus-NoEntries",
+					})
+				);
+				const oTitle = this.oView.byId("tableTitle");
+				const oLabel = this.oView.byId("lastUpdateLabel");
+				oLabel.setText(this._getText("lastUpdate", ["-"]));
+				oTitle.setText(this._getText("listTitle", ["0"]));				
+				this.oTable.unbindItems();
 			}
 		},
 

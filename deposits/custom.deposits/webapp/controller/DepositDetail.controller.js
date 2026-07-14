@@ -10,6 +10,10 @@ sap.ui.define([
 
 	return BaseController.extend("custom.deposits.controller.DepositDetail", {
 
+		/**
+		 * Inicializa el controlador, modelos de vista y suscripción a la ruta de detalle.
+		 * @returns {void}
+		 */
 		onInit: function () {
 			this.oOwnerComponent = this.getOwnerComponent();
 			this.oRouter = this.getRouter();
@@ -33,6 +37,26 @@ sap.ui.define([
 			this.oRouter.getRoute("DepositDetail").attachPatternMatched(this._onDepositMatched, this);
 		},
 
+		/**
+		 * Maneja el match de la ruta de detalle y construye un binding dinámico según el intent.
+		 *
+		 * Flujo de decisión:
+		 * - Lee `intent>/isDisplay` para decidir qué entidad bindear:
+		 *   - `true`: bindea `RateGrid('<key>')` (modo catálogo/tarifario).
+		 *   - `false`: bindea `Deposits('<key>')` (modo detalle de solicitud ya creada).
+		 * - Define `$select` en función de la entidad elegida:
+		 *   - `RateGrid`: campos base de simulación (`currency_ID`, `tenor_ID`, `rate`, `createdAt`).
+		 *   - `Deposits`: campos de operación (`amount`, `startDate`, `maturityDate`, `status`) además de los base.
+		 * - Parte de `$expand="currency,tenor"` y, si `intent>/isSantander` es `true`,
+		 *   añade `client_ID` al `$select` y `client` al `$expand`.
+		 *
+		 * Con esos parámetros ejecuta `bindElement` sobre `mainService` para que la vista de detalle
+		 * consuma el contexto correcto según el escenario de navegación.
+		 * Si está en modo display, además recalcula las cuentas origen filtradas por moneda.
+		 *
+		 * @param {sap.ui.base.Event} oEvent Evento de coincidencia de ruta (`DepositDetail`) con `arguments.key`.
+		 * @returns {Promise<void>}
+		 */
 		_onDepositMatched: async function (oEvent) {
 			const sKey = oEvent.getParameter("arguments").key;
 
@@ -60,6 +84,10 @@ sap.ui.define([
 
 		},
 
+		/**
+		 * Ejecuta la simulación de interés para el importe ingresado.
+		 * @returns {void}
+		 */
 		onSimulate: function () {
 			const oView = this.getView();
 			const oSimModel = this.getModel("simulation");
@@ -94,6 +122,10 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Restablece el modelo de simulación a su estado inicial.
+		 * @returns {void}
+		 */
 		_resetSimulation: function () {
 			const oSimModel = this.getModel("simulation");
 			if (oSimModel) {
@@ -101,6 +133,10 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Restablece el modelo de solicitud y el estado de validación del campo importe.
+		 * @returns {void}
+		 */
 		_resetRequest: function () {
 			const oReqModel = this.getModel("request");
 			if (oReqModel) {
@@ -112,6 +148,10 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Filtra cuentas bancarias por la moneda del depósito seleccionado.
+		 * @returns {Promise<void>}
+		 */
 		_filterAccountsByCurrency: async function () {
 			const oCtx = this.getView().getBindingContext("mainService");
 			if (!oCtx) { return; }
@@ -135,6 +175,10 @@ sap.ui.define([
 			this.getModel("request").setProperty("/cuentasFiltradas", aCuentasFiltradas);
 		},
 
+		/**
+		 * Confirma y envía la solicitud de apertura de depósito al backend.
+		 * @returns {Promise<void>}
+		 */
 		onRequestDeposit: async function () {
 			const oBundle = this.getResourceBundle();
 			const oCtx = this.getView().getBindingContext("mainService");
@@ -202,6 +246,10 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Cierra la vista de detalle navegando de vuelta al listado.
+		 * @returns {void}
+		 */
 		handleClose: function () {
 			const sNextLayout = this.oModel.getProperty("/actionButtonsInfo/midColumn/closeColumn");
 			this.oRouter.navTo("DepositsList", {
@@ -209,6 +257,10 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Copia el importe y moneda de la simulación al modelo de solicitud.
+		 * @returns {void}
+		 */
 		// copy value from simulation model to request model
 		onCopySimulation: function () {
 			const oSimModel = this.getModel("simulation");
@@ -222,6 +274,10 @@ sap.ui.define([
 			oInput.setValue(Formatter.formatFloat(fAmount));
 		},
 		
+		/**
+		 * Libera suscripciones del router al destruir el controlador.
+		 * @returns {void}
+		 */
 		onExit: function () {
 			this.oRouter.getRoute("DepositDetail").detachPatternMatched(this._onDepositMatched, this);
 		}

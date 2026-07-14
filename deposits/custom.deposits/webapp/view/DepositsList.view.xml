@@ -198,13 +198,7 @@
                                     <MultiComboBox
                                         id="filterClient"
                                         selectionChange=".onSelectionChange"
-                                        items="{mainService>/Client}"
-                                    >
-                                        <core:ListItem
-                                            key="{mainService>ID}"
-                                            text="{mainService>name}"
-                                        />
-                                    </MultiComboBox>
+                                    />
                                 </fb:control>
                             </fb:FilterGroupItem>
 
