@@ -76,6 +76,7 @@ sap.ui.define([
 		 */
 		onInit: async function () {
 			this.oView = this.getView();
+			this._sLastKnownCreatedAt = null;
 
 			// Cache control references
 			this.oSmartVariantManagement = this.oView.byId("svm");
@@ -83,6 +84,7 @@ sap.ui.define([
 			this.oSnappedLabel           = this.oView.byId("snappedLabel");
 			this.oFilterBar              = this.oView.byId("filterBar");
 			this.oTable                  = this.oView.byId("depositsTable");
+			this.oTable.setBusy(true);
 			this.aTableFilters			 = [];
 
 			// Initialize customRequest model for Custom Deposit Dialog
@@ -500,11 +502,21 @@ sap.ui.define([
 			const oLabel = this.oView.byId("lastUpdateLabel");
 			const oDateFormat = DateFormat.getDateInstance({ relative: true, relativeScale: "hour", relativeStyle: "wide" });
 			const oTableBinding = this.oTable.getBinding("items");
-			const oTempBinding = oTableBinding.getModel().bindList(oTableBinding.getPath());
-			const oCreatedAt = await oTempBinding.requestContexts(0, 1);
+			const bHasActiveTableFilters = (oTableBinding.getFilters("Application") || []).length > 0;
 			let sValue = "";
 			let sFormattedRelative = "-";
-			if (oCreatedAt.length === 0) {
+
+			if (iTotal > 0) {
+				const aContexts = await oTableBinding.requestContexts(0, 1);
+				sValue = aContexts[0].getObject().createdAt;
+				const oDate = new Date(sValue);
+				sFormattedRelative = oDateFormat.format(oDate);
+				this.byId("newDepositBtn").setEnabled(true); // Show "New Deposit" button when there are entries.
+
+				if (!bHasActiveTableFilters) {
+					this._sLastKnownCreatedAt = sValue;
+				}
+			} else if (!bHasActiveTableFilters) {
 				this.oTable.setShowNoData(true);
 				this.oTable.setNoData(
 					new IllustratedMessage({
@@ -515,26 +527,19 @@ sap.ui.define([
 				const oToday = new Date();
 				oToday.setDate(oToday.getDate() - 1);
 				sFormattedRelative = oDateFormat.format(oToday);
-				oLabel.setText(this._getText("lastUpdate", [sFormattedRelative]));
-			}
-
-			if (oCreatedAt.length !== 0 && iTotal === 0) {
+				this._sLastKnownCreatedAt = null;
+			} else {
 				this.oTable.setShowNoData(true);
 				this.byId("newDepositBtn").setEnabled(true); // Show "New Deposit" button when there are no entries because of filters, but data exists
-				sValue = oCreatedAt[0].getObject().createdAt;
-				const oDate = new Date(sValue);
-				sFormattedRelative = oDateFormat.format(oDate);
+				if (this._sLastKnownCreatedAt) {
+					const oDate = new Date(this._sLastKnownCreatedAt);
+					sFormattedRelative = oDateFormat.format(oDate);
+				}
 				this.oTable.setNoData(
 					new IllustratedMessage({
 						illustrationType: "sapIllus-NoFilterResults"
 					})
-				);				
-			}
-			if (iTotal > 0) {
-				sValue = oCreatedAt[0].getObject().createdAt;
-				const oDate = new Date(sValue);
-				sFormattedRelative = oDateFormat.format(oDate);
-				this.byId("newDepositBtn").setEnabled(true); // Show "New Deposit" button when there are entries.
+				);
 			}
 			oLabel.setText(this._getText("lastUpdate", [sFormattedRelative]));
 			oTitle.setText(this._getText("listTitle", [iTotal]));
@@ -820,7 +825,9 @@ sap.ui.define([
 					// Probe authorization/read access first. OData V4 failures are async and are not caught by bindItems() try/catch.
 					const oDepositsProbe = oMainModel.bindList("/Deposits", null, null, null);
 					try {
-						await oDepositsProbe.requestContexts(0, 1);
+						const aProbeContexts = await oDepositsProbe.requestContexts(0, 1);
+						const oProbeObject = aProbeContexts[0] && aProbeContexts[0].getObject();
+						this._sLastKnownCreatedAt = oProbeObject && oProbeObject.createdAt ? oProbeObject.createdAt : null;
 					} finally {
 						oDepositsProbe.destroy();
 					}
@@ -841,7 +848,9 @@ sap.ui.define([
 					// Probe authorization/read access first. OData V4 failures are async and are not caught by bindItems() try/catch.
 					const oRateGridProbe = oMainModel.bindList("/RateGrid", null, null, null);
 					try {
-						await oRateGridProbe.requestContexts(0, 1);
+						const aProbeContexts = await oRateGridProbe.requestContexts(0, 1);
+						const oProbeObject = aProbeContexts[0] && aProbeContexts[0].getObject();
+						this._sLastKnownCreatedAt = oProbeObject && oProbeObject.createdAt ? oProbeObject.createdAt : null;
 					} finally {
 						oRateGridProbe.destroy();
 					}
@@ -888,6 +897,7 @@ sap.ui.define([
 				}
 			} catch (oError) {
 				console.log(oError);
+				this._sLastKnownCreatedAt = null;
 				this.oTable.setShowNoData(true);
 				this.oTable.setNoData(
 					new IllustratedMessage({
@@ -901,6 +911,8 @@ sap.ui.define([
 				oLabel.setText(this._getText("lastUpdate", ["-"]));
 				oTitle.setText(this._getText("listTitle", ["0"]));				
 				this.oTable.unbindItems();
+			} finally {
+				this.oTable.setBusy(false);
 			}
 		},
 
