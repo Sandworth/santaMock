@@ -103,27 +103,21 @@
                     <Label text="{i18n>reqAmountLabel}" />
                     <HBox justifyContent="SpaceBetween" renderType="Bare">
                         <Input
-								id="customReqAmountInput"
-								value="{
-											path: 'customRequest>/amount',
-											type: 'Float',
-											formatOptions: {
-													groupingEnabled: true,
-													decimals: 2,
-													maxFractionDigits: 2,
-													preserveDecimals: false
-												}
-										}"
-                                placeholder="{i18n>simAmountPlaceholder}"
-								enabled="{customRequest>/step5Enabled}"
-								change=".onStep5AmountValidate"
-                                submit=".onStep5Calculate" />
+							id="customReqAmountInput"
+							value="{customRequest>/amountDisplay}"
+							placeholder="{i18n>simAmountPlaceholder}"
+							enabled="{customRequest>/step5Enabled}"
+							liveChange=".onCustomReqAmountInputLiveChange"
+							change=".onCustomReqAmountInputChange"
+							submit=".onStep5Calculate" 
+						/>
                         <Button
-                                class="sapUiSmallMarginBegin"
-								text="{i18n>simCalculate}"
-								icon="sap-icon://simulate"
-								enabled="{customRequest>/step5Enabled}"
-								press=".onStep5Calculate" />
+							class="sapUiSmallMarginBegin"
+							text="{i18n>simCalculate}"
+							icon="sap-icon://simulate"
+							enabled="{customRequest>/step5Enabled}"
+							press=".onStep5Calculate"
+						/>
                     </HBox>
 
                 <!-- SECCIÓN: Retorno Esperado -->

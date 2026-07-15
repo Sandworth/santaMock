@@ -545,18 +545,6 @@ sap.ui.define([
 			oTitle.setText(this._getText("listTitle", [iTotal]));
 		},
 
-		/**
-		 * Retrieves a translated text from the resource bundle.
-		 *
-		 * @param {string} sKey - The i18n key
-		 * @param {Array<string>} [aArgs] - Optional placeholder replacement values
-		 * @returns {string} The translated text
-		 * @private
-		 */
-		_getText: function (sKey, aArgs) {
-			return this.getResourceBundle().getText(sKey, aArgs);
-		},
-
 		// -------------------------------------------------------
 		// Navigation
 		// -------------------------------------------------------
@@ -995,16 +983,7 @@ sap.ui.define([
 				tenorMonths: 0,
 				account: "",
 				amount: 0,
-				expectedReturn: 0,
-				expectedTotal: 0,
-				currencies: [
-					{ key: "EUR", text: "EUR - Euro" },
-					{ key: "USD", text: "USD - US Dollar" },
-					{ key: "GBP", text: "GBP - British Pound" }
-				],
-				accountsFiltered: [],
-				step1Enabled: true,
-				step2Enabled: false,
+			amountDisplay: "",
 				step3Enabled: false,
 				step4Enabled: false,
 				step5Enabled: false
@@ -1062,6 +1041,7 @@ sap.ui.define([
 				tenorMonths: 0,
 				account: "",
 				amount: "",
+				amountDisplay: "",
 				expectedReturn: 0,
 				expectedTotal: 0,
 				currencies: [
@@ -1117,6 +1097,7 @@ sap.ui.define([
 			oModel.setProperty("/step4Enabled", false);
 			oModel.setProperty("/account", "");
 			oModel.setProperty("/amount", 0);
+			oModel.setProperty("/amountDisplay", "");
 			oModel.setProperty("/expectedReturn", 0);
 			oModel.setProperty("/expectedTotal", 0);
 			oModel.setProperty("/step5Enabled", false);
@@ -1338,67 +1319,214 @@ sap.ui.define([
 
 		/**
 		 * Handles account selection in Step 4 of the Custom Request wizard.
-		 * Saves the selected account and enables Step 5.
+		 * Saves the selected account ID and enables Step 5 for amount input.
+		 * Resets amount fields when account changes (forces user re-entry).
 		 *
-		 * @param {sap.ui.base.Event} oEvent - The selection change event
+		 * Model paths updated:
+		 * - customRequest>/account: Selected account ID (cuentaCorriente)
+		 * - customRequest>/amount: Reset to 0
+		 * - customRequest>/amountDisplay: Reset to ""
+		 * - customRequest>/step5Enabled: Set to true
+		 *
+		 * @param {sap.ui.base.Event} oEvent - ComboBox selectionChange event
+		 * @returns {void}
+		 * @public
 		 */
 		onStep4AccountChanged: function (oEvent) {
 			const sAccount = oEvent.getSource().getSelectedKey();
 			const oModel = this.getModel("customRequest");
 			
 			oModel.setProperty("/amount", 0);  // Reset amount when account changes
+			oModel.setProperty("/amountDisplay", "");
 			oModel.setProperty("/account", sAccount);
 			oModel.setProperty("/step5Enabled", true);
 		},
 
-		// Validate that the amount is above the minimum and that the selected account has sufficient balance.
-		onStep5AmountValidate: function (oEvent) {
+		/**
+		 * Retrieves the selected account balance from the Custom Request model.
+		 * Finds the account in customRequest>/accountsFiltered matching customRequest>/account,
+		 * and returns its saldoInfoCent as a number.
+		 * 
+		 * Model paths read:
+		 * - customRequest>/account: Selected account ID
+		 * - customRequest>/accountsFiltered: Array of {cuentaCorriente, saldoInfoCent, ...}
+		 *
+		 * @returns {number} Selected account balance, or NaN when no account is selected
+		 * or the selected account cannot be found
+		 * @private
+		 */
+		_getCustomRequestSelectedAccountBalance: function () {
+			const oModel = this.getModel("customRequest");
+			const sAccount = oModel.getProperty("/account");
+			const aAccounts = oModel.getProperty("/accountsFiltered") || [];
+
+			if (!sAccount) {
+				return NaN;
+			}
+
+			const oSelectedAccount = aAccounts.find(function (oAccount) {
+				return oAccount.cuentaCorriente === sAccount;
+			});
+
+			return oSelectedAccount ? Number(oSelectedAccount.saldoInfoCent) : NaN;
+		},
+
+		/**
+		 * Validates the Custom Request amount against multiple constraints.
+		 * Reads amount from customRequest>/amount and checks:
+		 * 1. Amount is finite and positive
+		 * 2. Amount >= 10,000,000 (minimum threshold)
+		 * 3. Selected account has sufficient balance
+		 * 
+		 * Model paths read:
+		 * - customRequest>/amount: Requested amount (parsed number)
+		 * - customRequest>/accountsFiltered: List of available accounts with balances via _getCustomRequestSelectedAccountBalance()
+		 *
+		 * @returns {{valid: boolean, amount?: number, messageKey?: string, messageArgs?: string[]}}
+		 * Validation result object with:
+		 * - valid: true if all checks pass
+		 * - amount: parsed amount if valid
+		 * - messageKey: i18n key for error message if invalid
+		 * - messageArgs: placeholder values for i18n message (e.g., minimum amount formatted)
+		 * @private
+		 */
+		_validateCustomRequestAmount: function () {
 			const iMinAmount = 10000000;
 			const oNumFormat = NumberFormat.getFloatInstance({ decimals: 2, groupingEnabled: true });
-			const oInput = oEvent.getSource();
-			const fAmount = oNumFormat.parse(oInput.getValue());
 			const oModel = this.getModel("customRequest");
-			// check account balance as well
-			const oAccountCombo = Fragment.byId("customReqDialog", "customReqAccountCombo");
-			const oSelectedItem = oAccountCombo ? oAccountCombo.getSelectedItem() : null;
-			const sBalanceText = oSelectedItem ? oSelectedItem.getAdditionalText() : "";
-			const fAccountBalance = oNumFormat.parse(sBalanceText.split(" ")[0]);
-			if (isNaN(fAmount) || fAmount < iMinAmount) {
-				oInput.setValueState("Error");
-				oInput.setValueStateText(this._getText("customReqMinAmount", [oNumFormat.format(iMinAmount)]));
-				oModel.setProperty("/expectedReturn", 0);
-				oModel.setProperty("/expectedTotal", 0);				
+			const fAmount = Number(oModel.getProperty("/amount"));
+			const fAccountBalance = this._getCustomRequestSelectedAccountBalance();
+
+			if (!Number.isFinite(fAmount) || fAmount <= 0) {
+				return { valid: false, messageKey: "customReqInvalidAmount" };
 			}
-			else if (fAmount > fAccountBalance) {
+
+			if (fAmount < iMinAmount) {
+				return {
+					valid: false,
+					messageKey: "customReqMinAmount",
+					messageArgs: [oNumFormat.format(iMinAmount)]
+				};
+			}
+
+			if (!Number.isFinite(fAccountBalance) || fAmount > fAccountBalance) {
+				return { valid: false, messageKey: "customReqInsufficientBalance" };
+			}
+
+			return { valid: true, amount: fAmount };
+		},
+
+		/**
+		 * Applies validation result to custom request amount input control.
+		 * Sets ValueState to "Error" with i18n error message if validation failed.
+		 * Clears expected calculations when validation fails.
+		 * Returns boolean indicating whether validation passed.
+		 *
+		 * Model paths updated when validation fails:
+		 * - customRequest>/expectedReturn: Set to 0
+		 * - customRequest>/expectedTotal: Set to 0
+		 *
+		 * @param {sap.ui.core.Control} oInput - The input control to apply validation to
+		 * @param {{valid: boolean, messageKey?: string, messageArgs?: string[]}} oValidationResult - Result from _validateCustomRequestAmount()
+		 * @returns {boolean} true if validation passed, false otherwise
+		 * @private
+		 */
+		_applyCustomRequestAmountValidation: function (oInput, oValidationResult) {
+			const oModel = this.getModel("customRequest");
+
+			if (!oValidationResult.valid) {
 				oInput.setValueState("Error");
-				oInput.setValueStateText(this._getText("customReqInsufficientBalance"));
+				oInput.setValueStateText(this._getText(oValidationResult.messageKey, oValidationResult.messageArgs));
 				oModel.setProperty("/expectedReturn", 0);
 				oModel.setProperty("/expectedTotal", 0);
+				return false;
 			}
-			else {
-				oInput.setValueState("None");
+
+			oInput.setValueState("None");
+			return true;
+		},
+
+		/**
+		 * Public handler for custom request amount input liveChange event.
+		 * Filters out invalid numeric characters in real-time while user types.
+		 * Allows only digits and locale-specific thousand/decimal separators.
+		 *
+		 * @param {sap.ui.base.Event} oEvent Input liveChange event
+		 * @returns {void}
+		 * @public
+		 */
+		onCustomReqAmountInputLiveChange: function (oEvent) {
+			this._onAmountInputLiveChange(oEvent);
+		},
+
+		/**
+		 * Public handler for custom request amount input change event.
+		 * Parses user input, updates model with parsed number, formats display value,
+		 * and triggers validation via onStep5AmountValidate.
+		 * 
+		 * Model paths updated:
+		 * - customRequest>/amount: Parsed numeric value
+		 * - customRequest>/amountDisplay: Formatted display string
+		 *
+		 * @param {sap.ui.base.Event} oEvent Input change event
+		 * @returns {void}
+		 * @public
+		 */
+		onCustomReqAmountInputChange: function (oEvent) {
+			this._onAmountInputChange(oEvent, "/amount", "/amountDisplay", "customRequest", this.onStep5AmountValidate);
+		},
+
+		/**
+		 * Validates the Custom Request amount when user moves focus away from the input.
+		 * Re-validates current model amount and applies validation result to UI.
+		 * Sets ValueState to "Error" with i18n message if validation fails.
+		 * Called by change event handler on custom request amount input.
+		 *
+		 * @param {sap.ui.base.Event} [oEvent] - Optional input change event (not used)
+		 * @returns {void}
+		 * @public
+		 */
+		onStep5AmountValidate: function (oEvent) {
+			const oInput = Fragment.byId("customReqDialog", "customReqAmountInput");
+			const oValidationResult = this._validateCustomRequestAmount();
+
+			if (oInput) {
+				this._applyCustomRequestAmountValidation(oInput, oValidationResult);
 			}
 		},
 
 		/**
-		 * Calculates the expected return for the custom deposit request in Step 5.
-		 * Assumes the amount has already been validated by onStep5AmountValidate (change event).
-		 * Uses the formula: Interest = Amount * (Rate / 100) * (Months / 12).
+		 * Calculates expected return and total for the custom deposit request in Step 5.
+		 * Re-validates the current model amount before calculating.
+		 * Uses the formula: Interest = Amount × (Rate / 100) × (Months / 12).
+		 * 
+		 * Model paths read:
+		 * - customRequest>/amount: Validated request amount
+		 * - customRequest>/rateInterpolated: Annual interest rate
+		 * - customRequest>/tenorMonths: Duration in months
+		 * 
+		 * Model paths updated:
+		 * - customRequest>/expectedReturn: Calculated interest
+		 * - customRequest>/expectedTotal: Amount + interest
+		 *
+		 * @returns {void}
+		 * @public
 		 */
 		onStep5Calculate: function () {
 			const oModel = this.getModel("customRequest");
-			const fAmount = oModel.getProperty("/amount");
+			const oAmountInput = Fragment.byId("customReqDialog", "customReqAmountInput");
+			const oValidationResult = this._validateCustomRequestAmount();
+
+			if (!oAmountInput || !this._applyCustomRequestAmountValidation(oAmountInput, oValidationResult)) {
+				return;
+			}
+
+			const fAmount = oValidationResult.amount;
 			const fRate = oModel.getProperty("/rateInterpolated");
 			const fTenorMonths = oModel.getProperty("/tenorMonths");
 
 			// Guard: nothing to calculate if amount is absent or non-positive
 			if (!fAmount || fAmount <= 0) {
-				return;
-			}
-
-			// Guard: ensure input is not in error state before calculating
-			const oAmountInput = Fragment.byId("customReqDialog", "customReqAmountInput");
-			if (oAmountInput && oAmountInput.getValueState() === "Error") {
 				return;
 			}
 
@@ -1504,7 +1632,18 @@ sap.ui.define([
 		 */
 		onSubmitCustomRequest: function () {
 			const oModel = this.getModel("customRequest");
-			const fAmount = oModel.getProperty("/amount");
+			const oAmountInput = Fragment.byId("customReqDialog", "customReqAmountInput");
+			const oValidationResult = this._validateCustomRequestAmount();
+
+			if (!oValidationResult.valid) {
+				if (oAmountInput) {
+					this._applyCustomRequestAmountValidation(oAmountInput, oValidationResult);
+				}
+				MessageBox.error(this._getText(oValidationResult.messageKey, oValidationResult.messageArgs));
+				return;
+			}
+
+			const fAmount = oValidationResult.amount;
 			const sCurrency = oModel.getProperty("/currency");
 			const iTenorDays = oModel.getProperty("/tenorDays");
 			const fTenorMonths = oModel.getProperty("/tenorMonths");

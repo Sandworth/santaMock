@@ -146,18 +146,9 @@
                                             id="simAmountInput"
                                             width="18rem"
                                             placeholder="{i18n>simAmountPlaceholder}"
-                                            value="{
-												path: 'simulation>/amount',
-												type: 'Float',
-												formatOptions: {
-													groupingEnabled: true,
-													decimals: 2,
-													maxFractionDigits: 2,
-													preserveDecimals: false
-												},
-												constraints: { minimum: 10000000 }
-											}"
-                                            valueLiveUpdate="true"
+                                            value="{simulation>/amountDisplay}"
+                                            liveChange=".onSimAmountInputLiveChange"
+                                            change=".onSimAmountInputChange"
                                         />
                                     </VBox>
                                     <Button
@@ -239,6 +230,7 @@
                                     width="24rem"
                                     showSecondaryValues="true"
                                     selectedKey="{request>/cuentaOrigen}"
+                                    selectionChange=".onRequestAccountChange"
                                     items="{
 											path: 'request>/cuentasFiltradas',
 											sorter: { path: 'banco', descending: false, group: true }
@@ -267,23 +259,16 @@
                                         id="reqAmountInput"
                                         width="18rem"
                                         placeholder="{i18n>simAmountPlaceholder}"
-                                        value="{
-												path: 'request>/importeSolicitud',
-												type: 'Float',
-												formatOptions: {
-													groupingEnabled: true,
-													decimals: 2,
-													maxFractionDigits: 2,
-													preserveDecimals: false
-												},
-												constraints: { minimum: 10000000 }
-											}"
-                                        valueLiveUpdate="true"
+                                        enabled="{= !!${request>/cuentaOrigen} }"
+                                        value="{request>/importeSolicitudDisplay}"
+                                        liveChange=".onReqAmountInputLiveChange"
+                                        change=".onReqAmountInputChange"
+                                        textAlign="Right"
                                     />
                                     <Button
                                         class="sapUiSmallMarginBegin"
                                         text="{i18n>simCopy}"
-                                        enabled="{= Boolean(${simulation>/amount}) &amp;&amp; ${simulation>/amount} >= 10000000}"
+									enabled="{= !!${request>/cuentaOrigen} &amp;&amp; Boolean(${simulation>/amount}) &amp;&amp; ${simulation>/amount} >= 10000000}"
                                         icon="sap-icon://copy"
                                         press=".onCopySimulation"
                                     />
