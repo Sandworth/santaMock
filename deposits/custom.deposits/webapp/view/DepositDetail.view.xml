@@ -263,7 +263,6 @@
                                         value="{request>/importeSolicitudDisplay}"
                                         liveChange=".onReqAmountInputLiveChange"
                                         change=".onReqAmountInputChange"
-                                        textAlign="Right"
                                     />
                                     <Button
                                         class="sapUiSmallMarginBegin"
@@ -335,7 +334,7 @@
                     >
                         <commons:content>
                             <commons:TimelineItem
-                                userName="User XYZ"
+                                userName="{= ${intent>/isSantander} ? ${mainService>requestedBy} : ${mainService>createdBy} }"
                                 icon="sap-icon://activity-individual"
                                 text="{i18n>timelineDepositRequested}"
                                 dateTime="{mainService>startDate}"
@@ -362,6 +361,20 @@
                     enabled="{= !!${request>/cuentaOrigen} &amp;&amp; ${request>/importeSolicitud} >= 10000000 }"
                     press=".onRequestDeposit"
                 />
+                <!-- <Button 
+                    id="btnCancelDeposit"
+                    icon="sap-icon://cancel"
+                    text="{i18n>depositCancel}"
+                    type="Reject"
+                    press=".onCancelDeposit"
+                />
+                <Button 
+                    id="btnTest"
+                    icon="sap-icon://cancel"
+                    text="{i18n>depositCancel}"
+                    type="Ghost"
+                    press=".onTestUpdate"
+                /> -->
             </OverflowToolbar>
         </uxap:footer>
     </uxap:ObjectPageLayout>

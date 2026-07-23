@@ -2,8 +2,9 @@ sap.ui.define([
 	"sap/ui/core/mvc/Controller",
 	"sap/ui/core/UIComponent",
 	"sap/ui/core/routing/History",
-	"sap/ui/core/format/NumberFormat"
-], function (Controller, UIComponent, History, NumberFormat) {
+	"sap/ui/core/format/NumberFormat",
+	"sap/base/i18n/Localization"
+], function (Controller, UIComponent, History, NumberFormat, Localization) {
 	"use strict";
 
 	return Controller.extend("custom.deposits.controller.BaseController", {
@@ -117,7 +118,7 @@ sap.ui.define([
 		 */
 		_getLocale: function () {
 			const oResourceBundle = this.getResourceBundle();
-			const sLocale = oResourceBundle.sLocale || sap.ui.getCore().getConfiguration().getLanguage();
+			const sLocale = oResourceBundle.sLocale || Localization.getLanguage();
 			return (sLocale || "en").toLowerCase().substring(0, 2);
 		},
 

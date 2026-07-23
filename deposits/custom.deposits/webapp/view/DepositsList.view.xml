@@ -248,10 +248,11 @@
                             id="fileUploader"
                             width="15rem"
                             name="myFileUpload"
+                            placeholder="{i18n>uploadFilePlaceholder}"
                             visible="{intent>/isSantander}"
                         />
                         <Button
-                            text="Upload File"
+                            text="{i18n>uploadFile}"
                             visible="{intent>/isSantander}"
                             press=".handleUploadPress"
                         />

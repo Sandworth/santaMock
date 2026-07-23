@@ -82,10 +82,10 @@ sap.ui.define([
 			const bIsDisplay = this.getOwnerComponent().getModel('intent').getProperty('/isDisplay');
 			const bIsSantander = this.getOwnerComponent().getModel('intent').getProperty('/isSantander');
 			const sPath = bIsDisplay ? `/RateGrid('${sKey}')` : `/Deposits('${sKey}')`;
-			const aSelect = bIsDisplay ? ["currency_ID", "tenor_ID", "rate", "createdAt"] : ["currency_ID", "tenor_ID", "rate", "amount", "createdAt", "startDate", "maturityDate", "status"];
+			const aSelect = bIsDisplay ? ["currency_ID", "tenor_ID", "rate", "createdAt"] : ["currency_ID", "tenor_ID", "rate", "amount", "createdAt", "startDate", "maturityDate", "status", "createdBy"];
 			let sExpand = bIsDisplay ? "currency,tenor" : "currency,tenor";
 			if (bIsSantander) {
-				aSelect.push("client_ID");
+				aSelect.push("requestedBy");
 				sExpand += ",client";
 			}
 
@@ -658,6 +658,31 @@ sap.ui.define([
 			oInput.setValue(Formatter.formatFloat(fAmount));
 			this.onRequestAmountChange();
 		},
+
+		// onCancelDeposit: function () {
+		// 	const oBundle = this.getResourceBundle();
+		// 	const oCtx = this.getView().getBindingContext("mainService");
+		// 	const sDepositID = oCtx.getProperty("ID");
+		// 	oCtx.delete().then(() => {
+		// 		MessageToast.show("Deposit cancelled successfully.");
+		// 	}).catch((oError) => {
+		// 		console.error("Error cancelling deposit:", oError);
+		// 		MessageBox.error("Error cancelling deposit.");
+		// 	});
+		// },
+
+		// onTestUpdate: function () {
+		// 	const oModel = this.getModel("mainService");
+		// 	var oList = oModel.bindList("/Deposits");
+		// 	oList.requestContexts(0, 20).then(function (aContexts) {
+		// 		aContexts.forEach(function (oContext) {
+		// 			var sClientID = oContext.getProperty("client_ID");
+		// 			if (sClientID === "4c499ea9-1701-4cd7-aecb-62c433c56936") {
+		// 				oContext.setProperty("createdBy", "john.doe@acciona.com");
+		// 			} else { oContext.setProperty("createdBy", "x612238@gruposantander.com"); }
+		// 		});
+		// 	});
+		// },
 
 		/**
 		 * Lifecycle hook called when the controller is destroyed.

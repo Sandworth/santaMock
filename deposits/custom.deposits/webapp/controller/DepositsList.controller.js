@@ -1682,9 +1682,6 @@ sap.ui.define([
 						}
 
 						const oPayload = {
-							client: {
-								ID: "cb036268-d3c0-46f2-aaf5-5946ae09b549" // hardcoded client ID - replace with dynamic value as needed
-							},
 							amount: Number.parseFloat(Number(fAmount).toFixed(2)),
 							currency_ID: sCurrency,
 							tenor_ID: "CT", // "Custom Tenor"
