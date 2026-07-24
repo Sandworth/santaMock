@@ -12,12 +12,8 @@
     xmlns:fb="sap.ui.comp.filterbar"
     xmlns:svm="sap.ui.comp.smartvariants"
     xmlns:vm="sap.ui.fl.variants"
-    xmlns:plugins="sap.m.plugins"
-    xmlns:columnmenu="sap.m.table.columnmenu"
-    xmlns:dnd="sap.ui.core.dnd"
     xmlns:core="sap.ui.core"
     xmlns:u="sap.ui.unified"
-    xmlns:app="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
 >
     <f:DynamicPage
         id="listPage"
@@ -209,7 +205,7 @@
         </f:header>
 
         <!-- =========================================================== -->
-        <!-- CONTENT — Table with p13n                                   -->
+        <!-- CONTENT — Table                                             -->
         <!-- =========================================================== -->
         <f:content>
             <!-- growingThreshold="20" -->
@@ -266,10 +262,6 @@
                             visible="{intent>/isDisplay}"
                             press=".onOpenCustomReq"
                         />
-                        <!-- <Button
-							icon="sap-icon://action-settings"
-							tooltip="{i18n>settingsTooltip}"
-							press=".onOpenSettings" /> -->
                     </OverflowToolbar>
                 </headerToolbar>
 
@@ -296,32 +288,6 @@
                     </OverflowToolbar>
                 </infoToolbar>
 
-                <!-- p13n plugins -->
-                <!-- <dependents>
-					<plugins:ColumnResizer columnResize=".onColumnResize" />
-					<columnmenu:Menu id="columnMenu" beforeOpen=".onBeforeOpenColumnMenu" showTableSettingsButton="true" tableSettingsPressed=".onOpenSettings">
-						<columnmenu:QuickSort change=".onSort">
-							<columnmenu:items>
-								<columnmenu:QuickSortItem />
-							</columnmenu:items>
-						</columnmenu:QuickSort>
-						<columnmenu:QuickGroup change=".onGroup">
-							<columnmenu:items>
-								<columnmenu:QuickGroupItem />
-							</columnmenu:items>
-						</columnmenu:QuickGroup>
-					</columnmenu:Menu>
-				</dependents> -->
-
-                <!-- Column drag-drop -->
-                <!-- <dragDropConfig>
-					<dnd:DragDropInfo
-						sourceAggregation="columns"
-						targetAggregation="columns"
-						dropPosition="Between"
-						drop=".onColumnMove" />
-				</dragDropConfig> -->
-
                 <!-- <noData>
 					<IllustratedMessage />
 				</noData> -->
@@ -330,43 +296,33 @@
                 <columns>
                     <Column 
                         visible="{intent>/isSantander}"
-                        app:p13nkey="client_col"
                     >
                         <Text text="{i18n>lblClient}" />
                     </Column>
                     <Column
                         visible="{intent>/isHistory}"
-                        app:p13nKey="start_date_col"
                     >
                         <Text text="{i18n>lblStartDate}" />
                     </Column>
                     <Column
                         visible="{intent>/isHistory}"
-                        app:p13nKey="maturity_date_col"
                     >
                         <Text text="{i18n>lblMaturityDate}" />
                     </Column>
                     <Column
                         visible="{intent>/isHistory}"
-                        app:p13nKey="amount_col"
                     >
                         <Text text="{i18n>colAmount}" />
                     </Column>
-                    <Column app:p13nKey="currency_col">
+                    <Column>
                         <Text text="{i18n>lblCurrency}" />
                     </Column>
-                    <Column app:p13nKey="duration_col">
+                    <Column>
                         <Text text="{i18n>lblDuration}" />
                     </Column>
-                    <Column app:p13nKey="rate_col">
+                    <Column>
                         <Text text="{i18n>lblRate}" />
                     </Column>
-                    <!-- <Column app:p13nKey="name_col">
-						<Text text="{i18n>colName}" />
-					</Column> -->
-                    <!-- <Column app:p13nKey="suitability_col">
-						<Text text="{i18n>colSuitability}" />
-					</Column> -->
                 </columns>
 
                 <!-- Row template is built programmatically in _buildRowTemplate()

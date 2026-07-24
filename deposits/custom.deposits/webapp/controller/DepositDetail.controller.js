@@ -95,6 +95,15 @@ sap.ui.define([
 				parameters: { $select: aSelect, $expand: sExpand }
 			});
 
+			// Set bindings programmatically to avoid OData V4 drill-down errors
+			// (expression bindings in XML resolve ALL parts regardless of condition)
+			const oView = this.getView();
+			const sUserNamePath = bIsSantander ? "mainService>requestedBy" : "mainService>createdBy";
+			oView.byId("requestedTimelineItem").bindProperty("userName", { path: sUserNamePath });
+			if (bIsSantander) {
+				oView.byId("clientNameText").bindProperty("text", { path: "mainService>client/name" });
+			}
+
 			if (bIsDisplay) {
 				this._filterAccountsByCurrency();
 			}

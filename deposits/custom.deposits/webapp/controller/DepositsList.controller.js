@@ -4,12 +4,6 @@ sap.ui.define([
 	"sap/ui/model/FilterOperator",
 	"sap/ui/model/Sorter",
 	"sap/ui/model/json/JSONModel",
-	"sap/m/p13n/Engine",
-	"sap/m/p13n/SelectionController",
-	"sap/m/p13n/SortController",
-	"sap/m/p13n/GroupController",
-	"sap/m/p13n/MetadataHelper",
-	"sap/m/table/ColumnWidthController",
 	"sap/ui/comp/smartvariants/PersonalizableInfo",
 	"sap/ui/comp/valuehelpdialog/ValueHelpDialog",
 	"sap/ui/model/type/Float",
@@ -33,12 +27,6 @@ sap.ui.define([
 	FilterOperator,
 	Sorter,
 	JSONModel,
-	Engine,
-	SelectionController,
-	SortController,
-	GroupController,
-	MetadataHelper,
-	ColumnWidthController,
 	PersonalizableInfo,
 	ValueHelpDialog,
 	FloatType,
@@ -61,8 +49,7 @@ sap.ui.define([
 
 	/**
 	 * Controller for the Deposits List view.
-	 * Manages filtering, sorting, grouping, personalization (p13n), navigation,
-	 * and the Custom Deposit Request dialog workflow.
+	 * Manages filtering, navigation, and the Custom Deposit Request dialog workflow.
 	 *
 	 * @class custom.deposits.controller.DepositsList
 	 * @extends custom.deposits.controller.BaseController
@@ -72,7 +59,7 @@ sap.ui.define([
 		/**
 		 * Lifecycle hook called when the controller is initialized.
 		 * Sets up control references, models, SmartVariantManagement, FilterBar,
-		 * p13n Engine registration, default sorters, and router.
+		 * default sorters, and router.
 		 */
 		onInit: async function () {
 			this.oView = this.getView();
@@ -127,9 +114,6 @@ sap.ui.define([
 			});
 			this.oSmartVariantManagement.addPersonalizableControl(oPersInfo);
 			this.oSmartVariantManagement.initialise(function () {}, this.oFilterBar);
-
-			// ----- p13n Engine setup -----
-			//this._registerForP13n();
 
 			// Default sort: EUR → USD → GBP, then by tenor order
 			this._aDefaultSorters = [
@@ -569,229 +553,6 @@ sap.ui.define([
 			}.bind(this));
 		},
 
-		// -------------------------------------------------------
-		// p13n Engine
-		// -------------------------------------------------------
-
-		/**
-		 * Registers the deposits table with the p13n Engine for personalization support
-		 * (column visibility, sorting, grouping, and column width).
-		 *
-		 * @private
-		 */
-		_registerForP13n: function () {
-			const oTable = this.oTable;
-
-			this.oMetadataHelper = new MetadataHelper([
-				//{ key: "name_col",        label: this._getText("lblName"),        path: "Name" },
-				{ key: "currency_col",    label: this._getText("lblCurrency"),    path: "currency/description" },
-				{ key: "duration_col",    label: this._getText("lblDuration"),    path: "tenor/order" },
-				{ key: "rate_col",        label: this._getText("lblRate"),        path: "rate" },
-				//{ key: "suitability_col", label: this._getText("lblSuitability"), path: "Suitability" }
-			]);
-
-			Engine.getInstance().register(oTable, {
-				helper: this.oMetadataHelper,
-				controller: {
-					Columns:  new SelectionController({ targetAggregation: "columns", control: oTable }),
-					Sorter:   new SortController({ control: oTable }),
-					Groups:   new GroupController({ control: oTable }),
-					ColumnWidth: new ColumnWidthController({ control: oTable })
-				}
-			});
-
-			Engine.getInstance().attachStateChange(this.onP13nStateChange, this);
-		},
-
-		/**
-		 * Opens the p13n settings dialog for column, sort, and group configuration.
-		 */
-		onOpenSettings: function () {
-			Engine.getInstance().show(this.oTable, ["Columns", "Sorter", "Groups"]);
-		},
-
-		/**
-		 * Prepares the column header menu before opening by setting the sort and group
-		 * item keys/labels based on the triggering column.
-		 *
-		 * @param {sap.ui.base.Event} oEvent - The beforeOpen event from the column menu
-		 */
-		onBeforeOpenColumnMenu: function (oEvent) {
-			const oMenu = this.oView.byId("columnMenu");
-			const oColumn = oEvent.getParameter("openBy");
-			const oSortItem  = oMenu.getQuickActions()[0].getItems()[0];
-			const oGroupItem = oMenu.getQuickActions()[1].getItems()[0];
-
-			oSortItem.setKey(this._getKey(oColumn));
-			oSortItem.setLabel(oColumn.getHeader().getText());
-			oGroupItem.setKey(this._getKey(oColumn));
-			oGroupItem.setLabel(oColumn.getHeader().getText());
-		},
-
-		/**
-		 * Handles column sort requests from the column menu.
-		 * Updates the p13n Engine state with the new sort configuration.
-		 *
-		 * @param {sap.ui.base.Event} oEvent - The sort event containing item key and sort order
-		 */
-		onSort: function (oEvent) {
-			const oTable  = this.oTable;
-			const sSortKey = oEvent.getParameter("item").getKey();
-			const sSortOrder = oEvent.getParameter("item").getSortOrder();
-
-			Engine.getInstance().retrieveState(oTable).then(function (oState) {
-				var aSorter = oState.Sorter || [];
-				aSorter = aSorter.filter(function (o) { return o.key !== sSortKey; });
-				if (sSortOrder !== "None") {
-					aSorter.unshift({ key: sSortKey, descending: sSortOrder === "Descending" });
-				}
-				Engine.getInstance().applyState(oTable, { Sorter: aSorter });
-			});
-		},
-
-		/**
-		 * Handles column group requests from the column menu.
-		 * Updates the p13n Engine state with the new group configuration.
-		 *
-		 * @param {sap.ui.base.Event} oEvent - The group event containing item key and grouped flag
-		 */
-		onGroup: function (oEvent) {
-			const oTable   = this.oTable;
-			const sGroupKey = oEvent.getParameter("item").getKey();
-			const bGrouped  = oEvent.getParameter("item").getGrouped();
-
-			Engine.getInstance().retrieveState(oTable).then(function (oState) {
-				var aGroups = oState.Groups || [];
-				aGroups = aGroups.filter(function (o) { return o.key !== sGroupKey; });
-				if (bGrouped) {
-					aGroups.unshift({ key: sGroupKey });
-				}
-				Engine.getInstance().applyState(oTable, { Groups: aGroups });
-			});
-		},
-
-		/**
-		 * Persists column width changes via the p13n Engine.
-		 *
-		 * @param {sap.ui.base.Event} oEvent - The columnResize event
-		 */
-		onColumnResize: function (oEvent) {
-			const oColumn = oEvent.getParameter("column");
-			const sWidth  = oEvent.getParameter("width");
-			Engine.getInstance().applyState(this.oTable, {
-				ColumnWidth: [{ key: this._getKey(oColumn), width: sWidth }]
-			});
-		},
-
-		/**
-		 * Handles drag-and-drop column reordering and persists the new position
-		 * via the p13n Engine.
-		 *
-		 * @param {sap.ui.base.Event} oEvent - The column move event with dragged/dropped controls
-		 */
-		onColumnMove: function (oEvent) {
-			const oDragged = oEvent.getParameter("draggedControl");
-			const oDropped = oEvent.getParameter("droppedControl");
-
-			if (oDragged === oDropped) { return; }
-
-			const oTable = this.oTable;
-			const sDropPosition = oEvent.getParameter("dropPosition");
-			const iDraggedIndex = oTable.indexOfColumn(oDragged);
-			const iDroppedIndex = oTable.indexOfColumn(oDropped);
-			const iNewPos = iDroppedIndex + (sDropPosition === "Before" ? 0 : 1) + (iDraggedIndex < iDroppedIndex ? -1 : 0);
-			const sKey = this._getKey(oDragged);
-
-			Engine.getInstance().retrieveState(oTable).then(function (oState) {
-				const oCol = oState.Columns.find(function (o) { return o.key === sKey; }) || { key: sKey };
-				oCol.position = iNewPos;
-				Engine.getInstance().applyState(oTable, { Columns: [oCol] });
-			});
-		},
-
-		/**
-		 * Reacts to p13n Engine state changes by applying column visibility,
-		 * sorting, and grouping to the table.
-		 *
-		 * @param {sap.ui.base.Event} oEvent - The stateChange event containing the new state
-		 */
-		onP13nStateChange: function (oEvent) {
-			const oTable  = this.oTable;
-			const oState  = oEvent.getParameter("state");
-			const oHelper = this.oMetadataHelper;
-
-			if (!oState || !oHelper) { return; }
-
-			if (oState.Columns) {
-				this._applyColumnsVisual(oState.Columns);
-			}
-
-			// Sorting
-			if (oState.Sorter) {
-				const aSorters = oState.Sorter.map(function (oSortState) {
-					var oInfo = oHelper.getProperty(oSortState.key);
-					return new Sorter(oInfo.path, oSortState.descending);
-				});
-				oTable.getBinding("items").sort(aSorters.length > 0 ? aSorters : this._aDefaultSorters);
-			}
-
-			// Grouping
-			if (oState.Groups) {
-				const aGroupSorters = oState.Groups.map(function (oGroupState) {
-					var oInfo = oHelper.getProperty(oGroupState.key);
-					return new Sorter(oInfo.path, false, true);
-				});
-				const aExistingSorters = oTable.getBinding("items").aSorters || [];
-				oTable.getBinding("items").sort(aGroupSorters.concat(aExistingSorters));
-			}
-		},
-
-		/**
-		 * Physically reorders columns to match aColumns (array of {key} objects),
-		 * then rebuilds and rebinds the row template so cells follow the new column order.
-		 */
-		_applyColumnsVisual: function (aColumns) {
-			var oTable = this.oTable;
-
-			// 1. Hide all columns
-			oTable.getColumns().forEach(function (oCol) { oCol.setVisible(false); });
-
-			// 2. Show and physically move each visible column into its new position
-			aColumns.forEach(function (oProp, iIndex) {
-				var oCol = oTable.getColumns().find(function (c) { return c.data("p13nKey") === oProp.key; });
-				if (!oCol) { return; }
-				oCol.setVisible(true);
-				oTable.removeColumn(oCol);
-				oTable.insertColumn(oCol, iIndex);
-			});
-
-			// 3. Rebind items — cells must follow the new column order (cell[i] maps to column[i])
-			var oCurrentBinding = oTable.getBinding("items");
-			var aSorters = oCurrentBinding ? (oCurrentBinding.aSorters || []) : [];
-			if (aSorters.length === 0) { aSorters = this._aDefaultSorters; }
-			var aFilters = oCurrentBinding ? (oCurrentBinding.aFilters || []) : [];
-			var aAllKeys = oTable.getColumns().map(function (oCol) { return oCol.data("p13nKey"); });
-			oTable.bindItems({
-				model: "mainService",
-				path: "/RateGrid",
-				templateShareable: false,
-				sorter: aSorters,
-				filters: aFilters,
-				template: this._buildRowTemplate(aAllKeys)
-			});
-		},
-
-		/**
-		 * Retrieves the p13n key from a column's custom data.
-		 *
-		 * @param {sap.m.Column} oColumn - The table column
-		 * @returns {string} The p13n key identifier
-		 * @private
-		 */
-		_getKey: function (oColumn) {
-			return oColumn.data("p13nKey");
-		},
-
 		/**
 		 * Reads the FLP intent from the URL hash and binds the table to the matching
 		 * OData endpoint. Also creates the "intent" JSON model (isDisplay / isHistory)
@@ -830,7 +591,7 @@ sap.ui.define([
 							$expand: sExpand,
 							$orderby: "createdAt desc"
 						},
-						template: this._buildRowTemplate(["client_col", "start_date_col", "maturity_date_col", "amount_col", "currency_col", "duration_col", "rate_col"])
+						template: this._buildRowTemplate([bIsSantander ? "client_col" : null, "start_date_col", "maturity_date_col", "amount_col", "currency_col", "duration_col", "rate_col"])
 					});
 				} else {
 					// Probe authorization/read access first. OData V4 failures are async and are not caught by bindItems() try/catch.
@@ -934,16 +695,6 @@ sap.ui.define([
 							number: { path: "mainService>rate", type: new FloatType({ decimals: 2, maxFractionDigits: 2 }) },
 							unit: "%"
 						});
-
-					// case "suitability_col":
-					// 	return new RatingIndicator({
-					// 		value: {
-					// 			parts: [{ path: "mainService>Rate" }, { path: "mainService>to_TenorCode/Code" }],
-					// 			formatter: Formatter.formatSuitability
-					// 		},
-					// 		maxValue: 5,
-					// 		editable: false
-					// 	});
 					default:
 						return new MText();
 				}
@@ -953,14 +704,6 @@ sap.ui.define([
 				press: [this.onListItemPress, this],
 				cells: aCells
 			});
-		},
-
-		/**
-		 * Lifecycle hook called when the controller is destroyed.
-		 * Detaches the p13n Engine state change listener.
-		 */
-		onExit: function () {
-			Engine.getInstance().detachStateChange(this.onP13nStateChange, this);
 		},
 
 		// -------------------------------------------------------

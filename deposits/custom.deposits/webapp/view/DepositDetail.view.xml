@@ -290,7 +290,7 @@
                         layout="ResponsiveGridLayout"
                     >
                         <Label visible="{intent>/isSantander}" text="{i18n>lblClient}" />
-                        <Text visible="{intent>/isSantander}" text="{mainService>client/name}" />
+                        <Text id="clientNameText" visible="{intent>/isSantander}" />
                         <Label text="{i18n>colAmount}" />
                         <Text
                             text="{
@@ -334,7 +334,7 @@
                     >
                         <commons:content>
                             <commons:TimelineItem
-                                userName="{= ${intent>/isSantander} ? ${mainService>requestedBy} : ${mainService>createdBy} }"
+                                id="requestedTimelineItem"
                                 icon="sap-icon://activity-individual"
                                 text="{i18n>timelineDepositRequested}"
                                 dateTime="{mainService>startDate}"
