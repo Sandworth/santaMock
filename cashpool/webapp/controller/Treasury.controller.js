@@ -1484,7 +1484,7 @@ sap.ui.define([
             const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
             const oToPostBank = {
                                 "destinationName": "DS9",
-                                "valueDate": new Date().toISOString(),
+                                "valueDate": new Date().toISOString().split(".")[0],
                                 "payingCompanyCode": "2000",
                                 "payingBankAccount": "0123456789",
                                 "payingHouseBank": "SANT0",

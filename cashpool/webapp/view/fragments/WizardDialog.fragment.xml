@@ -268,13 +268,13 @@
                         </VBox>
                         <Title text="{i18n>wizardQuestion2}" level="H5" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
                         <HBox wrap="Wrap">
-                            <CheckBox text="{i18n>weekdayLunes}"     selected="{wizard>/dias/lunes}"     select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
-                            <CheckBox text="{i18n>weekdayMartes}"    selected="{wizard>/dias/martes}"    select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
-                            <CheckBox text="{i18n>weekdayMiercoles}" selected="{wizard>/dias/miercoles}" select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
-                            <CheckBox text="{i18n>weekdayJueves}"    selected="{wizard>/dias/jueves}"    select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
-                            <CheckBox text="{i18n>weekdayViernes}"   selected="{wizard>/dias/viernes}"   select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
-                            <CheckBox text="{i18n>weekdaySabado}"    selected="{wizard>/dias/sabado}"    select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
-                            <CheckBox text="{i18n>weekdayDomingo}"   selected="{wizard>/dias/domingo}"   select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayLunes}"     selected="{wizard>/dias/monday}"     select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayMartes}"    selected="{wizard>/dias/tuesday}"    select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayMiercoles}" selected="{wizard>/dias/wednesday}" select=".  " class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayJueves}"    selected="{wizard>/dias/thursday}"    select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayViernes}"   selected="{wizard>/dias/friday}"   select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdaySabado}"    selected="{wizard>/dias/saturday}"    select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
+                            <CheckBox text="{i18n>weekdayDomingo}"   selected="{wizard>/dias/sunday}"   select=".onDiaSelectionChange" class="sapUiSmallMarginEnd"/>
                         </HBox>
                     </VBox>
                 </WizardStep>
