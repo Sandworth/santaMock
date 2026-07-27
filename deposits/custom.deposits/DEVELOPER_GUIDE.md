@@ -178,8 +178,7 @@ The **begin column** (list/master). Built with:
 - **`SmartVariantManagement`** — variant save/load in the title.
 - **`FilterBar`** — multi-combo for Currency, Duration, Client; DateRangeSelection for dates (history only); ValueHelpDialog for Rate ranges.
 - **`sap.m.Table`** — the deposits/rate-grid table.
-  - Columns are statically defined in XML with `app:p13nKey` custom data.
-  - **Row template (`<items>`) is NOT defined in XML** — it is built programmatically via `_buildRowTemplate()` in the controller, because the set of visible cells depends on the detected intent.
+  - Columns are statically defined in XML, and the controller builds the row template to match the detected intent.
 
 ### DepositDetail.view.xml
 
@@ -300,7 +299,6 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 - **Intent detection** and OData binding selection.
 - **FilterBar** with SmartVariantManagement (variant persistence, search execution, filter serialization).
 - **Table lifecycle** (row template construction, update events, no-data states).
-- **p13n Engine** registration for column personalization (currently disabled but code present).
 - **Custom Deposit Request** dialog workflow (open, step navigation, validation, submission).
 - **File upload** for bulk rate updates (Santander environment only).
 
@@ -309,7 +307,6 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 | Function | Description |
 |---|---|
 | `onInit()` | Async initialization: caches control references, creates the `customRequest` model, detects intent from URL hash, creates the `intent` model on the Component, configures FilterBar persistence callbacks, registers SmartVariantManagement, sets default sorters, and calls `_bindItemsByIntent()` to bind the table. |
-| `onExit()` | Detaches the p13n Engine state change listener. |
 
 #### Functions — FilterBar Persistence
 
@@ -343,21 +340,6 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 | Function | Description |
 |---|---|
 | `onListItemPress(oEvent)` | Extracts the entity key from the pressed item's binding context path. Asks the FCL helper for the next UI state (level 1 = two columns) and navigates to the `DepositDetail` route with the key and layout. |
-
-#### Functions — p13n Engine (Column Personalization)
-
-| Function | Description |
-|---|---|
-| `_registerForP13n()` | Registers the table with the p13n Engine for column visibility, sorting, grouping, and column width control. Currently commented out in `onInit`. |
-| `onOpenSettings()` | Opens the p13n settings dialog. |
-| `onBeforeOpenColumnMenu(oEvent)` | Configures sort/group items in the column menu based on the triggering column. |
-| `onSort(oEvent)` | Applies column sort via p13n Engine state. |
-| `onGroup(oEvent)` | Applies column grouping via p13n Engine state. |
-| `onColumnResize(oEvent)` | Persists column width changes. |
-| `onColumnMove(oEvent)` | Handles drag-and-drop column reordering. |
-| `onP13nStateChange(oEvent)` | Reacts to p13n state changes by applying column visibility, sorting, and grouping to the table. |
-| `_applyColumnsVisual(aColumns)` | Physically reorders and shows/hides columns, then rebuilds the row template to match the new column order. |
-| `_getKey(oColumn)` | Extracts the `p13nKey` from a column's custom data. |
 
 #### Functions — Intent-Based Binding
 
