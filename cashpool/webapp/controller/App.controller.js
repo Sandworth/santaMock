@@ -4,7 +4,7 @@ sap.ui.define([
   "use strict";
 
   return BaseController.extend("cashpool.app.cashpool.controller.App", {
-      onInit() {
-      }
+    onInit: function () {
+    }
   });
 });

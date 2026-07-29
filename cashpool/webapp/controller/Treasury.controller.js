@@ -14,7 +14,7 @@ sap.ui.define([
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
-        onInit() {
+        onInit: function () {
             // Get i18n bundle for translations from component
             const oResourceBundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
             this._oResourceBundle = oResourceBundle;
@@ -55,12 +55,12 @@ sap.ui.define([
             }
         },
 
-        onTabSelect(oEvent) {
+        onTabSelect: function (oEvent) {
             const oSelectedKey = oEvent.getParameter("selectedKey");
             this._getViewModel().setProperty("/selectedTab", oSelectedKey);
         },
 
-        _applyViewModelI18n(oViewModel) {
+        _applyViewModelI18n: function (oViewModel) {
             const aTabs = oViewModel.getProperty("/tabs") || [];
             aTabs.forEach((oTab) => {
                 if (oTab.textKey) {
@@ -84,7 +84,7 @@ sap.ui.define([
             oViewModel.refresh(true);
         },
 
-        onDownloadReceipt(oEvent) {
+        onDownloadReceipt: function (oEvent) {
             // Obtener la fila seleccionada
             const oSource = oEvent.getSource();
             const oBindingContext = oSource.getBindingContext("view");
@@ -97,7 +97,7 @@ sap.ui.define([
             MessageToast.show(this._oResourceBundle.getText("msgDownloadExtract", [oData.fecha, sFormattedCurrency]));
         },
 
-        _buildTransferenciasGroups() {
+        _buildTransferenciasGroups: function () {
             const oModel = this._getViewModel();
             const aTransferencias = oModel.getProperty("/transferencias") || [];
             const oGroupsByKey = new Map();
@@ -139,7 +139,7 @@ sap.ui.define([
             oModel.setProperty("/transferenciasAgrupadas", aGroups.slice());
         },
 
-        onTransferenciasGroupSearch(oEvent) {
+        onTransferenciasGroupSearch: function (oEvent) {
             const sRawQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").trim();
             const sNormalizedQuery = this._normalizeNifSearch(sRawQuery);
             const oModel = this._getViewModel();
@@ -158,11 +158,11 @@ sap.ui.define([
             oModel.setProperty("/transferenciasAgrupadas", aFilteredGroups);
         },
 
-        _normalizeNifSearch(sValue) {
+        _normalizeNifSearch: function (sValue) {
             return (sValue || "").toLowerCase().trim();
         },
 
-        onTransferGroupActivationChange(oEvent) {
+        onTransferGroupActivationChange: function (oEvent) {
             const bNextState = oEvent.getParameter("state");
             const oSwitch = oEvent.getSource();
             const oContext = oSwitch.getBindingContext("view");
@@ -202,7 +202,7 @@ sap.ui.define([
             oDialog.open();
         },
 
-        onTransferenciasSearch(oEvent) {
+        onTransferenciasSearch: function (oEvent) {
             const oContext = oEvent.getSource().getBindingContext("view");
             if (!oContext) {
                 return;
@@ -229,7 +229,7 @@ sap.ui.define([
             oModel.setProperty(`${sPath}/selectedCount`, 0);
         },
 
-        onTransferenciasClear(oEvent) {
+        onTransferenciasClear: function (oEvent) {
             const oContext = oEvent.getSource().getBindingContext("view");
             if (!oContext) {
                 return;
@@ -247,7 +247,7 @@ sap.ui.define([
             oModel.setProperty(`${sPath}/selectedCount`, 0);
         },
 
-        onTransferenciaSelectionChange(oEvent) {
+        onTransferenciaSelectionChange: function (oEvent) {
             const oTable = oEvent.getSource();
             const iSelectedCount = oTable.getSelectedItems().length;
             const oContext = oTable.getBindingContext("view");
@@ -259,11 +259,11 @@ sap.ui.define([
             this._getViewModel().setProperty(`${oContext.getPath()}/selectedCount`, iSelectedCount);
         },
 
-        onConsultConfiguration() {
+        onConsultConfiguration: function () {
             this._openWizardDialog();
         },
 
-        onExportReceipts(oEvent) {
+        onExportReceipts: function (oEvent) {
             const oPanel = this._getParentPanel(oEvent.getSource());
             const oTable = oPanel && oPanel.getContent().find((oContent) => oContent.isA("sap.m.Table"));
             const iSelected = oTable ? oTable.getSelectedItems().length : 0;
@@ -276,7 +276,7 @@ sap.ui.define([
             MessageToast.show(this._oResourceBundle.getText("msgExportReceipts", [iSelected]));
         },
 
-        _getParentPanel(oControl) {
+        _getParentPanel: function (oControl) {
             let oParent = oControl;
             while (oParent && !oParent.isA("sap.m.Panel")) {
                 oParent = oParent.getParent();
@@ -284,7 +284,7 @@ sap.ui.define([
             return oParent;
         },
 
-        _parseTransferDate(sDate) {
+        _parseTransferDate: function (sDate) {
             if (!sDate) {
                 return null;
             }
@@ -302,7 +302,7 @@ sap.ui.define([
             return this._normalizeDate(oDate);
         },
 
-        _normalizeDate(oDate) {
+        _normalizeDate: function (oDate) {
             if (!(oDate instanceof Date)) {
                 return null;
             }
@@ -312,11 +312,11 @@ sap.ui.define([
             return oNormalizedDate;
         },
 
-        onAfterRendering() {
+        onAfterRendering: function () {
             this._openConfigurationDialog();
         },
 
-        _openConfigurationDialog() {
+        _openConfigurationDialog: function () {
             if (!this._configDialog) {
                 Fragment.load({
                     id: this.getView().getId(),
@@ -332,14 +332,14 @@ sap.ui.define([
             }
         },
 
-        onConfigureNow() {
+        onConfigureNow: function () {
             if (this._configDialog) {
                 this._configDialog.close();
             }
             this._openWizardDialog();
         },
 
-        _openWizardDialog() {
+        _openWizardDialog: function () {
             const oWizardModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardData.json"));
             oWizardModel.attachRequestCompleted(() => {
                 // Store full lists for filtering
@@ -357,7 +357,7 @@ sap.ui.define([
             });
         },
 
-        _openWizardDialogFragment() {
+        _openWizardDialogFragment: function () {
 
             if (!this._wizardDialog) {
                 Fragment.load({
@@ -374,15 +374,15 @@ sap.ui.define([
             }
         },
 
-        _getWizardModel() {
+        _getWizardModel: function () {
             return this.getView().getModel("wizard");
         },
 
-        _getViewModel() {
+        _getViewModel: function () {
             return this.getView().getModel("view");
         },
 
-        _setModelPropertyIfChanged(oModel, sPath, vValue) {
+        _setModelPropertyIfChanged: function (oModel, sPath, vValue) {
             if (!oModel) {
                 return;
             }
@@ -393,11 +393,11 @@ sap.ui.define([
             }
         },
 
-        _setWizardPropertyIfChanged(sPath, vValue) {
+        _setWizardPropertyIfChanged: function (sPath, vValue) {
             this._setModelPropertyIfChanged(this._getWizardModel(), sPath, vValue);
         },
 
-        _setWizardStepValidation(sStepId, bValid) {
+        _setWizardStepValidation: function (sStepId, bValid) {
             const oWizard = this.byId("configWizard");
             const oStep = this.byId(sStepId);
             if (!oWizard || !oStep) {
@@ -406,7 +406,7 @@ sap.ui.define([
             bValid ? oWizard.validateStep(oStep) : oWizard.invalidateStep(oStep);
         },
 
-        _getSelectedStep2Accounts() {
+        _getSelectedStep2Accounts: function () {
             const oBancosList = this.byId("bancosListStep2");
             if (!oBancosList) {
                 return [];
@@ -437,7 +437,7 @@ sap.ui.define([
             return aSelectedAccounts;
         },
 
-        _hasValidLocalizedInputs(aItems) {
+        _hasValidLocalizedInputs: function (aItems) {
             return aItems.length > 0 && aItems.every((oItem) => {
                 const sInput = (oItem.saldoPersonalizadoInput || "").trim();
                 if (!sInput) {
@@ -447,7 +447,7 @@ sap.ui.define([
             });
         },
 
-        _resetWizard() {
+        _resetWizard: function () {
             const oWizard = this.byId("configWizard");
             const oStep1 = this.byId("wizardStep1");
             if (!oWizard || !oStep1) {
@@ -473,13 +473,13 @@ sap.ui.define([
             }
         },
 
-        onWizardCancel() {
+        onWizardCancel: function () {
             if (this._wizardDialog) {
                 this._wizardDialog.close();
             }
         },
 
-        onWizardAccept() {
+        onWizardAccept: function () {
             const oModel = this._getWizardModel();
             const oReview = oModel.getProperty("/review");
             //MessageToast.show(`Configuració guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
@@ -489,7 +489,7 @@ sap.ui.define([
             }
         },
 
-        onWizardDialogAfterClose() {
+        onWizardDialogAfterClose: function () {
             this._resetWizard();
 
             const oModel = this._getWizardModel();
@@ -503,7 +503,7 @@ sap.ui.define([
             this._iCurrentStepIndex = 0;
         },
 
-        onReviewStepActivate() {
+        onReviewStepActivate: function () {
             this._updateReviewEmpresa();
             this._updateReviewCuentas();
             this._updateReviewCuentaCentral();
@@ -512,7 +512,7 @@ sap.ui.define([
             this._updateReviewSaldo();
         },
 
-        _updateReviewEmpresa() {
+        _updateReviewEmpresa: function () {
             const oModel = this._getWizardModel();
             const oEmpresaTable = this.byId("empresaTable");
             const oSelected = oEmpresaTable ? oEmpresaTable.getItems().find((i) => i.getSelected()) : null;
@@ -526,13 +526,13 @@ sap.ui.define([
             }
         },
 
-        _updateReviewCuentas() {
+        _updateReviewCuentas: function () {
             const oModel = this._getWizardModel();
             const aCuentasSeleccionadas = this._getSelectedStep2Accounts().map((oEntry) => oEntry.data);
             oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.nombre).join(", ") || "-");
         },
 
-        _updateReviewCuentaCentral() {
+        _updateReviewCuentaCentral: function () {
             const oModel = this._getWizardModel();
             const oCuentaTable = this.byId("cuentaCentralTable");
             const oSelected = oCuentaTable ? oCuentaTable.getItems().find((i) => i.getSelected()) : null;
@@ -546,7 +546,7 @@ sap.ui.define([
             }
         },
 
-        _updateReviewHorario() {
+        _updateReviewHorario: function () {
             const oModel = this._getWizardModel();
             const oHorarioGroup = this.byId("horarioGroup");
             if (oHorarioGroup) {
@@ -582,7 +582,7 @@ sap.ui.define([
             }
         },
 
-        _updateReviewDias() {
+        _updateReviewDias: function () {
             const oModel = this._getWizardModel();
             const oDias = oModel.getProperty("/dias") || {};
             const aDiasSeleccionados = Object.entries(oDias)
@@ -591,7 +591,7 @@ sap.ui.define([
             oModel.setProperty("/review/dias", aDiasSeleccionados.join(", ") || "-");
         },
 
-        _updateReviewSaldo() {
+        _updateReviewSaldo: function () {
             const oModel = this._getWizardModel();
             const oSaldoGroup = this.byId("saldoGroup");
             if (oSaldoGroup) {
@@ -624,7 +624,7 @@ sap.ui.define([
             }
         },
 
-        _formatAmountForReview(vAmount, sCurrency) {
+        _formatAmountForReview: function (vAmount, sCurrency) {
             const nAmount = Number(vAmount);
             if (Number.isNaN(nAmount)) {
                 return "";
@@ -635,7 +635,7 @@ sap.ui.define([
             return this._formatLocalizedNumber(nAmount);
         },
 
-        _getLocalizedFloatFormatter() {
+        _getLocalizedFloatFormatter: function () {
             if (!this._oLocalizedFloatFormatter) {
                 this._oLocalizedFloatFormatter = NumberFormat.getFloatInstance({
                     groupingEnabled: true,
@@ -646,11 +646,11 @@ sap.ui.define([
             return this._oLocalizedFloatFormatter;
         },
 
-        _formatLocalizedNumber(nValue) {
+        _formatLocalizedNumber: function (nValue) {
             return this._getLocalizedFloatFormatter().format(nValue);
         },
 
-        onEmpresaSearch(oEvent) {
+        onEmpresaSearch: function (oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
             const oModel = this._getWizardModel();
             const aAll = oModel.getProperty("/_empresasAll");
@@ -660,7 +660,7 @@ sap.ui.define([
             oModel.setProperty("/empresas", aFiltered);
         },
 
-        onCuentasSearch(oEvent) {
+        onCuentasSearch: function (oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
             const oModel = this._getWizardModel();
             const aAll = oModel.getProperty("/_bancosAll");
@@ -685,7 +685,7 @@ sap.ui.define([
             oModel.setProperty("/bancos", aFiltered);
         },
 
-        onCuentaCentralSearch(oEvent) {
+        onCuentaCentralSearch: function (oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
             const oModel = this._getWizardModel();
             const aAll = oModel.getProperty("/_cuentasCentralAll");
@@ -698,7 +698,7 @@ sap.ui.define([
             oModel.setProperty("/cuentasCentralizadoras", aFiltered);
         },
 
-        onWizardDialogAfterOpen() {
+        onWizardDialogAfterOpen: function () {
             const oWizard = this.byId("configWizard");
             if (!oWizard) {
                 return;
@@ -709,12 +709,12 @@ sap.ui.define([
             this._updateNavState(Math.max(0, iIndex));
         },
 
-        _isStep1Valid() {
+        _isStep1Valid: function () {
             const oEmpresaTable = this.byId("empresaTable");
             return !!oEmpresaTable && oEmpresaTable.getItems().some((i) => i.getSelected());
         },
 
-        _updateNavState(iIndex) {
+        _updateNavState: function (iIndex) {
             const oModel = this._getWizardModel();
             const oWizard = this.byId("configWizard");
             if (!oModel || !oWizard) {
@@ -733,7 +733,7 @@ sap.ui.define([
             this._iCurrentStepIndex = iIndex;
         },
 
-        onWizardNavChange(oEvent) {
+        onWizardNavChange: function (oEvent) {
             const oWizard = this.byId("configWizard");
             if (!oWizard) {
                 return;
@@ -743,7 +743,7 @@ sap.ui.define([
             this._updateNavState(Math.max(0, iIndex));
         },
 
-        onWizardNext() {
+        onWizardNext: function () {
             const oWizard = this.byId("configWizard");
             if (!oWizard) {
                 return;
@@ -759,7 +759,7 @@ sap.ui.define([
             this._updateNavState(iNext);
         },
 
-        onWizardBack() {
+        onWizardBack: function () {
             const oWizard = this.byId("configWizard");
             if (!oWizard || this._iCurrentStepIndex <= 0) {
                 return;
@@ -769,14 +769,14 @@ sap.ui.define([
             this._updateNavState(iPrev);
         },
 
-        onEmpresaSelectionChange() {
+        onEmpresaSelectionChange: function () {
             const bValid = this.byId("empresaTable").getItems().some((i) => i.getSelected());
             this._setWizardStepValidation("wizardStep1", bValid);
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewEmpresa();
         },
 
-        onCuentasSelectionChange() {
+        onCuentasSelectionChange: function () {
             const aSelectedAccounts = this._getSelectedStep2Accounts();
             const bValid = aSelectedAccounts.length > 0;
             this._setWizardStepValidation("wizardStep2", bValid);
@@ -786,14 +786,14 @@ sap.ui.define([
             this._updateReviewCuentas();
         },
 
-        onCuentaCentralSelectionChange() {
+        onCuentaCentralSelectionChange: function () {
             const bValid = this.byId("cuentaCentralTable").getItems().some((i) => i.getSelected());
             this._setWizardStepValidation("wizardStep3", bValid);
             this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewCuentaCentral();
         },
 
-        onHorarioSelectionChange() {
+        onHorarioSelectionChange: function () {
             const oModel = this._getWizardModel();
             const oHorarioGroup = this.byId("horarioGroup");
             if (!oModel || !oHorarioGroup) {
@@ -811,11 +811,11 @@ sap.ui.define([
             this._validateStep4();
         },
 
-        onHorarioUnicoChange() {
+        onHorarioUnicoChange: function () {
             this._updateReviewHorario();
         },
 
-        _buildHorariosEspecificos(aSelectedAccountsParam) {
+        _buildHorariosEspecificos: function (aSelectedAccountsParam) {
             const oModel = this._getWizardModel();
             const iSelectedHorarioIndex = oModel.getProperty("/selectedHorario");
             const aSelectedAccounts = aSelectedAccountsParam || this._getSelectedStep2Accounts();
@@ -862,7 +862,7 @@ sap.ui.define([
             oModel.setProperty("/horariosPersonalizadosPorCuenta", aHorariosPorCuenta);
         },
 
-        onHorarioEspecificoChange(oEvent) {
+        onHorarioEspecificoChange: function (oEvent) {
             const oSelectedItem = oEvent.getParameter("selectedItem");
             if (!oSelectedItem) {
                 return;
@@ -892,12 +892,12 @@ sap.ui.define([
             this._updateReviewHorario();
         },
 
-        onDiaSelectionChange() {
+        onDiaSelectionChange: function () {
             this._updateReviewDias();
             this._validateStep4();
         },
 
-        onSaldoSelectionChange(oEvent) {
+        onSaldoSelectionChange: function (oEvent) {
             const oModel = this._getWizardModel();
             const oSaldoGroup = oEvent ? oEvent.getSource() : this.byId("saldoGroup");
             if (oModel && oSaldoGroup) {
@@ -909,7 +909,7 @@ sap.ui.define([
             this._validateStep5();
         },
 
-        _validateStep4() {
+        _validateStep4: function () {
             const oHorarioGroup = this.byId("horarioGroup");
             const oModel = this._getWizardModel();
 
@@ -927,7 +927,7 @@ sap.ui.define([
             this._updateNavState(this._iCurrentStepIndex);
         },
 
-        _validateStep5() {
+        _validateStep5: function () {
             const oSaldoGroup = this.byId("saldoGroup");
             const oModel = this._getWizardModel();
 
@@ -953,7 +953,7 @@ sap.ui.define([
             this._updateNavState(this._iCurrentStepIndex);
         },
 
-        _buildSaldosPersonalizados(aSelectedAccountsParam) {
+        _buildSaldosPersonalizados: function (aSelectedAccountsParam) {
             const oModel = this._getWizardModel();
             const iSelectedSaldoType = oModel.getProperty("/selectedSaldoType");
             const aSelectedAccounts = aSelectedAccountsParam || this._getSelectedStep2Accounts();
@@ -1040,7 +1040,7 @@ sap.ui.define([
             oModel.setProperty("/saldosPersonalizadosPorCuenta", aSaldosPorCuenta);
         },
 
-        onSaldoPersonalizadoChange(oEvent) {
+        onSaldoPersonalizadoChange: function (oEvent) {
             const oSource = oEvent.getSource();
             const sScope = oSource.data("scope");
             const sDataKey = oSource.data("key");
@@ -1070,7 +1070,7 @@ sap.ui.define([
             this._updateReviewSaldo();
         },
 
-        _parseLocalizedNumber(sValue) {
+        _parseLocalizedNumber: function (sValue) {
             if (!sValue) {
                 return Number.NaN;
             }
@@ -1102,11 +1102,11 @@ sap.ui.define([
             return Number.isNaN(nDirect) ? Number.NaN : nDirect;
         },
 
-        onSaldoConsiderChange() {
+        onSaldoConsiderChange: function () {
             this._updateReviewSaldo();
         },
 
-        onEditStep(oEvent) {
+        onEditStep: function (oEvent) {
             const sStep = oEvent.getSource().data("step");
             const iIndex = parseInt(sStep, 10) - 1;
             const oWizard = this.byId("configWizard");
@@ -1116,17 +1116,17 @@ sap.ui.define([
             }
         },
 
-        onCloseDialog() {
+        onCloseDialog: function () {
             if (this._configDialog) {
                 this._configDialog.close();
             }
         },
 
-        onDialogClose() {
+        onDialogClose: function () {
             // Handle dialog close event
         },
 
-        onCreateSingleTransfer() {
+        onCreateSingleTransfer: function () {
             const oTransferModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardTransferData.json"));
             oTransferModel.attachRequestCompleted(() => {
                 const aEmpresas = oTransferModel.getProperty("/empresas") || [];
@@ -1143,7 +1143,7 @@ sap.ui.define([
             });
         },
 
-        _openTransferWizardDialogFragment() {
+        _openTransferWizardDialogFragment: function () {
             if (!this._transferWizardDialog) {
                 Fragment.load({
                     id: this.getView().getId(),
@@ -1160,22 +1160,22 @@ sap.ui.define([
             }
         },
 
-        _getTransferWizardModel() {
+        _getTransferWizardModel: function () {
             return this.getView().getModel("wizardTransfer");
         },
 
         // ─── Transfer wizard navigation ───────────────────────────────
 
-        onTransferWizardDialogAfterOpen() {
+        onTransferWizardDialogAfterOpen: function () {
             this._iTransferCurrentStepIndex = 0;
             this._updateTransferNavState(0);
         },
 
-        onTransferWizardDialogAfterClose() {
+        onTransferWizardDialogAfterClose: function () {
             this._resetTransferWizard();
         },
 
-        _resetTransferWizard() {
+        _resetTransferWizard: function () {
             const oWizard = this.byId("transferConfigWizard");
             if (oWizard) {
                 oWizard.discardProgress(this.byId("wizardTransferStep1"), true);
@@ -1193,7 +1193,7 @@ sap.ui.define([
             this._iTransferCurrentStepIndex = 0;
         },
 
-        _updateTransferNavState(iIndex) {
+        _updateTransferNavState: function (iIndex) {
             const oModel = this._getTransferWizardModel();
             if (!oModel) {
                 return;
@@ -1223,7 +1223,7 @@ sap.ui.define([
             oModel.setProperty("/nav/nextEnabled", bNextEnabled);
         },
 
-        _isTransferOrigenSelected() {
+        _isTransferOrigenSelected: function () {
             const oBancosList = this.byId("bancosListTransferStep2");
             if (!oBancosList) {
                 return false;
@@ -1243,7 +1243,7 @@ sap.ui.define([
             return false;
         },
 
-        onTransferWizardNavChange(oEvent) {
+        onTransferWizardNavChange: function (oEvent) {
             const oStep = oEvent.getParameter("step");
             const oWizard = this.byId("transferConfigWizard");
             if (!oWizard || !oStep) {
@@ -1257,7 +1257,7 @@ sap.ui.define([
             }
         },
 
-        onTransferWizardNext() {
+        onTransferWizardNext: function () {
             const oWizard = this.byId("transferConfigWizard");
             if (oWizard) {
                 const aSteps = oWizard.getSteps();
@@ -1270,7 +1270,7 @@ sap.ui.define([
             }
         },
 
-        onTransferWizardBack() {
+        onTransferWizardBack: function () {
             const oWizard = this.byId("transferConfigWizard");
             if (oWizard) {
                 const iCurrent = this._iTransferCurrentStepIndex || 0;
@@ -1282,7 +1282,7 @@ sap.ui.define([
             }
         },
 
-        onTransferWizardCancel() {
+        onTransferWizardCancel: function () {
             if (this._transferWizardDialog) {
                 this._transferWizardDialog.close();
             }
@@ -1290,7 +1290,7 @@ sap.ui.define([
 
         // ─── Transfer wizard step handlers ────────────────────────────
 
-        onEmpresaSearchTransfer(oEvent) {
+        onEmpresaSearchTransfer: function (oEvent) {
             const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
             const oModel = this._getTransferWizardModel();
             if (!oModel) {
@@ -1307,11 +1307,11 @@ sap.ui.define([
             oModel.setProperty("/empresas", aFiltered);
         },
 
-        onEmpresaSelectionChangeTransfer() {
+        onEmpresaSelectionChangeTransfer: function () {
             this._updateTransferNavState(0);
         },
 
-        onCuentasSearchTransfer(oEvent) {
+        onCuentasSearchTransfer: function (oEvent) {
             const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
             const oModel = this._getTransferWizardModel();
             if (!oModel) {
@@ -1334,13 +1334,13 @@ sap.ui.define([
             oModel.setProperty("/bancos", aFiltered);
         },
 
-        onCuentaOrigenSelectionChange(oEvent) {
+        onCuentaOrigenSelectionChange: function (oEvent) {
             this.byId("bancosListTransferStep2").getAggregation("items").map(e => {e.getContent()[0].getContent()[0].getSelectedItem()?.setSelected(false)})
             oEvent.getParameter("listItem").setSelected(true);
             this._updateTransferNavState(1);
         },
 
-        onCuentaDestinoSearchTransfer(oEvent) {
+        onCuentaDestinoSearchTransfer: function (oEvent) {
             const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
             const oModel = this._getTransferWizardModel();
             if (!oModel) {
@@ -1359,22 +1359,22 @@ sap.ui.define([
             oModel.setProperty("/cuentasCentralizadoras", aFiltered);
         },
 
-        onCuentaDestinoSelectionChange() {
+        onCuentaDestinoSelectionChange: function () {
             this._updateTransferNavState(2);
         },
 
-        onTransferAmountChange(oEvent) {
+        onTransferAmountChange: function (oEvent) {
             this._getTransferWizardModel().setProperty('/transferAmount', oEvent.getParameter('newValue'))
             this._updateTransferNavState(3);
         },
 
         // ─── Transfer wizard review ──────────────────────────────────
 
-        onTransferReviewStepActivate() {
+        onTransferReviewStepActivate: function () {
             this._updateTransferReview();
         },
 
-        _updateTransferReview() {
+        _updateTransferReview: function () {
             const oModel = this._getTransferWizardModel();
             if (!oModel) {
                 return;
@@ -1438,7 +1438,7 @@ sap.ui.define([
             }
         },
 
-        onEditStepTransfer(oEvent) {
+        onEditStepTransfer: function (oEvent) {
             const sStep = oEvent.getSource().data("step");
             const iIndex = parseInt(sStep, 10) - 1;
             const oWizard = this.byId("transferConfigWizard");
@@ -1449,7 +1449,7 @@ sap.ui.define([
             }
         },
 
-        onTransferWizardAccept() {
+        onTransferWizardAccept: function () {
             const oModel = this._getTransferWizardModel();
             if (!oModel) {
                 return;
@@ -1479,7 +1479,7 @@ sap.ui.define([
             }
         },
 
-        onAnotherButtonPress(oTransferObject) {
+        onAnotherButtonPress: function (oTransferObject) {
             const oTreasureModel = this.getView().getModel("Cashpool");
             const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
             const oToPostBank = {
