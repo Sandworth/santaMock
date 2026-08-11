@@ -598,32 +598,24 @@ sap.ui.define([
 				Formatter.formatCurrency(fImporte, sCurrency)
 			]);
 
-			MessageBox.confirm(sMsg, {
-				title: oBundle.getText("requestConfirmTitle"),
-				actions: [MessageBox.Action.YES, MessageBox.Action.NO],
-				emphasizedAction: MessageBox.Action.YES,
-				onClose: async (sAction) => {
-					if (sAction === MessageBox.Action.YES) {
-						MessageToast.show(oBundle.getText("requestSuccessMsg"));
-						const oModel = this.getView().getModel("mainService");
-						const oPayload = {
-							rateSnapshot_ID: sRateGridID,
-							amount: Number.parseFloat(fImporte.toFixed(2)),
-							currency_ID: sCurrency,
-							tenor_ID: sTenor,
-							rate: fRate,
-							startDate: sStartDate,
-							maturityDate: sMaturityDate, // calculate based on startDate and tenor
-							status: 1				 // default to '1' (e.g. 'Pending') - adjust as needed
-						};
-						console.log("Payload to be sent to backend:", oPayload);
-						try {
-							await oModel.bindList("/Deposits").create(oPayload);
-						} catch (oError) {
-							console.error("Error creating deposit request:", oError);
-							MessageBox.error(oBundle.getText("requestErrorMsg"));
-						}
-					}
+			this._openSignerSelectionDialog({
+				confirmationText: sMsg,
+				dialogTitle: oBundle.getText("requestConfirmTitle"),
+				confirmButtonText: oBundle.getText("signerConfirmBtn"),
+				payload: {
+					rateSnapshot_ID: sRateGridID,
+					amount: Number.parseFloat(fImporte.toFixed(2)),
+					currency_ID: sCurrency,
+					tenor_ID: sTenor,
+					rate: fRate,
+					startDate: sStartDate,
+					maturityDate: sMaturityDate,
+					status: 1
+				},
+				successMessageKey: "requestSuccessMsg",
+				errorMessageKey: "requestErrorMsg",
+				onSuccess: function () {
+					this.handleClose();
 				}
 			});
 		},
@@ -702,6 +694,7 @@ sap.ui.define([
 		 */
 		onExit: function () {
 			this.oRouter.getRoute("DepositDetail").detachPatternMatched(this._onDepositMatched, this);
+			this._destroySignerSelectionDialog();
 		}
 	});
 });

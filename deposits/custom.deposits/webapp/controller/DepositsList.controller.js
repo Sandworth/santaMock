@@ -1402,59 +1402,45 @@ sap.ui.define([
 				Formatter.formatCurrency(fExpectedReturn, sCurrency)
 			]);
 			
-			MessageBox.confirm(sMsg, {
-				title: this._getText("customReqConfirmTitle"),
-				actions: [MessageBox.Action.YES, MessageBox.Action.NO],
-				emphasizedAction: MessageBox.Action.YES,
-				onClose: async (sAction) => {
-					if (sAction === MessageBox.Action.YES) {
-						// Compute startDate (now) and maturityDate (now + tenorDays) as ISO strings
-						let sStartDate, sMaturityDate;
-						if (typeof Temporal !== "undefined") {
-							const oNow = Temporal.Now.zonedDateTimeISO();
-							sStartDate = oNow.toInstant().toString();
-							const oMaturityDay = oNow.toPlainDate().add({ days: iTenorDays });
-							sMaturityDate = oMaturityDay.toZonedDateTime("UTC").toInstant().toString();
-						} else {
-							const oNow = new Date();
-							sStartDate = oNow.toISOString();
-							const oMaturity = new Date(oNow);
-							oMaturity.setDate(oMaturity.getDate() + iTenorDays);
-							oMaturity.setHours(0, 0, 0, 0);
-							sMaturityDate = oMaturity.toISOString();
-						}
+			// Compute startDate (now) and maturityDate (now + tenorDays) as ISO strings
+			let sStartDate, sMaturityDate;
+			if (typeof Temporal !== "undefined") {
+				const oNow = Temporal.Now.zonedDateTimeISO();
+				sStartDate = oNow.toInstant().toString();
+				const oMaturityDay = oNow.toPlainDate().add({ days: iTenorDays });
+				sMaturityDate = oMaturityDay.toZonedDateTime("UTC").toInstant().toString();
+			} else {
+				const oNow = new Date();
+				sStartDate = oNow.toISOString();
+				const oMaturity = new Date(oNow);
+				oMaturity.setDate(oMaturity.getDate() + iTenorDays);
+				oMaturity.setHours(0, 0, 0, 0);
+				sMaturityDate = oMaturity.toISOString();
+			}
 
-						const oPayload = {
-							amount: Number.parseFloat(Number(fAmount).toFixed(2)),
-							currency_ID: sCurrency,
-							tenor_ID: "CT", // "Custom Tenor"
-							rate: fRate,
-							startDate: sStartDate,
-							maturityDate: sMaturityDate,
-							status: 1 // default to '1' (e.g. 'Pending') - adjust as needed
-						};
-
-						try {
-							await this.getView().getModel("mainService").bindList("/Deposits").create(oPayload);
-						} catch (oError) {
-							console.error("Error creating custom deposit request:", oError);
-							MessageBox.error(this._getText("customReqErrorMsg"));
-							return;
-						}
-
-						// Close dialog
-						if (this.oCustomReqDialog) {
-							this.oCustomReqDialog.close();
-							this.oCustomReqDialog.destroy();
-							this.oCustomReqDialog = null;
-						}
-						this._resetCustomRequestModel();
-
-						// Show success message
-						MessageToast.show(this._getText("customReqSuccessMsg"));
-					}
+			this._openSignerSelectionDialog({
+				confirmationText: sMsg,
+				dialogTitle: this._getText("customReqConfirmTitle"),
+				confirmButtonText: this._getText("customReqSubmitBtn"),
+				payload: {
+					amount: Number.parseFloat(Number(fAmount).toFixed(2)),
+					currency_ID: sCurrency,
+					tenor_ID: "CT",
+					rate: fRate,
+					startDate: sStartDate,
+					maturityDate: sMaturityDate,
+					status: 1
+				},
+				successMessageKey: "customReqSuccessMsg",
+				errorMessageKey: "customReqErrorMsg",
+				onSuccess: function () {
+					this.onCancelCustomRequest();
 				}
 			});
+		},
+
+		onExit: function () {
+			this._destroySignerSelectionDialog();
 		}
 	});
 });

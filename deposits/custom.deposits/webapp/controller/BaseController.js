@@ -3,8 +3,12 @@ sap.ui.define([
 	"sap/ui/core/UIComponent",
 	"sap/ui/core/routing/History",
 	"sap/ui/core/format/NumberFormat",
-	"sap/base/i18n/Localization"
-], function (Controller, UIComponent, History, NumberFormat, Localization) {
+	"sap/base/i18n/Localization",
+	"sap/ui/model/json/JSONModel",
+	"sap/ui/core/Fragment",
+	"sap/m/MessageBox",
+	"sap/m/MessageToast"
+], function (Controller, UIComponent, History, NumberFormat, Localization, JSONModel, Fragment, MessageBox, MessageToast) {
 	"use strict";
 
 	return Controller.extend("custom.deposits.controller.BaseController", {
@@ -316,6 +320,141 @@ sap.ui.define([
 			// Trigger optional callback (e.g., validation) with the context of the caller
 			if (fnCallback && typeof fnCallback === "function") {
 				fnCallback.call(this);
+			}
+		},
+
+		// -------------------------------------------------------
+		// Signer Selection Dialog (shared across controllers)
+		// -------------------------------------------------------
+
+		/**
+		 * Opens the contract-signer confirmation dialog.
+		 * Lazily initializes the "signers" model, resets mock signer data on each open,
+		 * stores the pending deposit workflow configuration, and loads/caches the fragment.
+		 *
+		 * @param {object} oOptions Configuration for this dialog invocation
+		 * @param {string} oOptions.confirmationText Localized confirmation summary to display
+		 * @param {string} oOptions.dialogTitle Dialog title text
+		 * @param {string} oOptions.confirmButtonText Confirm button label
+		 * @param {object} oOptions.payload OData payload to create at /Deposits
+		 * @param {string} oOptions.successMessageKey i18n key for the success toast
+		 * @param {string} oOptions.errorMessageKey i18n key for creation failure
+		 * @param {Function} oOptions.onSuccess Callback invoked after successful creation; receives (aSelectedSigners, oPayload)
+		 * @returns {void}
+		 * @protected
+		 */
+		_openSignerSelectionDialog: function (oOptions) {
+			this._signerWorkflow = oOptions;
+
+			// Lazily create and reset the signers model
+			let oSignerModel = this.getModel("signers");
+			if (!oSignerModel) {
+				oSignerModel = new JSONModel();
+				this.setModel(oSignerModel, "signers");
+			}
+			oSignerModel.setData({
+				dialogTitle: oOptions.dialogTitle,
+				confirmButtonText: oOptions.confirmButtonText,
+				confirmationText: oOptions.confirmationText,
+				signers: [
+					{ name: "Lucía Fernández", email: "", selected: false },
+					{ name: "Alejandro Martínez", email: "", selected: false },
+					{ name: "Carmen García", email: "", selected: false },
+					{ name: "Javier Rodríguez", email: "", selected: false },
+					{ name: "Sofía López", email: "", selected: false }
+				]
+			});
+
+			if (this._oSignerSelectionDialog) {
+				this._oSignerSelectionDialog.open();
+				return;
+			}
+
+			Fragment.load({
+				name: "custom.deposits.view.SignerSelectionDialog",
+				id: this.getView().getId(),
+				controller: this
+			}).then((oDialog) => {
+				this.getView().addDependent(oDialog);
+				this._oSignerSelectionDialog = oDialog;
+				oDialog.open();
+			});
+		},
+
+		/**
+		 * Handles signer checkbox selection and clears email on deselection.
+		 *
+		 * @param {sap.ui.base.Event} oEvent CheckBox select event
+		 * @returns {void}
+		 * @public
+		 */
+		onSignerSelectionChange: function (oEvent) {
+			const oSignerModel = this.getModel("signers");
+			const sPath = oEvent.getSource().getBindingContext("signers").getPath();
+			const bSelected = oEvent.getParameter("selected");
+
+			oSignerModel.setProperty(`${sPath}/selected`, bSelected);
+			if (!bSelected) {
+				oSignerModel.setProperty(`${sPath}/email`, "");
+			}
+		},
+
+		/**
+		 * Validates selected signers and creates the deposit via OData.
+		 * Enforces at least one signer and a non-empty email for every selected signer.
+		 * On success: closes dialog, calls onSuccess callback, shows success toast.
+		 * On failure: shows error MessageBox.
+		 *
+		 * @returns {Promise<void>}
+		 * @public
+		 */
+		onConfirmDepositWithSigners: async function () {
+			const oWorkflow = this._signerWorkflow;
+			const aSelectedSigners = this.getModel("signers").getProperty("/signers")
+				.filter((oSigner) => oSigner.selected);
+
+			if (!aSelectedSigners.length) {
+				MessageBox.error(this._getText("signerSelectionRequired"));
+				return;
+			}
+
+			if (aSelectedSigners.some((oSigner) => !oSigner.email.trim())) {
+				MessageBox.error(this._getText("signerEmailRequired"));
+				return;
+			}
+
+			try {
+				await this.getView().getModel("mainService").bindList("/Deposits").create(oWorkflow.payload);
+				this._oSignerSelectionDialog.close();
+				if (oWorkflow.onSuccess) {
+					oWorkflow.onSuccess.call(this, aSelectedSigners, oWorkflow.payload);
+				}
+				MessageToast.show(this._getText(oWorkflow.successMessageKey));
+			} catch {
+				MessageBox.error(this._getText(oWorkflow.errorMessageKey));
+			}
+		},
+
+		/**
+		 * Closes the signer-selection dialog without creating a deposit.
+		 *
+		 * @returns {void}
+		 * @public
+		 */
+		onCancelSignerSelection: function () {
+			this._oSignerSelectionDialog.close();
+		},
+
+		/**
+		 * Destroys the cached signer dialog. Call from child controller onExit().
+		 *
+		 * @returns {void}
+		 * @protected
+		 */
+		_destroySignerSelectionDialog: function () {
+			if (this._oSignerSelectionDialog) {
+				this._oSignerSelectionDialog.destroy();
+				this._oSignerSelectionDialog = null;
 			}
 		}
 	});
