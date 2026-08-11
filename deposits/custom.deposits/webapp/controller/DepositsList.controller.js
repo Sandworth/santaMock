@@ -668,6 +668,20 @@ sap.ui.define([
 		/**
 		 * Builds a ColumnListItem template with cells ordered to match the given column key array.
 		 * Must match the order of columns in the table aggregation (cell[i] ↔ column[i]).
+		 *
+		 * Supported column keys:
+		 * - "client_col": MText with client name
+		 * - "start_date_col": MText with formatted start date
+		 * - "maturity_date_col": MText with formatted maturity date
+		 * - "amount_col": MText with Float-typed amount
+		 * - "currency_col": MText with currency description
+		 * - "duration_col": MText with tenor description
+		 * - "rate_col": ObjectNumber with rate and % unit
+		 * - null: empty MText placeholder
+		 *
+		 * @param {Array<string|null>} aColumnKeys - Ordered array of column key identifiers (null for placeholder cells)
+		 * @returns {sap.m.ColumnListItem} The configured row template with Navigation type and press handler
+		 * @private
 		 */
 		_buildRowTemplate: function (aColumnKeys) {
 			var aCells = aColumnKeys.map((sKey) => {
@@ -1321,6 +1335,15 @@ sap.ui.define([
 			return new Date(oPlainDate.year, oPlainDate.month - 1, oPlainDate.day);
 		},
 		
+		/**
+		 * Handles file upload for bulk rate updates (Santander environment only).
+		 * Reads a file from the FileUploader control, converts it to Base64,
+		 * and sends it to the OData action `/postFixTermDeposits(...)` as a parameter.
+		 * Shows success/error toast on completion.
+		 *
+		 * @returns {void}
+		 * @public
+		 */
 		handleUploadPress: function () {
 			// Get file from fileUploader control
 			const oFileUploader = this.byId("fileUploader");
@@ -1439,6 +1462,13 @@ sap.ui.define([
 			});
 		},
 
+		/**
+		 * Lifecycle hook called when the controller is destroyed.
+		 * Cleans up the signer selection dialog to prevent memory leaks.
+		 *
+		 * @returns {void}
+		 * @public
+		 */
 		onExit: function () {
 			this._destroySignerSelectionDialog();
 		}

@@ -204,6 +204,16 @@ A **Dialog fragment** for creating custom (non-standard-tenor) deposits. Loaded 
 4. **Step 4**: Select source account (filtered by currency).
 5. **Step 5**: Enter amount + calculate expected return.
 
+### SignerSelectionDialog.fragment.xml
+
+A **Dialog fragment** for the contract-signer confirmation workflow. Loaded on demand via `Fragment.load()` and cached for reuse. Contains:
+
+- A confirmation summary text displaying the deposit request details.
+- A list of available signers with checkboxes and email inputs.
+- Confirm and Cancel buttons.
+
+Used by both `DepositDetail.onRequestDeposit()` and `DepositsList.onSubmitCustomRequest()` via the shared `BaseController._openSignerSelectionDialog()` method.
+
 ---
 
 ## Models & Data Sources
@@ -218,6 +228,7 @@ A **Dialog fragment** for creating custom (non-standard-tenor) deposits. Loaded 
 | `simulation` | `JSONModel` | Created in DepositDetail.onInit | Simulation state: amount, interest, total, currency |
 | `request` | `JSONModel` | Created in DepositDetail.onInit | Request form state: account, amount, filtered accounts |
 | `customRequest` | `JSONModel` | Created in DepositsList._initCustomRequestModel | Custom request dialog state: currency, dates, rate, account, amount, expected return |
+| `signers` | `JSONModel` | Created lazily in BaseController._openSignerSelectionDialog | Signer selection dialog state: dialogTitle, confirmButtonText, confirmationText, signers array (name, email, selected) |
 
 ### OData V4 Entities Used
 
@@ -290,6 +301,16 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 | `_onAmountInputLiveChange(oEvent)` | Real-time input filter: strips any character not matching the numeric regex as the user types. Shared by all amount inputs across the app. |
 | `_getText(sKey, aArgs)` | Convenience wrapper for `getResourceBundle().getText(sKey, aArgs)`. |
 | `_onAmountInputChange(oEvent, sModelPath, sDisplayPath, sModelName, fnCallback)` | Generic amount change handler: parses input → validates → stores in model → formats display → triggers optional callback (e.g., validation). Used by simulation, request, and custom-request inputs. |
+
+#### Functions — Signer Selection Dialog
+
+| Function | Description |
+|---|---|
+| `_openSignerSelectionDialog(oOptions)` | Opens the contract-signer confirmation dialog. Lazily initializes the `signers` model, resets mock signer data, stores the pending deposit workflow configuration, and loads/caches the `SignerSelectionDialog` fragment. Accepts `oOptions` with `confirmationText`, `dialogTitle`, `confirmButtonText`, `payload`, `successMessageKey`, `errorMessageKey`, and `onSuccess` callback. |
+| `onSignerSelectionChange(oEvent)` | Handles signer checkbox selection change. Updates `signers>/selected` state and clears email on deselection. |
+| `onConfirmDepositWithSigners()` | Validates selected signers (at least one required, all must have non-empty email), creates the deposit via OData POST to `/Deposits`, closes the dialog, invokes `onSuccess` callback, and shows a success toast. Shows error MessageBox on failure. |
+| `onCancelSignerSelection()` | Closes the signer-selection dialog without creating a deposit. |
+| `_destroySignerSelectionDialog()` | Destroys the cached signer dialog instance. Called from child controller `onExit()` methods. |
 
 ---
 
@@ -370,7 +391,7 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 | `onStep5AmountValidate()` | Re-validates current amount and applies result to UI. |
 | `onStep5Calculate()` | Validates amount, then calculates: `Interest = Amount × (Rate/100) × (Months/12)`. Writes `expectedReturn` and `expectedTotal` to model. |
 | `onCancelCustomRequest()` | Closes and destroys the dialog, resets the model. |
-| `onSubmitCustomRequest()` | Final validation → confirmation MessageBox → OData POST to `/Deposits` with computed payload (amount, currency, tenor="CT", rate, dates, status=1) → success toast. |
+| `onSubmitCustomRequest()` | Final validation → opens signer selection dialog via `_openSignerSelectionDialog()` → on confirm: OData POST to `/Deposits` with computed payload (amount, currency, tenor="CT", rate, dates, status=1) → success toast → closes custom request dialog. |
 | `_dateToPlainDate(oDate)` | Converts JavaScript `Date` to `Temporal.PlainDate`. |
 | `_plainDateToDate(oPlainDate)` | Converts `Temporal.PlainDate` to JavaScript `Date` (local midnight). |
 
@@ -379,6 +400,12 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 | Function | Description |
 |---|---|
 | `handleUploadPress()` | Reads a file from the FileUploader, converts to Base64, sends to the OData action `/postFixTermDeposits(...)` as a parameter. Shows success/error toast. Used for bulk rate updates in Santander environments. |
+
+#### Functions — Lifecycle
+
+| Function | Description |
+|---|---|
+| `onExit()` | Lifecycle cleanup — destroys the cached signer selection dialog to prevent memory leaks. |
 
 ---
 
@@ -395,7 +422,7 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 | Function | Description |
 |---|---|
 | `onInit()` | Caches component/router references, initializes `Formatter`, creates `simulation` and `request` JSONModels, attaches `patternMatched` listener on the `DepositDetail` route. |
-| `onExit()` | Detaches the `patternMatched` listener to prevent memory leaks. |
+| `onExit()` | Detaches the `patternMatched` listener and destroys the cached signer selection dialog to prevent memory leaks. |
 
 #### Functions — Route Handling
 
@@ -427,7 +454,7 @@ Defined in `webapp/model/formatter.js`. Must be initialized with `Formatter.init
 | `onReqAmountInputChange(oEvent)` | Parses/formats amount, stores in `request` model, triggers validation. |
 | `onRequestAccountChange(oEvent)` | Updates `request>/cuentaOrigen` with selected account. If deselected, clears amount and validation. If selected, re-validates current amount. |
 | `_filterAccountsByCurrency()` | Reads currency from binding context, filters `banks` model accounts by currency, updates `request>/cuentasFiltradas`. |
-| `onRequestDeposit()` | Full submission flow: validate account + amount → build confirmation message → `MessageBox.confirm` → on YES: compute start/maturity dates (Temporal API) → OData POST to `/Deposits` with payload → success toast. |
+| `onRequestDeposit()` | Full submission flow: validate account + amount → build confirmation message → open signer selection dialog via `_openSignerSelectionDialog()` → on confirm: compute start/maturity dates (Temporal API) → OData POST to `/Deposits` with payload → success toast → close detail view. |
 | `onCopySimulation()` | Copies `simulation>/amount` to `request>/importeSolicitud`, formats display, triggers validation. Enables quick flow from simulation to request. |
 
 #### Functions — Navigation
@@ -450,7 +477,7 @@ Step 2: Pick Maturity Date → auto-computes tenor days → async interpolates r
 Step 3: Display interpolated rate (read-only)
 Step 4: Select Source Account → unlocks Step 5
 Step 5: Enter Amount → Calculate → shows expected return/total
-Submit: Validation → Confirm dialog → OData POST
+Submit: Validation → Signer Selection Dialog → OData POST
 ```
 
 ### Rate Interpolation Logic
@@ -460,6 +487,30 @@ When the user picks a custom maturity date:
 2. It fetches all rate-grid entries for the selected currency.
 3. Finds the nearest **lower** and **upper** tenor entries (e.g., for 45 days: lower = 1M/30 days, upper = 2M/60 days).
 4. Applies **linear interpolation**: `Rate = RateLower + (RateUpper - RateLower) × (TargetDays - LowerDays) / (UpperDays - LowerDays)`.
+
+---
+
+## Signer Selection Dialog
+
+The Signer Selection Dialog provides a contract-signer confirmation workflow before any deposit creation. It is implemented in `BaseController.js` (shared across controllers) and uses the `signers` JSON model.
+
+### Workflow
+
+```
+1. Controller calls _openSignerSelectionDialog(oOptions)
+2. Dialog displays confirmation summary + list of available signers
+3. User selects signers (checkbox) and enters their emails
+4. User clicks Confirm → validates (≥1 signer, all emails non-empty)
+5. OData POST to /Deposits with oOptions.payload
+6. On success: closes dialog, calls oOptions.onSuccess, shows toast
+```
+
+### Integration Points
+
+- **DepositDetail.onRequestDeposit()**: Uses the signer dialog for standard deposit requests.
+- **DepositsList.onSubmitCustomRequest()**: Uses the signer dialog for custom tenor deposit requests.
+
+Both controllers call `_destroySignerSelectionDialog()` in their `onExit()` lifecycle hook.
 
 ---
 
@@ -556,19 +607,19 @@ Local development proxies `/odata` to the CF destination `Deposits_Destination` 
 ## Summary of Key Data Flows
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ FLP Tile Click                                                  │
-│   ↓                                                             │
-│ Component.init() → Router.initialize() → _onBeforeRouteMatched  │
-│   ↓                                                             │
-│ DepositsList.onInit() → Detect intent → Create intent model     │
-│   ↓                                                             │
-│ _bindItemsByIntent() → Probe OData → Bind table to entity       │
-│   ↓                                                             │
-│ User clicks row → onListItemPress → FCL helper → navTo detail   │
-│   ↓                                                             │
-│ DepositDetail._onDepositMatched → Bind element → Show detail    │
-│   ↓                                                             │
-│ User simulates / requests → Validation → OData POST             │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│ FLP Tile Click                                                         │
+│   ↓                                                                    │
+│ Component.init() → Router.initialize() → _onBeforeRouteMatched         │
+│   ↓                                                                    │
+│ DepositsList.onInit() → Detect intent → Create intent model            │
+│   ↓                                                                    │
+│ _bindItemsByIntent() → Probe OData → Bind table to entity              │
+│   ↓                                                                    │
+│ User clicks row → onListItemPress → FCL helper → navTo detail          │
+│   ↓                                                                    │
+│ DepositDetail._onDepositMatched → Bind element → Show detail           │
+│   ↓                                                                    │
+│ User simulates / requests → Validation → Signer Selection → OData POST │
+└────────────────────────────────────────────────────────────────────────┘
 ```

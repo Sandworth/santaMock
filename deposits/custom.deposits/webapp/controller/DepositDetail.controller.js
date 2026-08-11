@@ -8,28 +8,27 @@ sap.ui.define([
 ], function (BaseController, JSONModel, MessageToast, MessageBox, NumberFormat, Formatter) {
 	"use strict";
 
+	/**
+	 * Controller for the Deposit Detail view.
+	 * Manages simulation calculations, deposit request submission, and UI state management.
+	 * Handles both display mode (rate grid details) and request mode (creating deposit orders).
+	 *
+	 * @class custom.deposits.controller.DepositDetail
+	 * @extends custom.deposits.controller.BaseController
+	 */
 	return BaseController.extend("custom.deposits.controller.DepositDetail", {
-
-		/**
-		 * Controller for the Deposit Detail view.
-		 * Manages simulation calculations, deposit request submission, and UI state management.
-		 * Handles both display mode (rate grid details) and request mode (creating deposit orders).
-		 * 
-		 * @class custom.deposits.controller.DepositDetail
-		 * @extends custom.deposits.controller.BaseController
-		 */
 
 		/**
 		 * Lifecycle hook called when the controller is initialized.
 		 * Sets up view references, models (simulation, request), and subscribes to route pattern matching.
-		 * 
+		 *
 		 * Models initialized:
 		 * - "simulation": Stores simulation calculation state and results
 		 * - "request": Stores deposit request form data and account selection
-		 * 
+		 *
 		 * Routes subscribed:
 		 * - "DepositDetail": Triggers _onDepositMatched when detail page is navigated to
-		 * 
+		 *
 		 * @returns {void}
 		 * @public
 		 */
@@ -687,7 +686,8 @@ sap.ui.define([
 
 		/**
 		 * Lifecycle hook called when the controller is destroyed.
-		 * Detaches route pattern matching listener to prevent memory leaks.
+		 * Detaches route pattern matching listener and destroys the signer selection
+		 * dialog to prevent memory leaks.
 		 *
 		 * @returns {void}
 		 * @public
