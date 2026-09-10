@@ -89,8 +89,7 @@
                                         </m:headerToolbar>
                                         <m:Table
                                             items="{view>transferencias}"
-                                            mode="MultiSelect"
-                                            selectionChange=".onTransferenciaSelectionChange"
+                                            mode="None"
                                             includeItemInSelection="true">
                                             <m:headerToolbar>
                                                 <m:Toolbar>
@@ -111,7 +110,7 @@
                                                     <m:ToolbarSpacer />
                                                     <m:ToolbarSeparator />
                                                     <m:Button text="{i18n>btnConsultarConfiguracion}" type="Transparent" press=".onConsultConfiguration" />
-                                                    <m:Button
+                                                    <!-- <m:Button
                                                         text="{i18n>btnExportarComprobantes}"
                                                         type="Emphasized"
                                                         press=".onExportReceipts"
@@ -123,7 +122,7 @@
                                                                 value="{view>selectedCount}"
                                                                 visible="{= ${view>selectedCount} > 0 }" />
                                                         </m:customData>
-                                                    </m:Button>
+                                                    </m:Button> -->
                                                 </m:Toolbar>
                                             </m:headerToolbar>
                                             <m:columns>
@@ -243,13 +242,13 @@
                                                             text="{view>status/text}"
                                                             state="{view>status/state}"
                                                         />
-                                                        <!-- Botón Descargar Comprobante -->
+                                                        <!-- Botón Descargar Comprobante
                                                         <m:Button
                                                             text="{i18n>btnDescargarComprobante}"
                                                             type="Transparent"
                                                             icon="sap-icon://download"
                                                             press=".onDownloadReceipt"
-                                                        />
+                                                        /> -->
                                                     </m:cells>
                                                 </m:ColumnListItem>
                                             </m:items>
@@ -257,15 +256,6 @@
                                     </m:Panel>
                                 </m:CustomListItem>
                             </m:List>
-                        </m:VBox>
-                    </m:IconTabFilter>
-                    <!-- Tab 4: Aprobaciones (with Table) -->
-                    <m:IconTabFilter
-                        key="tab4"
-                        text="{i18n>tabAprobaciones}"
-                        >
-                        <m:VBox class="sapUiSmallMargin">
-                            <m:Text text="{i18n>placeholderAprobaciones}" />
                         </m:VBox>
                     </m:IconTabFilter>
                 </m:items>

@@ -247,34 +247,34 @@ sap.ui.define([
             oModel.setProperty(`${sPath}/selectedCount`, 0);
         },
 
-        onTransferenciaSelectionChange: function (oEvent) {
-            const oTable = oEvent.getSource();
-            const iSelectedCount = oTable.getSelectedItems().length;
-            const oContext = oTable.getBindingContext("view");
+        // onTransferenciaSelectionChange: function (oEvent) {
+        //     const oTable = oEvent.getSource();
+        //     const iSelectedCount = oTable.getSelectedItems().length;
+        //     const oContext = oTable.getBindingContext("view");
 
-            if (!oContext) {
-                return;
-            }
+        //     if (!oContext) {
+        //         return;
+        //     }
 
-            this._getViewModel().setProperty(`${oContext.getPath()}/selectedCount`, iSelectedCount);
-        },
+        //     this._getViewModel().setProperty(`${oContext.getPath()}/selectedCount`, iSelectedCount);
+        // },
 
         onConsultConfiguration: function () {
             this._openWizardDialog();
         },
 
-        onExportReceipts: function (oEvent) {
-            const oPanel = this._getParentPanel(oEvent.getSource());
-            const oTable = oPanel && oPanel.getContent().find((oContent) => oContent.isA("sap.m.Table"));
-            const iSelected = oTable ? oTable.getSelectedItems().length : 0;
+        // onExportReceipts: function (oEvent) {
+        //     const oPanel = this._getParentPanel(oEvent.getSource());
+        //     const oTable = oPanel && oPanel.getContent().find((oContent) => oContent.isA("sap.m.Table"));
+        //     const iSelected = oTable ? oTable.getSelectedItems().length : 0;
 
-            if (!iSelected) {
-                MessageToast.show(this._oResourceBundle.getText("msgSelectAtLeastOne"));
-                return;
-            }
+        //     if (!iSelected) {
+        //         MessageToast.show(this._oResourceBundle.getText("msgSelectAtLeastOne"));
+        //         return;
+        //     }
 
-            MessageToast.show(this._oResourceBundle.getText("msgExportReceipts", [iSelected]));
-        },
+        //     MessageToast.show(this._oResourceBundle.getText("msgExportReceipts", [iSelected]));
+        // },
 
         _getParentPanel: function (oControl) {
             let oParent = oControl;
@@ -1130,17 +1130,92 @@ sap.ui.define([
             const oTransferModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardTransferData.json"));
             oTransferModel.attachRequestCompleted(() => {
                 const aEmpresas = oTransferModel.getProperty("/empresas") || [];
-                const aBancos = oTransferModel.getProperty("/bancos") || [];
-                const aCuentasCentral = oTransferModel.getProperty("/cuentasCentralizadoras") || [];
-                oTransferModel.setProperty("/_empresasAll", aEmpresas.slice());
-                oTransferModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(aBancos)));
-                oTransferModel.setProperty("/_cuentasCentralAll", aCuentasCentral.slice());
-                this.getView().setModel(oTransferModel, "wizardTransfer");
-                this._openTransferWizardDialogFragment();
+
+                // Get banks from OData service
+                const oCashpoolModel = this.getView().getModel("Cashpool");
+                if (oCashpoolModel) {
+                    const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
+                        $expand: "AccountBalance"
+                    });
+                    oBanksBinding.requestContexts(0, 1000).then((aContexts) => {
+                        const aBanks = aContexts.map((oContext) => oContext.getObject());
+                        const oTransformed = this._transformBanksODataToBancos({ value: aBanks });
+
+                        oTransferModel.setProperty("/_empresasAll", aEmpresas.slice());
+                        oTransferModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oTransformed.bancos)));
+                        oTransferModel.setProperty("/_cuentasCentralAll", oTransformed.cuentasCentralizadoras.slice());
+
+                        oTransferModel.setProperty("/bancos", JSON.parse(JSON.stringify(oTransformed.bancos)));
+                        oTransferModel.setProperty("/cuentasCentralizadoras", oTransformed.cuentasCentralizadoras.slice());
+
+                        this.getView().setModel(oTransferModel, "wizardTransfer");
+                        this._openTransferWizardDialogFragment();
+                    }).catch((oError) => {
+                        MessageToast.show("No se pudo cargar las cuentas bancarias del servicio.");
+                        console.error("Error loading banks from OData:", oError);
+                    });
+                } else {
+                    MessageToast.show("No se pudo acceder al servicio OData.");
+                }
             });
             oTransferModel.attachRequestFailed(() => {
                 MessageToast.show("No se pudo cargar la configuración del wizard de transferencia.");
             });
+        },
+
+        _transformBanksODataToBancos: function (oODataResponse) {
+            const aBancos = [];
+            const aCuentasCentralizadoras = [];
+            const aBanksData = oODataResponse.value || [];
+            // filter aBanksData to only include banks with AccountBalance
+            const aFilteredBanksData = aBanksData.filter((oBank) => Array.isArray(oBank.AccountBalance) && oBank.AccountBalance.length > 0);
+
+            // Group accounts by normalized bank name to create hierarchical structure
+            const oBankMap = new Map();
+
+            aFilteredBanksData.forEach((oBank) => {
+                const sBankName = oBank.BankName || "";
+                const sBankKey = sBankName.toLowerCase();
+                const sHouseBank = oBank.HouseBank || "";
+                const aAccountBalance = oBank.AccountBalance || [];
+
+                // Transform account data
+                const aCuentas = aAccountBalance.map((oAccount) => ({
+                    ...oAccount,
+                    cuentaCorriente: oAccount.Iban || oAccount.BankAccountNumber || "",
+                    saldoInfoCent: 0, // Not available in OData
+                    saldoSAP: Number(oAccount.StatementAmount) || 0,
+                }));
+
+                // Create or update bank entry
+                if (!oBankMap.has(sBankKey)) {
+                    oBankMap.set(sBankKey, {
+                        ...oBank,
+                        expanded: false,
+                        cuentas: []
+                    });
+                }
+
+                const oBankEntry = oBankMap.get(sBankKey);
+                oBankEntry.cuentas.push(...aCuentas);
+
+                // Extract centralized accounts (HouseBank starts with "SANT")
+                if (sHouseBank.startsWith("SANT")) {
+                    aCuentas.forEach((oCuenta) => {
+                        aCuentasCentralizadoras.push(oCuenta);
+                    });
+                }
+            });
+
+            // Convert Map to Array
+            oBankMap.forEach((oBankData) => {
+                aBancos.push(oBankData);
+            });
+
+            return {
+                bancos: aBancos,
+                cuentasCentralizadoras: aCuentasCentralizadoras
+            };
         },
 
         _openTransferWizardDialogFragment: function () {
@@ -1323,10 +1398,11 @@ sap.ui.define([
                 return;
             }
             const aFiltered = JSON.parse(JSON.stringify(aAll)).map((oBanco) => {
-                const bBankMatch = oBanco.nombre.toLowerCase().includes(sQuery);
+                const bBankMatch = oBanco.BankName.toLowerCase().includes(sQuery);
                 if (!bBankMatch) {
                     oBanco.cuentas = oBanco.cuentas.filter((c) =>
-                        c.oficina.toLowerCase().includes(sQuery) || c.cuentaCorriente.toLowerCase().includes(sQuery)
+                        c.HouseBank.toLowerCase().includes(sQuery) ||
+                        c.cuentaCorriente.toLowerCase().includes(sQuery)
                     );
                 }
                 return oBanco;
@@ -1335,7 +1411,7 @@ sap.ui.define([
         },
 
         onCuentaOrigenSelectionChange: function (oEvent) {
-            this.byId("bancosListTransferStep2").getAggregation("items").map(e => {e.getContent()[0].getContent()[0].getSelectedItem()?.setSelected(false)})
+            this.byId("bancosListTransferStep2").getAggregation("items").map(e => { e.getContent()[0].getContent()[0].getSelectedItem()?.setSelected(false) })
             oEvent.getParameter("listItem").setSelected(true);
             this._updateTransferNavState(1);
         },
@@ -1352,8 +1428,8 @@ sap.ui.define([
                 return;
             }
             const aFiltered = aAll.filter((o) =>
-                o.nombre.toLowerCase().includes(sQuery) ||
-                o.oficina.toLowerCase().includes(sQuery) ||
+                o.Description.toLowerCase().includes(sQuery) ||
+                o.HouseBank.toLowerCase().includes(sQuery) ||
                 o.cuentaCorriente.toLowerCase().includes(sQuery)
             );
             oModel.setProperty("/cuentasCentralizadoras", aFiltered);
@@ -1406,8 +1482,8 @@ sap.ui.define([
                                 const oSelCtx = aContent[j].getSelectedItems()[0].getBindingContext("wizardTransfer");
                                 if (oSelCtx) {
                                     const sBanco = oSelCtx.getPath().split("/cuentas")[0];
-                                    oModel.setProperty("/review/cuentaOrigenBanco", oModel.getProperty(sBanco + "/nombre"));
-                                    oModel.setProperty("/review/cuentaOrigenCuenta",  `${oSelCtx.getObject().nombre}\nOficina: ${oSelCtx.getObject().oficina}\nCuenta: ${oSelCtx.getObject().cuentaCorriente}`);
+                                    oModel.setProperty("/review/cuentaOrigenBanco", oModel.getProperty(sBanco + "/BankName"));
+                                    oModel.setProperty("/review/cuentaOrigenCuenta", `${oSelCtx.getObject().Description}\nCuenta: ${oSelCtx.getObject().cuentaCorriente}`);
                                 }
                             }
                         }
@@ -1422,8 +1498,8 @@ sap.ui.define([
                 if (aSelDest.length > 0) {
                     const oCtxDest = aSelDest[0].getBindingContext("wizardTransfer");
                     if (oCtxDest) {
-                        oModel.setProperty("/review/cuentaDestinoBanco", "Bankinter");
-                        oModel.setProperty("/review/cuentaDestinoCuenta",  `${oCtxDest.getObject().nombre}\nOficina: ${oCtxDest.getObject().oficina}\nCuenta: ${oCtxDest.getObject().cuentaCorriente}`);
+                        oModel.setProperty("/review/cuentaDestinoBanco", "Banco Santander S.A.");
+                        oModel.setProperty("/review/cuentaDestinoCuenta", `${oCtxDest.getObject().Description}\nCuenta: ${oCtxDest.getObject().cuentaCorriente}`);
                     }
                 }
             }
@@ -1481,50 +1557,74 @@ sap.ui.define([
 
         onAnotherButtonPress: function (oTransferObject) {
             const oTreasureModel = this.getView().getModel("Cashpool");
+            const oBancoDestinoDetails = this._getTransferWizardModel().getData()._bancosAll.find(e => e.BankName == this._getTransferWizardModel().getData().review.cuentaDestinoBanco);
+            const oBancoOrigenDetails = this._getTransferWizardModel().getData()._bancosAll.find(e => e.BankName == this._getTransferWizardModel().getData().review.cuentaOrigenBanco);
+            const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaOrigenCuenta.split("\n")[2].split(": ")[1]);
+            const oCuentaDestinoDetails = this._getTransferWizardModel().getData()._cuentasCentralAll.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaDestinoCuenta.split("\n")[2].split(": ")[1]);
+            const sImporteFixed2=Number.parseFloat(-this._getTransferWizardModel().getData().preparedTransfer.importe).toFixed(2);
+            const sImporteFixed8=Number.parseFloat(-this._getTransferWizardModel().getData().preparedTransfer.importe).toFixed(8);
             const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
-            const oToPostBank = {
-                                "destinationName": "DS9",
-                                "valueDate": new Date().toISOString().split(".")[0],
-                                "payingCompanyCode": "2000",
-                                "payingBankAccount": "0123456789",
-                                "payingHouseBank": "SANT0",
-                                "payingHouseBankAccount": "0",
-                                "payeeHouseBank": "SANT1",
-                                "payeeHouseBankAccount": "1",
-                                "paymentRequestAmountInPaytCrcy": oTransferObject.importe,
-                                "paymentRequestCurrency": "EUR",
-                                "payeeBankAccount": "1234567899",
-                                "payeeCompanyCode": "2000",
-                                "bankTransferReleaseAndPay": true
-                                };
-                
-                //oContext.setParameter("parameters", oToPostBank);
-                oContext.setParameter("parameters", oToPostBank).invoke().then(() => {
-                    var oActionContext = oContext.getBoundContext();
-                    var sError = oActionContext.getObject().error;
-                    if (sError) {
-                        MessageToast.show("Error from backend: " + sError);
-                        return;
-                    } else {
-                        console.log(sError);                    
-                        MessageToast.show("Bank transfer posted successfully!");
+            let oToPostBank = {
+                "parameters": {
+                    "accounts":{
+                        "acctType": "S",
+                        "partnerAccount": "57200015",
+                        "reconcilAccount": "",
+                        "partnerAcctTransfer": ""
+                    },
+                    "amounts": {
+                        "paymCurr": `${oCuentaOrigenDetails.Currency}`,
+                        "paymAmount": sImporteFixed2,
+                        "paymAmountLong": sImporteFixed8
+                    },
+                    "bankData": [
+                        {
+                            "accountRole": "2",
+                            "bankCtry": `${oBancoDestinoDetails.BankCountry}`,
+                            "bankKey": `${oBancoDestinoDetails.BankKey}`,
+                            "bankNo": `${oBancoDestinoDetails.BankKey}`,
+                            "swiftCode": `${oBancoDestinoDetails.Swift}`,
+                            "bankAcct": `${oCuentaDestinoDetails.BankAccountNumber}`,
+                            "ctrlKey": `${oCuentaDestinoDetails.cuentaCorriente.substring(12, 14)}`,
+                            "iban": `${oCuentaDestinoDetails.Iban}`
+                        }
+                    ],
+                    "paymControl": {
+                        "housebankId": `${oCuentaOrigenDetails.HouseBank}`,
+                        "housebankAcctId": `${oCuentaOrigenDetails.AccountId}`,
+                        "paymentMethods": "T",
+                        "paycode": `${oCuentaOrigenDetails.HouseBank}/${oCuentaDestinoDetails.HouseBank}/T`
                     }
-                    }).catch((oError) => {
-                    MessageToast.show("Error posting bank transfer: " + oError.error.message);
-                });
+                }
+            };
+            oToPostBank = oToPostBank.parameters
+            //oContext.setParameter("parameters", oToPostBank);
+            oContext.setParameter("parameters", oToPostBank).invoke().then(() => {
+                var oActionContext = oContext.getBoundContext();
+                var sError = oActionContext.getObject().error;
+                if (sError) {
+                    MessageToast.show("Error from backend: " + sError);
+                    return;
+                } else {
+                    console.log(sError);
+                    MessageToast.show("Bank transfer posted successfully!");
+                }
+            }).catch((oError) => {
+                MessageToast.show("Error posting bank transfer: " + oError.error.message);
+            });
 
-                // oContext.execute().then(() => {
-                //     var oActionContext = oContext.getBoundContext();
-                //     var sError = oActionContext.getObject().error;
-                //     if (sError) {
-                //         MessageToast.show("Error from backend: " + sError);
-                //         return;
-                //     } else {
-                //     console.log(sError);                    
-                //     MessageToast.show("Bank transfer posted successfully!");}
-                // }).catch((oError) => {
-                //     MessageToast.show("Error posting bank transfer: " + oError.error.message);
-                // });
-            }
+            // oContext.execute().then(() => {
+            //     var oActionContext = oContext.getBoundContext();
+            //     var sError = oActionContext.getObject().error;
+            //     if (sError) {
+            //         MessageToast.show("Error from backend: " + sError);
+            //         return;
+            //     } else {
+            //     console.log(sError);                    
+            //     MessageToast.show("Bank transfer posted successfully!");}
+            // }).catch((oError) => {
+            //     MessageToast.show("Error posting bank transfer: " + oError.error.message);
+            // });
+        }
     });
 });
