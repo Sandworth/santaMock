@@ -8,9 +8,11 @@ sap.ui.define([
     "sap/m/Button",
     "sap/m/Text",
     "sap/ui/core/format/NumberFormat",
+    "sap/ui/model/Filter",
+    "sap/ui/model/FilterOperator",
     "sap/viz/ui5/format/ChartFormatter",
     "sap/viz/ui5/api/env/Format"
-], (Controller, JSONModel, Fragment, Formatter, MessageToast, Dialog, Button, Text, NumberFormat, ChartFormatter, Format) => {
+], (Controller, JSONModel, Fragment, Formatter, MessageToast, Dialog, Button, Text, NumberFormat, Filter, FilterOperator, ChartFormatter, Format) => {
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
@@ -23,7 +25,7 @@ sap.ui.define([
             const oViewModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/treasuryView.json"));
             oViewModel.attachRequestCompleted(() => {
                 this._applyViewModelI18n(oViewModel);
-                this._buildTransferenciasGroups();
+                this._loadTransferHistoryData();
             });
             this.getView().setModel(oViewModel, "view");
 
@@ -97,9 +99,132 @@ sap.ui.define([
             MessageToast.show(this._oResourceBundle.getText("msgDownloadExtract", [oData.fecha, sFormattedCurrency]));
         },
 
-        _buildTransferenciasGroups: function () {
+        _loadTransferHistoryData: function () {
+            Promise.all([
+                this._fetchTransferHistoryByType("AUTO"),
+                this._fetchTransferHistoryByType("MANUAL")
+            ]).then(([aAutoTransfers, aManualTransfers]) => {
+                this._buildTransferenciasGroupsByType("AUTO", aAutoTransfers);
+                this._buildTransferenciasGroupsByType("MANUAL", aManualTransfers);
+            }).catch(() => {
+                MessageToast.show("No se pudo cargar el histórico de transferencias.");
+                this._buildTransferenciasGroupsByType("AUTO", []);
+                this._buildTransferenciasGroupsByType("MANUAL", []);
+            });
+        },
+
+        _fetchTransferHistoryByType: function (sType) {
+            const oCashpoolModel = this.getOwnerComponent().getModel("Cashpool");
+            if (!oCashpoolModel) {
+                return Promise.resolve([]);
+            }
+
+            const oBinding = oCashpoolModel.bindList(
+                "/BankTransferHistory",
+                null,
+                null,
+                [new Filter("type", FilterOperator.EQ, sType)]
+            );
+
+            return oBinding.requestContexts().then((aContexts) =>
+                aContexts.map((oContext) => this._mapTransferHistoryItem(oContext.getObject(), sType))
+            );
+        },
+
+        _mapTransferHistoryItem: function (oItem, sType) {
+            const sTransferCurrency = oItem.amounts_paymCurr || oItem.payerAccount?.Currency || "EUR";
+            const sBalanceCurrency = oItem.payerAccount?.Currency || sTransferCurrency;
+
+            return {
+                razonSocial: oItem.payerAccount?.CompanyCode|| "-",
+                cif: oItem.payerAccount?.CompanyCode || "-",
+                fecha: oItem.createdAt,
+                origen: {
+                    banco: oItem.payerBankName || "-",
+                    oficina: oItem.payerAccount?.HouseBank || "-",
+                    cuenta: oItem.payerAccount?.Iban || "-"
+                },
+                destino: {
+                    banco: oItem.payeeBankName || "-",
+                    oficina: oItem.payeeAccount?.HouseBank || "-",
+                    cuenta: oItem.payeeAccount?.Iban || "-"
+                },
+                saldoAntes: {
+                    monto: this._toNumber(oItem.payerAccount?.StatementAmount),
+                    moneda: sBalanceCurrency
+                },
+                saldoProgramado: {
+                    monto: this._toNumber(oItem.amounts_plannedAmount || oItem.plannedAmount || 0),
+                    moneda: sBalanceCurrency
+                },
+                valorTransferencia: {
+                    monto: this._toNumber(oItem.amounts_paymAmountLong || oItem.amounts_paymAmount),
+                    moneda: sTransferCurrency
+                },
+                paymentDoc: oItem.paymentDoc || "-",
+                requestId: oItem.requestId || "-",
+                status: this._mapTransferStatus(oItem.status) || "-",
+                tipo: sType
+            };
+        },
+
+        _toNumber: function (vAmount) {
+            const nAmount = Number(vAmount);
+            return Number.isFinite(nAmount) ? nAmount : 0;
+        },
+
+        _mapTransferStatus: function (sRawStatus) {
+            const sCode = (sRawStatus || "").toUpperCase();
+
+            const oStatusMap = {
+                BCR: { textKey: "statusCodeBCR", state: "Information" },
+                TBA: { textKey: "statusCodeTBA", state: "Warning" },
+                AAPRV: { textKey: "statusCodeAAPRV", state: "Success" },
+                APRV: { textKey: "statusCodeAPRV", state: "Success" },
+                REJ: { textKey: "statusCodeREJ", state: "Error" },
+                SENT: { textKey: "statusCodeSENT", state: "Information" },
+                ACK: { textKey: "statusCodeACK", state: "Information" },
+                ACCP: { textKey: "statusCodeACCP", state: "Success" },
+                RJCT: { textKey: "statusCodeRJCT", state: "Error" },
+                CMP: { textKey: "statusCodeCMP", state: "Success" },
+                "-": { textKey: "statusCodeUnknown", state: "Warning" }
+            };
+
+            const oMapped = oStatusMap[sCode];
+            if (oMapped) {
+                return {
+                    code: sCode,
+                    text: this._oResourceBundle.getText(oMapped.textKey),
+                    state: oMapped.state
+                };
+            }
+
+            return {
+                code: sCode || "-",
+                text: sCode || this._oResourceBundle.getText("statusCodeUnknown"),
+                state: "Warning"
+            };
+        },
+
+        _getStatusOptions: function () {
+            return [
+                { key: "ALL", text: this._oResourceBundle.getText("allStatusesOption") },
+                { key: "BCR", text: this._oResourceBundle.getText("statusCodeBCR") },
+                { key: "TBA", text: this._oResourceBundle.getText("statusCodeTBA") },
+                { key: "AAPRV", text: this._oResourceBundle.getText("statusCodeAAPRV") },
+                { key: "APRV", text: this._oResourceBundle.getText("statusCodeAPRV") },
+                { key: "REJ", text: this._oResourceBundle.getText("statusCodeREJ") },
+                { key: "SENT", text: this._oResourceBundle.getText("statusCodeSENT") },
+                { key: "ACK", text: this._oResourceBundle.getText("statusCodeACK") },
+                { key: "ACCP", text: this._oResourceBundle.getText("statusCodeACCP") },
+                { key: "RJCT", text: this._oResourceBundle.getText("statusCodeRJCT") },
+                { key: "CMP", text: this._oResourceBundle.getText("statusCodeCMP") },
+                { key: "-", text: this._oResourceBundle.getText("statusCodeUnknown") }
+            ];
+        },
+
+        _buildTransferenciasGroupsByType: function (sType, aTransferencias) {
             const oModel = this._getViewModel();
-            const aTransferencias = oModel.getProperty("/transferencias") || [];
             const oGroupsByKey = new Map();
 
             aTransferencias.forEach((oTransferencia) => {
@@ -108,19 +233,14 @@ sap.ui.define([
                     oGroupsByKey.set(sGroupKey, {
                         razonSocial: oTransferencia.razonSocial,
                         cif: oTransferencia.cif,
-                        expanded: false,
+                        expanded: true,
                         selectedCount: 0,
                         filters: {
                             dateFrom: null,
                             dateTo: null,
                             status: "ALL"
                         },
-                        statusOptions: [
-                            { key: "ALL", text: this._oResourceBundle.getText("allStatusesOption") },
-                            { key: "Warning", text: this._oResourceBundle.getText("statusPendiente") },
-                            { key: "Success", text: this._oResourceBundle.getText("statusAprobada") },
-                            { key: "Error", text: this._oResourceBundle.getText("statusRechazada") }
-                        ],
+                        statusOptions: this._getStatusOptions(),
                         transferencias: [],
                         _allTransferencias: []
                     });
@@ -131,22 +251,46 @@ sap.ui.define([
                 oGroup._allTransferencias.push(oTransferencia);
             });
 
-            const aGroups = Array.from(oGroupsByKey.values());
-            aGroups.forEach((oGroup, iIndex) => {
-                oGroup.activo = iIndex === 0;
+            const aGroups = Array.from(oGroupsByKey.values()).map((oGroup, iIndex) => {
+                // Sort transfers by date descending (most recent first)
+                oGroup.transferencias.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                oGroup._allTransferencias.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+                return {
+                    ...oGroup,
+                    activo: sType === "AUTO" ? iIndex === 0 : false
+                };
             });
-            oModel.setProperty("/_transferenciasAgrupadasAll", aGroups);
-            oModel.setProperty("/transferenciasAgrupadas", aGroups.slice());
+
+            const oPaths = this._getTransferGroupPaths(sType);
+            oModel.setProperty(oPaths.allPath, aGroups);
+            oModel.setProperty(oPaths.visiblePath, aGroups.slice());
+        },
+
+        _getTransferGroupPaths: function (sType) {
+            if (sType === "MANUAL") {
+                return {
+                    allPath: "/_transferenciasAgrupadasManualAll",
+                    visiblePath: "/transferenciasAgrupadasManual"
+                };
+            }
+
+            return {
+                allPath: "/_transferenciasAgrupadasAutoAll",
+                visiblePath: "/transferenciasAgrupadasAuto"
+            };
         },
 
         onTransferenciasGroupSearch: function (oEvent) {
             const sRawQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").trim();
             const sNormalizedQuery = this._normalizeNifSearch(sRawQuery);
             const oModel = this._getViewModel();
-            const aAllGroups = oModel.getProperty("/_transferenciasAgrupadasAll") || [];
+            const sTransferType = oEvent.getSource().data("transferType") || "AUTO";
+            const oPaths = this._getTransferGroupPaths(sTransferType);
+            const aAllGroups = oModel.getProperty(oPaths.allPath) || [];
 
             if (!sNormalizedQuery) {
-                oModel.setProperty("/transferenciasAgrupadas", aAllGroups.slice());
+                oModel.setProperty(oPaths.visiblePath, aAllGroups.slice());
                 return;
             }
 
@@ -155,7 +299,7 @@ sap.ui.define([
                 this._normalizeNifSearch(oGroup.razonSocial).includes(sNormalizedQuery)
             );
 
-            oModel.setProperty("/transferenciasAgrupadas", aFilteredGroups);
+            oModel.setProperty(oPaths.visiblePath, aFilteredGroups);
         },
 
         _normalizeNifSearch: function (sValue) {
@@ -214,13 +358,14 @@ sap.ui.define([
             const oFilters = oGroup.filters || {};
 
             const aFiltered = (oGroup._allTransferencias || []).filter((oTransferencia) => {
-                const oTransferDate = this._parseTransferDate(oTransferencia.fecha);
+                // const oTransferDate = this._parseTransferDate(oTransferencia.fecha);
+                const oTransferDate = this._normalizeDate(new Date(oTransferencia.fecha))
                 const oFromDate = this._normalizeDate(oFilters.dateFrom);
                 const oToDate = this._normalizeDate(oFilters.dateTo);
 
                 const bMatchesFrom = !oFromDate || (oTransferDate && oTransferDate >= oFromDate);
                 const bMatchesTo = !oToDate || (oTransferDate && oTransferDate <= oToDate);
-                const bMatchesStatus = oFilters.status === "ALL" || oTransferencia.status.state === oFilters.status;
+                const bMatchesStatus = oFilters.status === "ALL" || oTransferencia.status.code === oFilters.status;
 
                 return bMatchesFrom && bMatchesTo && bMatchesStatus;
             });
@@ -1559,8 +1704,8 @@ sap.ui.define([
             const oTreasureModel = this.getView().getModel("Cashpool");
             const oBancoDestinoDetails = this._getTransferWizardModel().getData()._bancosAll.find(e => e.BankName == this._getTransferWizardModel().getData().review.cuentaDestinoBanco);
             const oBancoOrigenDetails = this._getTransferWizardModel().getData()._bancosAll.find(e => e.BankName == this._getTransferWizardModel().getData().review.cuentaOrigenBanco);
-            const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaOrigenCuenta.split("\n")[2].split(": ")[1]);
-            const oCuentaDestinoDetails = this._getTransferWizardModel().getData()._cuentasCentralAll.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaDestinoCuenta.split("\n")[2].split(": ")[1]);
+            const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaOrigenCuenta.split("\n")[1].slice(-24));
+            const oCuentaDestinoDetails = this._getTransferWizardModel().getData()._cuentasCentralAll.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaDestinoCuenta.split("\n")[1].slice(-24));
             const sImporteFixed2=Number.parseFloat(-this._getTransferWizardModel().getData().preparedTransfer.importe).toFixed(2);
             const sImporteFixed8=Number.parseFloat(-this._getTransferWizardModel().getData().preparedTransfer.importe).toFixed(8);
             const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
@@ -1594,7 +1739,8 @@ sap.ui.define([
                         "housebankAcctId": `${oCuentaOrigenDetails.AccountId}`,
                         "paymentMethods": "T",
                         "paycode": `${oCuentaOrigenDetails.HouseBank}/${oCuentaDestinoDetails.HouseBank}/T`
-                    }
+                    },
+                    "type": "MANUAL"
                 }
             };
             oToPostBank = oToPostBank.parameters
@@ -1608,6 +1754,7 @@ sap.ui.define([
                 } else {
                     console.log(sError);
                     MessageToast.show("Bank transfer posted successfully!");
+                    this._loadTransferHistoryData();
                 }
             }).catch((oError) => {
                 MessageToast.show("Error posting bank transfer: " + oError.error.message);
