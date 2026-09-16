@@ -10,16 +10,28 @@
     <VBox>
         <viz:VizFrame
             id="saldosVizFrame"
+            uiConfig="{applicationSet:'fiori'}"
             vizType="column"
-            height="220px"
+            height="350px"
             width="100%"
         >
             <viz:dataset>
-                <viz.data:FlattenedDataset data="{empresas>/empresas}">
+                <viz.data:FlattenedDataset
+                    data="{
+                        path: 'Cashpool>/Companies',
+                        filters: [
+                            {
+                                path: 'Currency',
+                                operator: 'EQ',
+                                value1: 'EUR'
+                            }
+                        ]
+                    }"
+                >
                     <viz.data:dimensions>
                         <viz.data:DimensionDefinition
-                            name="razonSocial"
-                            value="{razonSocial}"
+                            name="CompanyName"
+                            value="{CompanyName}"
                         />
                     </viz.data:dimensions>
                     <viz.data:measures>
@@ -34,7 +46,7 @@
                 <viz.feeds:FeedItem
                     uid="categoryAxis"
                     type="Dimension"
-                    values="razonSocial"
+                    values="CompanyName"
                 />
                 <viz.feeds:FeedItem
                     uid="valueAxis"
@@ -48,7 +60,16 @@
             class="sapUiContentPadding"
             showSeparators="None"
             width="100%"
-            items="{Cashpool>/Companies}"
+            items="{
+                path: 'Cashpool>/Companies',
+                filters: [
+                    {
+                        path: 'Currency',
+                        operator: 'EQ',
+                        value1: 'EUR'
+                    }
+                ]
+            }"
         >
             <CustomListItem type="Inactive">
                 <Panel
@@ -65,7 +86,7 @@
                         >
                             <HBox alignItems="Center">
                                 <Title
-                                    text="{Cashpool>name}"
+                                    text="{Cashpool>CompanyName}"
                                     titleStyle="H3"
                                     class="sapUiSmallMarginEnd sapUiTinyMarginTop"
                                 />
@@ -74,18 +95,18 @@
                                     type="Transparent"
                                 />
                             </HBox>
-                            <Label text="CIF: {Cashpool>cif}" />
+                            <Label text="{i18n>colCIF}: {Cashpool>VatNumber}" />
                         </VBox>
                         <VBox
                             alignItems="End"
                             class="sapUiSmallMarginEnd sapUiSmallMarginTopBottom"
                         >
-                            <Label text="Total Balance" />
+                            <Label text="{i18n>colTotalBalance}" />
                             <Title
                                 text="{
                                                 parts: [
-                                                    {path: 'empresas>balance'},
-                                                    {path: 'empresas>currency'}
+                                                    {path: 'Cashpool>balance'},
+                                                    {path: 'Cashpool>Currency'}
                                                 ],
                                                 type: 'Currency',
                                                 formatOptions: {

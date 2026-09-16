@@ -99,8 +99,8 @@
                                             <ColumnListItem type="Active">
                                                 <cells>
                                                     <!-- <HBox alignItems="Center"> -->
-                                                        <!-- <Text text="{wizardTransfer>Description}" class="sapUiTinyMarginEnd"/> -->
-                                                        <ObjectStatus inverted="true" text="{i18n>autorizado}"/>
+                                                    <Text text="{wizardTransfer>Description}" class="sapUiTinyMarginEnd"/>
+                                                        <!-- <ObjectStatus inverted="true" text="{i18n>autorizado}"/> -->
                                                     <!-- </HBox> -->
                                                     <!-- <Text text="{wizardTransfer>HouseBank}"/> -->
                                                     <Text text="{wizardTransfer>cuentaCorriente}"/>

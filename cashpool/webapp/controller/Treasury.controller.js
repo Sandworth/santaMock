@@ -51,7 +51,11 @@ sap.ui.define([
                         title: { visible: false }
                     },
                     categoryAxis: {
-                        title: { visible: false }
+                        title: { visible: false },
+                        label: {
+                            rotation: 45,
+                            hideOverlap: false
+                        }
                     }
                 });
             }
@@ -141,12 +145,12 @@ sap.ui.define([
                 fecha: oItem.createdAt,
                 origen: {
                     banco: oItem.payerBankName || "-",
-                    oficina: oItem.payerAccount?.HouseBank || "-",
+                    oficina: oItem.payerAccount?.Iban.substring(8,12) || "-",
                     cuenta: oItem.payerAccount?.Iban || "-"
                 },
                 destino: {
                     banco: oItem.payeeBankName || "-",
-                    oficina: oItem.payeeAccount?.HouseBank || "-",
+                    oficina: oItem.payeeAccount?.Iban.substring(8,12) || "-",
                     cuenta: oItem.payeeAccount?.Iban || "-"
                 },
                 saldoAntes: {
@@ -174,7 +178,7 @@ sap.ui.define([
         },
 
         _mapTransferStatus: function (sRawStatus) {
-            const sCode = (sRawStatus || "").toUpperCase();
+            const sCode = String(sRawStatus || "").trim().toUpperCase();
 
             const oStatusMap = {
                 BCR: { textKey: "statusCodeBCR", state: "Information" },
@@ -489,13 +493,32 @@ sap.ui.define([
             oWizardModel.attachRequestCompleted(() => {
                 // Store full lists for filtering
                 const aEmpresas = oWizardModel.getProperty("/empresas") || [];
-                const aBancos = oWizardModel.getProperty("/bancos") || [];
-                const aCuentasCentralizadoras = oWizardModel.getProperty("/cuentasCentralizadoras") || [];
-                oWizardModel.setProperty("/_empresasAll", aEmpresas.slice());
-                oWizardModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(aBancos)));
-                oWizardModel.setProperty("/_cuentasCentralAll", aCuentasCentralizadoras.slice());
-                this.getView().setModel(oWizardModel, "wizard");
-                this._openWizardDialogFragment();
+
+                const oCashpoolModel = this.getView().getModel("Cashpool");
+                if (!oCashpoolModel) {
+                    MessageToast.show("No se pudo acceder al servicio OData.");
+                    return;
+                }
+
+                const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
+                    $expand: "AccountBalance"
+                });
+                oBanksBinding.requestContexts(0, 1000).then((aContexts) => {
+                    const aBanks = aContexts.map((oContext) => oContext.getObject());
+                    const oTransformed = this._transformBanksODataToBancos({ value: aBanks });
+
+                    oWizardModel.setProperty("/_empresasAll", aEmpresas.slice());
+                    oWizardModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oTransformed.bancos)));
+                    oWizardModel.setProperty("/_cuentasCentralAll", oTransformed.cuentasCentralizadoras.slice());
+                    oWizardModel.setProperty("/bancos", JSON.parse(JSON.stringify(oTransformed.bancos)));
+                    oWizardModel.setProperty("/cuentasCentralizadoras", oTransformed.cuentasCentralizadoras.slice());
+
+                    this.getView().setModel(oWizardModel, "wizard");
+                    this._openWizardDialogFragment();
+                }).catch((oError) => {
+                    MessageToast.show("No se pudo cargar las cuentas bancarias del servicio.");
+                    console.error("Error loading banks from OData:", oError);
+                });
             });
             oWizardModel.attachRequestFailed(() => {
                 MessageToast.show("No se pudo cargar la configuración del wizard.");
@@ -566,7 +589,7 @@ sap.ui.define([
                 }
 
                 const oBancoContext = oPanel.getBindingContext("wizard");
-                const sBancoNombre = oBancoContext ? oBancoContext.getProperty("nombre") : "";
+                const sBancoNombre = oBancoContext ? oBancoContext.getProperty("BankName") : "";
 
                 oTable.getSelectedItems().forEach((oItem) => {
                     const oCtx = oItem.getBindingContext("wizard");
@@ -674,7 +697,7 @@ sap.ui.define([
         _updateReviewCuentas: function () {
             const oModel = this._getWizardModel();
             const aCuentasSeleccionadas = this._getSelectedStep2Accounts().map((oEntry) => oEntry.data);
-            oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.nombre).join(", ") || "-");
+            oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.Description).join(", ") || "-");
         },
 
         _updateReviewCuentaCentral: function () {
@@ -684,7 +707,7 @@ sap.ui.define([
             if (oSelected) {
                 const oCtx = oSelected.getBindingContext("wizard");
                 oModel.setProperty("/review/cuentaCentralNombre", "Santander");
-                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().nombre}\nOficina: ${oCtx.getObject().oficina}\nCuenta: ${oCtx.getObject().cuentaCorriente}`);
+                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().Description}\nOficina: ${oCtx.getObject().HouseBank}\nCuenta: ${oCtx.getObject().cuentaCorriente}`);
             } else {
                 oModel.setProperty("/review/cuentaCentralNombre", "");
                 oModel.setProperty("/review/cuentaCentralCuenta", "");
@@ -800,7 +823,11 @@ sap.ui.define([
             const oModel = this._getWizardModel();
             const aAll = oModel.getProperty("/_empresasAll");
             const aFiltered = sQuery
-                ? aAll.filter((o) => o.razonSocial.toLowerCase().includes(sQuery) || o.cif.toLowerCase().includes(sQuery))
+                ? aAll.filter((o) =>
+                    o.razonSocial?.toLowerCase().includes(sQuery) ||
+                    o.cif?.toLowerCase().includes(sQuery) ||
+                    o.companyCode?.toLowerCase().includes(sQuery)
+                )
                 : aAll.slice();
             oModel.setProperty("/empresas", aFiltered);
         },
@@ -816,11 +843,11 @@ sap.ui.define([
             }
             const aFiltered = aAll
                 .map((oBanco) => {
-                    const bBancoMatch = oBanco.nombre.toLowerCase().includes(sQuery);
+                    const bBancoMatch = oBanco.BankName.toLowerCase().includes(sQuery);
                     const aCuentasFiltradas = bBancoMatch
                         ? oBanco.cuentas
                         : oBanco.cuentas.filter((c) =>
-                            c.nombre.toLowerCase().includes(sQuery) ||
+                            c.Description.toLowerCase().includes(sQuery) ||
                             c.cuentaCorriente.toLowerCase().includes(sQuery));
                     return aCuentasFiltradas.length > 0
                         ? Object.assign({}, oBanco, { cuentas: aCuentasFiltradas, expanded: true })
@@ -836,8 +863,8 @@ sap.ui.define([
             const aAll = oModel.getProperty("/_cuentasCentralAll");
             const aFiltered = sQuery
                 ? aAll.filter((o) =>
-                    o.nombre.toLowerCase().includes(sQuery) ||
-                    o.oficina.toLowerCase().includes(sQuery) ||
+                    o.Description.toLowerCase().includes(sQuery) ||
+                    o.HouseBank.toLowerCase().includes(sQuery) ||
                     o.cuentaCorriente.toLowerCase().includes(sQuery))
                 : aAll.slice();
             oModel.setProperty("/cuentasCentralizadoras", aFiltered);
@@ -995,7 +1022,7 @@ sap.ui.define([
                     // Opción 3: Horario por cuenta
                     aHorariosPorCuenta.push({
                         banco: sBancoNombre,
-                        nombre: oAccountData.nombre,
+                        nombre: oAccountData.Description,
                         cuentaCorriente: oAccountData.cuentaCorriente,
                         selectedHorario: "",
                         horariosUnicos: aHorariosDisponibles
@@ -1129,9 +1156,9 @@ sap.ui.define([
                 const sBancoNombre = oAccountEntry.banco;
                 const oAccountData = oAccountEntry.data;
                 const sCuentaCorriente = oAccountData.cuentaCorriente;
-                const sCuentaNombre = oAccountData.nombre;
+                const sCuentaNombre = oAccountData.Description;
                 const nSaldoInfoCent = Number(oAccountData.saldoInfoCent) || 0;
-                const sCurrency = oAccountData.currency || "";
+                const sCurrency = oAccountData.Currency || "";
 
                 if (iSelectedSaldoType === 1) {
                     const oPrevCuenta = oPrevCuentaMap.get(sCuentaCorriente) || {};
@@ -1328,7 +1355,7 @@ sap.ui.define([
                 const aCuentas = aAccountBalance.map((oAccount) => ({
                     ...oAccount,
                     cuentaCorriente: oAccount.Iban || oAccount.BankAccountNumber || "",
-                    saldoInfoCent: 0, // Not available in OData
+                    saldoInfoCent: Number(oAccount.StatementAmount) || 0,
                     saldoSAP: Number(oAccount.StatementAmount) || 0,
                 }));
 
@@ -1522,7 +1549,9 @@ sap.ui.define([
                 return;
             }
             const aFiltered = aAll.filter((o) =>
-                o.razonSocial.toLowerCase().includes(sQuery) || o.cif.toLowerCase().includes(sQuery)
+                o.razonSocial?.toLowerCase().includes(sQuery) ||
+                o.cif?.toLowerCase().includes(sQuery) ||
+                o.companyCode?.toLowerCase().includes(sQuery)
             );
             oModel.setProperty("/empresas", aFiltered);
         },
@@ -1713,7 +1742,7 @@ sap.ui.define([
                 "parameters": {
                     "accounts":{
                         "acctType": "S",
-                        "partnerAccount": "57200015",
+                        "partnerAccount": `${oCuentaDestinoDetails.PartnerAccount.slice(2)}`,
                         "reconcilAccount": "",
                         "partnerAcctTransfer": ""
                     },
@@ -1726,8 +1755,8 @@ sap.ui.define([
                         {
                             "accountRole": "2",
                             "bankCtry": `${oBancoDestinoDetails.BankCountry}`,
-                            "bankKey": `${oBancoDestinoDetails.BankKey}`,
-                            "bankNo": `${oBancoDestinoDetails.BankKey}`,
+                            "bankKey": `${oCuentaDestinoDetails.Iban.substring(4,12)}`,
+                            "bankNo": `${oCuentaDestinoDetails.Iban.substring(4,12)}`,
                             "swiftCode": `${oBancoDestinoDetails.Swift}`,
                             "bankAcct": `${oCuentaDestinoDetails.BankAccountNumber}`,
                             "ctrlKey": `${oCuentaDestinoDetails.cuentaCorriente.substring(12, 14)}`,

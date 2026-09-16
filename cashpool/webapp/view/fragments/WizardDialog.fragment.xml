@@ -66,7 +66,7 @@
                             <CustomListItem>
                                 <Panel expandable="true"
                                        expanded="{wizard>expanded}"
-                                       headerText="{parts: [{path: 'wizard>nombre'}, {path: 'wizard>cuentas'}], formatter: 'Formatter.formatBankTitle'}"
+                                        headerText="{parts: [{path: 'wizard>BankName'}, {path: 'wizard>cuentas'}], formatter: 'Formatter.formatBankTitle'}"
                                        class="sapUiSmallMarginBottom">
                                     <Table items="{wizard>cuentas}"
                                            mode="MultiSelect"
@@ -103,13 +103,13 @@
                                             <ColumnListItem type="Active">
                                                 <cells>
                                                     <HBox alignItems="Center">
-                                                        <Text text="{wizard>nombre}" class="sapUiTinyMarginEnd"/>
+                                                        <Text text="{wizard>Description}" class="sapUiTinyMarginEnd"/>
                                                         <ObjectStatus inverted="true" text="{i18n>autorizado}"/>
                                                     </HBox>
-                                                    <Text text="{wizard>oficina}"/>
+                                                    <Text text="{wizard>HouseBank}"/>
                                                     <Text text="{wizard>cuentaCorriente}"/>
-                                                    <!-- <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/> -->
-                                                    <Text text="{parts: [{path: 'wizard>saldoInfoCent'}, {path: 'wizard>currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                                    <!-- <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>Currency'}], formatter: 'Formatter.formatCurrency'}"/> -->
+                                                    <Text text="{parts: [{path: 'wizard>saldoInfoCent'}, {path: 'wizard>Currency'}], formatter: 'Formatter.formatCurrency'}"/>
                                                 </cells>
                                             </ColumnListItem>
                                         </items>
@@ -153,8 +153,8 @@
                             <items>
                                 <ColumnListItem type="Active">
                                     <cells>
-                                        <Text text="{wizard>nombre}"/>
-                                        <Text text="{wizard>oficina}"/>
+                                        <Text text="{wizard>Description}"/>
+                                        <Text text="{wizard>HouseBank}"/>
                                         <Text text="{wizard>cuentaCorriente}"/>
                                     </cells>
                                 </ColumnListItem>
