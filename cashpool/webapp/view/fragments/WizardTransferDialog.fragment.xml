@@ -24,7 +24,7 @@
                                     search=".onEmpresaSearchTransfer"
                                     class="sapUiSmallMarginBottom"/>
                         <Table id="empresaTableTransfer"
-                                items="{wizardTransfer>/empresas}"
+                                items="{saldos>/}"
                                 mode="SingleSelectLeft"
                                 selectionChange=".onEmpresaSelectionChangeTransfer"
                                 fixedLayout="false">
@@ -43,8 +43,8 @@
                             <items>
                                 <ColumnListItem type="Active">
                                     <cells>
-                                        <Text text="{wizardTransfer>razonSocial}"/>
-                                        <Text text="{wizardTransfer>cif}"/>
+                                        <Text text="{saldos>CompanyName}"/>
+                                        <Text text="{saldos>VatNumber}"/>
                                     </cells>
                                 </ColumnListItem>
                             </items>

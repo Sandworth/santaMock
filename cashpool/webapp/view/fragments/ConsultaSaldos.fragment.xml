@@ -18,7 +18,7 @@
             <viz:dataset>
                 <viz.data:FlattenedDataset
                     data="{
-                        path: 'Cashpool>/Companies',
+                        path: 'saldos>/',
                         filters: [
                             {
                                 path: 'Currency',
@@ -36,8 +36,8 @@
                     </viz.data:dimensions>
                     <viz.data:measures>
                         <viz.data:MeasureDefinition
-                            name="balance"
-                            value="{balance}"
+                            name="Balance"
+                            value="{Balance}"
                         />
                     </viz.data:measures>
                 </viz.data:FlattenedDataset>
@@ -51,7 +51,7 @@
                 <viz.feeds:FeedItem
                     uid="valueAxis"
                     type="Measure"
-                    values="balance"
+                    values="Balance"
                 />
             </viz:feeds>
         </viz:VizFrame>
@@ -61,14 +61,7 @@
             showSeparators="None"
             width="100%"
             items="{
-                path: 'Cashpool>/Companies',
-                filters: [
-                    {
-                        path: 'Currency',
-                        operator: 'EQ',
-                        value1: 'EUR'
-                    }
-                ]
+                path: 'saldos>/'
             }"
         >
             <CustomListItem type="Inactive">
@@ -84,18 +77,18 @@
                             justifyContent="SpaceBetween"
                             class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom"
                         >
-                            <HBox alignItems="Center">
+                            <!-- <HBox alignItems="Center"> -->
                                 <Title
-                                    text="{Cashpool>CompanyName}"
-                                    titleStyle="H3"
-                                    class="sapUiSmallMarginEnd sapUiTinyMarginTop"
-                                />
-                                <Button
+                                text="{saldos>CompanyName}"
+                                titleStyle="H3"
+                                class="sapUiSmallMarginEnd sapUiTinyMarginTop"
+                            />
+                                <!-- <Button
                                     icon="sap-icon://edit"
                                     type="Transparent"
-                                />
-                            </HBox>
-                            <Label text="{i18n>colCIF}: {Cashpool>VatNumber}" />
+                                  /> -->
+                            <!-- </HBox> -->
+                            <Label text="{i18n>colCIF}: {saldos>VatNumber}" />
                         </VBox>
                         <VBox
                             alignItems="End"
@@ -105,8 +98,8 @@
                             <Title
                                 text="{
                                                 parts: [
-                                                    {path: 'Cashpool>balance'},
-                                                    {path: 'Cashpool>Currency'}
+                                                    {path: 'saldos>Balance'},
+                                                    {path: 'saldos>Currency'}
                                                 ],
                                                 type: 'Currency',
                                                 formatOptions: {

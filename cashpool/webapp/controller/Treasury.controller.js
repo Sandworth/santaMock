@@ -32,6 +32,24 @@ sap.ui.define([
             const oEmpresasModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/empresas.json"));
             this.getView().setModel(oEmpresasModel, "empresas");
 
+            // Load balance data from Cashpool OData model for the List
+            const oCashpoolModel = this.getOwnerComponent().getModel("Cashpool");
+            if (oCashpoolModel) {
+                const oBinding = oCashpoolModel.bindList("/getBalanceOfCompanies()");
+                sap.ui.core.BusyIndicator.show(0)
+                oBinding.requestContexts().then((aContexts) => {
+                    let aData = aContexts.map((oContext) => oContext.getObject());
+                    const aDataEUR = aData.filter((oItem) => oItem.Currency === "EUR");
+                    const oSaldosModel = new JSONModel(aDataEUR);
+                    this.getView().setModel(oSaldosModel, "saldos");
+                }).catch(() => {
+                    MessageToast.show(this._oResourceBundle.getText("errorLoadingSaldos"));
+                    this.getView().setModel(new JSONModel([]), "saldos");
+                }).finally(() => {
+                    sap.ui.core.BusyIndicator.hide();
+                });
+            }
+
             Format.numericFormatter(ChartFormatter.getInstance());
             const formatPattern = ChartFormatter.DefaultPattern;
             const oVizFrame = this.getView().byId("saldosVizFrame");
@@ -140,7 +158,7 @@ sap.ui.define([
             const sBalanceCurrency = oItem.payerAccount?.Currency || sTransferCurrency;
 
             return {
-                razonSocial: oItem.payerAccount?.CompanyCode|| "-",
+                razonSocial: oItem.payerAccount?.CompanyName|| "-",
                 cif: oItem.payerAccount?.CompanyCode || "-",
                 fecha: oItem.createdAt,
                 origen: {
@@ -462,7 +480,7 @@ sap.ui.define([
         },
 
         onAfterRendering: function () {
-            this._openConfigurationDialog();
+            //this._openConfigurationDialog();
         },
 
         _openConfigurationDialog: function () {
@@ -1635,10 +1653,10 @@ sap.ui.define([
             if (oEmpresaTable) {
                 const aSelected = oEmpresaTable.getSelectedItems();
                 if (aSelected.length > 0) {
-                    const oCtx = aSelected[0].getBindingContext("wizardTransfer");
+                    const oCtx = aSelected[0].getBindingContext("saldos");
                     if (oCtx) {
-                        oModel.setProperty("/review/razonSocial", oCtx.getProperty("razonSocial"));
-                        oModel.setProperty("/review/cif", oCtx.getProperty("cif"));
+                        oModel.setProperty("/review/razonSocial", oCtx.getProperty("CompanyName"));
+                        oModel.setProperty("/review/cif", oCtx.getProperty("VatNumber"));
                     }
                 }
             }
