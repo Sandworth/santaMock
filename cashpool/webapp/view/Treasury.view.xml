@@ -19,11 +19,13 @@
                 </f:heading>
                 <f:actions>
                     <m:Button
+                        id="btnConfigureNow"
                         text="{i18n>configureNowBtn}"
                         type="Emphasized"
                         icon="sap-icon://settings"
                         press=".onConfigureNow"/>
                     <m:Button 
+                        id="btnTransferenciaManual"
                         text="Transferencia Manual"
                         type="Ghost"
                         icon="sap-icon://payment-approval"
@@ -49,7 +51,7 @@
                     </m:IconTabFilter>
                     <!-- Tab 2: Transferencias Manuales -->
                     <m:IconTabFilter
-                        key="tab2"
+                        key="MANUAL"
                         text="{i18n>tabTransferenciasManual}"
                         >
                         <m:VBox>
@@ -224,7 +226,7 @@
                     </m:IconTabFilter>
                     <!-- Tab 3: Transferencias Automáticas -->
                     <m:IconTabFilter
-                        key="tab3"
+                        key="AUTO"
                         text="{i18n>tabTransferenciasAuto}"
                         >
                         <m:VBox>

@@ -56,6 +56,7 @@
             </viz:feeds>
         </viz:VizFrame>
         <List
+            id="saldosList"
             backgroundDesign="Transparent"
             class="sapUiContentPadding"
             showSeparators="None"

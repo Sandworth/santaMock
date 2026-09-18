@@ -25,7 +25,7 @@ sap.ui.define([
             const oViewModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/treasuryView.json"));
             oViewModel.attachRequestCompleted(() => {
                 this._applyViewModelI18n(oViewModel);
-                this._loadTransferHistoryData();
+                // Lazy loading: transfer history loaded on tab selection
             });
             this.getView().setModel(oViewModel, "view");
 
@@ -36,7 +36,16 @@ sap.ui.define([
             const oCashpoolModel = this.getOwnerComponent().getModel("Cashpool");
             if (oCashpoolModel) {
                 const oBinding = oCashpoolModel.bindList("/getBalanceOfCompanies()");
-                sap.ui.core.BusyIndicator.show(0)
+                const oVizFrame = this.getView().byId("saldosVizFrame");
+                const oConfigureNowButton = this.getView().byId("btnConfigureNow");
+                const oManualTransferButton = this.getView().byId("btnTransferenciaManual");
+                const oSaldosList = this.getView().byId("saldosList");
+                if (oVizFrame && oConfigureNowButton && oManualTransferButton && oSaldosList) {
+                    oVizFrame.setBusy(true);
+                    oConfigureNowButton.setBusy(true);
+                    oManualTransferButton.setBusy(true);
+                    oSaldosList.setBusy(true);
+                }
                 oBinding.requestContexts().then((aContexts) => {
                     let aData = aContexts.map((oContext) => oContext.getObject());
                     const aDataEUR = aData.filter((oItem) => oItem.Currency === "EUR");
@@ -46,7 +55,10 @@ sap.ui.define([
                     MessageToast.show(this._oResourceBundle.getText("errorLoadingSaldos"));
                     this.getView().setModel(new JSONModel([]), "saldos");
                 }).finally(() => {
-                    sap.ui.core.BusyIndicator.hide();
+                    oVizFrame.setBusy(false);
+                    oConfigureNowButton.setBusy(false);
+                    oManualTransferButton.setBusy(false);
+                    oSaldosList.setBusy(false);
                 });
             }
 
@@ -80,8 +92,13 @@ sap.ui.define([
         },
 
         onTabSelect: function (oEvent) {
-            const oSelectedKey = oEvent.getParameter("selectedKey");
-            this._getViewModel().setProperty("/selectedTab", oSelectedKey);
+            const sSelectedKey = oEvent.getParameter("selectedKey");
+            this._getViewModel().setProperty("/selectedTab", sSelectedKey);
+
+            // Lazy load transfer history when selecting transfer tabs
+            if (sSelectedKey === "MANUAL" || sSelectedKey === "AUTO") {
+                this._loadTransferHistoryData(sSelectedKey);
+            }
         },
 
         _applyViewModelI18n: function (oViewModel) {
@@ -121,18 +138,26 @@ sap.ui.define([
             MessageToast.show(this._oResourceBundle.getText("msgDownloadExtract", [oData.fecha, sFormattedCurrency]));
         },
 
-        _loadTransferHistoryData: function () {
-            Promise.all([
-                this._fetchTransferHistoryByType("AUTO"),
-                this._fetchTransferHistoryByType("MANUAL")
-            ]).then(([aAutoTransfers, aManualTransfers]) => {
-                this._buildTransferenciasGroupsByType("AUTO", aAutoTransfers);
-                this._buildTransferenciasGroupsByType("MANUAL", aManualTransfers);
-            }).catch(() => {
-                MessageToast.show("No se pudo cargar el histórico de transferencias.");
-                this._buildTransferenciasGroupsByType("AUTO", []);
-                this._buildTransferenciasGroupsByType("MANUAL", []);
-            });
+        _loadTransferHistoryData: function (sType) {
+            // Load specific type with busy indicator on the tab bar
+            const oIconTabBar = this.getView().byId("idIconTabBar");
+            if (oIconTabBar) {
+                oIconTabBar.setBusy(true);
+            }
+
+            this._fetchTransferHistoryByType(sType)
+                .then((aTransfers) => {
+                    this._buildTransferenciasGroupsByType(sType, aTransfers);
+                })
+                .catch(() => {
+                    MessageToast.show("No se pudo cargar el histórico de transferencias.");
+                    this._buildTransferenciasGroupsByType(sType, []);
+                })
+                .finally(() => {
+                    if (oIconTabBar) {
+                        oIconTabBar.setBusy(false);
+                    }
+                });
         },
 
         _fetchTransferHistoryByType: function (sType) {
@@ -1475,7 +1500,25 @@ sap.ui.define([
             let bNextEnabled = false;
             if (iIndex === 0) {
                 const oTable = this.byId("empresaTableTransfer");
-                bNextEnabled = oTable ? oTable.getSelectedItems().length > 0 : false;
+                const aSelectedItems = oTable ? oTable.getSelectedItems() : [];
+                const oSelectedItem = aSelectedItems[0];
+
+                if (oSelectedItem) {
+                    const sSelectedCompanyCode = oSelectedItem.getBindingContext("saldos").getProperty("CompanyCode");
+                    const oCashpoolModel = this.getView().getModel("Cashpool");
+                    const oActionBinding = oCashpoolModel.bindContext("/postSelectCompany(...)");
+
+                    oModel.setProperty("/nav/nextEnabled", false);
+                    oActionBinding.setParameter("parameters", {CompanyCode: sSelectedCompanyCode}); 
+                    oActionBinding.invoke().then(function () {
+                        oModel.setProperty("/nav/nextEnabled", oTable.getSelectedItems().length > 0);
+                    }).catch(function () {
+                        oModel.setProperty("/nav/nextEnabled", false);
+                    });
+                    return;
+                }
+                oModel.setProperty("/nav/nextEnabled", false);
+                return;
             } else if (iIndex === 1) {
                 bNextEnabled = this._isTransferOrigenSelected();
             } else if (iIndex === 2) {
@@ -1801,7 +1844,7 @@ sap.ui.define([
                 } else {
                     console.log(sError);
                     MessageToast.show("Bank transfer posted successfully!");
-                    this._loadTransferHistoryData();
+                    //this._loadTransferHistoryData();
                 }
             }).catch((oError) => {
                 MessageToast.show("Error posting bank transfer: " + oError.error.message);
