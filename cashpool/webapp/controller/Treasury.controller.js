@@ -51,9 +51,11 @@ sap.ui.define([
                     const aDataEUR = aData.filter((oItem) => oItem.Currency === "EUR");
                     const oSaldosModel = new JSONModel(aDataEUR);
                     this.getView().setModel(oSaldosModel, "saldos");
+                    this.getView().setModel(oSaldosModel, "empresas");
                 }).catch(() => {
                     MessageToast.show(this._oResourceBundle.getText("errorLoadingSaldos"));
                     this.getView().setModel(new JSONModel([]), "saldos");
+                    this.getView().setModel(new JSONModel([]), "empresas");
                 }).finally(() => {
                     oVizFrame.setBusy(false);
                     oConfigureNowButton.setBusy(false);
@@ -504,8 +506,142 @@ sap.ui.define([
             return oNormalizedDate;
         },
 
-        onAfterRendering: function () {
-            //this._openConfigurationDialog();
+        _mapEmpresaForWizard: function (oEmpresa) {
+            return {
+                razonSocial: oEmpresa?.razonSocial || oEmpresa?.CompanyName || "",
+                cif: oEmpresa?.cif || oEmpresa?.VatNumber || "",
+                CompanyCode: oEmpresa?.CompanyCode || ""
+            };
+        },
+
+        _getWizardEmpresasData: function (aFallbackEmpresas) {
+            const aSaldos = this.getView().getModel("empresas")?.getData();
+            const aSource = Array.isArray(aSaldos) && aSaldos.length ? aSaldos : (aFallbackEmpresas || []);
+
+            return aSource.map((oEmpresa) => this._mapEmpresaForWizard(oEmpresa));
+        },
+
+        _setWizardBanksData: function (oModel, oTransformed) {
+            oModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oTransformed.bancos)));
+            oModel.setProperty("/_cuentasCentralAll", oTransformed.cuentasCentralizadoras.slice());
+            oModel.setProperty("/bancos", JSON.parse(JSON.stringify(oTransformed.bancos)));
+            oModel.setProperty("/cuentasCentralizadoras", oTransformed.cuentasCentralizadoras.slice());
+            oModel.setProperty("/companyContextReady", true);
+        },
+
+        _clearWizardBanksData: function (oModel) {
+            if (!oModel) {
+                return;
+            }
+
+            oModel.setProperty("/_bancosAll", []);
+            oModel.setProperty("/_cuentasCentralAll", []);
+            oModel.setProperty("/bancos", []);
+            oModel.setProperty("/cuentasCentralizadoras", []);
+            oModel.setProperty("/companyContextReady", false);
+        },
+
+        _clearWizardDependentState: function () {
+            const oModel = this._getWizardModel();
+            if (!oModel) {
+                return;
+            }
+
+            this._clearWizardBanksData(oModel);
+            oModel.setProperty("/horariosPersonalizadosPorBanco", []);
+            oModel.setProperty("/horariosPersonalizadosPorCuenta", []);
+            oModel.setProperty("/saldosPersonalizadosPorBanco", []);
+            oModel.setProperty("/saldosPersonalizadosPorCuenta", []);
+            oModel.setProperty("/review/cuentasSeleccionadas", "");
+            oModel.setProperty("/review/cuentaCentralNombre", "");
+            oModel.setProperty("/review/cuentaCentralCuenta", "");
+            oModel.setProperty("/review/horario", "");
+            oModel.setProperty("/review/dias", "");
+            oModel.setProperty("/review/saldoAdicionalData", "");
+
+            ["wizardStep2", "wizardStep3", "wizardStep4", "wizardStep5"].forEach((sStepId) => {
+                this._setWizardStepValidation(sStepId, false);
+            });
+        },
+
+        _clearTransferWizardDependentState: function () {
+            const oModel = this._getTransferWizardModel();
+            if (!oModel) {
+                return;
+            }
+
+            oModel.setProperty("/_bancosAll", []);
+            oModel.setProperty("/_cuentasCentralAll", []);
+            oModel.setProperty("/bancos", []);
+            oModel.setProperty("/cuentasCentralizadoras", []);
+            oModel.setProperty("/companyContextReady", false);
+            oModel.setProperty("/transferAmount", "");
+            oModel.setProperty("/review/cuentaOrigenBanco", "");
+            oModel.setProperty("/review/cuentaOrigenCuenta", "");
+            oModel.setProperty("/review/cuentaDestinoBanco", "");
+            oModel.setProperty("/review/cuentaDestinoCuenta", "");
+            oModel.setProperty("/review/importe", "");
+        },
+
+        _loadBanksForSelectedCompany: function (oOptions) {
+            const {
+                CompanyCode: sCompanyCode,
+                modelName: sModelName,
+                dialog: oDialog,
+                onSuccess: fnOnSuccess,
+                errorMessage: sErrorMessage
+            } = oOptions;
+
+            const oCashpoolModel = this.getView().getModel("Cashpool");
+            const oModel = this.getView().getModel(sModelName);
+            if (!oCashpoolModel || !oModel || !sCompanyCode) {
+                return Promise.reject(new Error("Missing company selection context"));
+            }
+
+            this._mActiveCompanyRequestKeys = this._mActiveCompanyRequestKeys || {};
+            const sRequestKey = `${sModelName}:${sCompanyCode}:${Date.now()}`;
+            this._mActiveCompanyRequestKeys[sModelName] = sRequestKey;
+            if (oDialog) {
+                oDialog.setBusy(true);
+            }
+
+            const oActionBinding = oCashpoolModel.bindContext("/postSelectCompany(...)");
+            oActionBinding.setParameter("parameters", { CompanyCode: sCompanyCode });
+
+            return oActionBinding.invoke()
+                .then(() => {
+                    if (this._mActiveCompanyRequestKeys[sModelName] !== sRequestKey) {
+                        return null;
+                    }
+
+                    const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
+                        $expand: "AccountBalance"
+                    });
+                    return oBanksBinding.requestContexts(0, 1000);
+                })
+                .then((aContexts) => {
+                    if (!aContexts || this._mActiveCompanyRequestKeys[sModelName] !== sRequestKey) {
+                        return;
+                    }
+
+                    const aBanks = aContexts.map((oContext) => oContext.getObject());
+                    const oTransformed = this._transformBanksODataToBancos({ value: aBanks });
+                    fnOnSuccess(oModel, oTransformed);
+                })
+                .catch((oError) => {
+                    if (this._mActiveCompanyRequestKeys[sModelName] === sRequestKey) {
+                        MessageToast.show(sErrorMessage);
+                        throw oError;
+                    }
+                })
+                .finally(() => {
+                    if (this._mActiveCompanyRequestKeys[sModelName] === sRequestKey) {
+                        delete this._mActiveCompanyRequestKeys[sModelName];
+                        if (oDialog) {
+                            oDialog.setBusy(false);
+                        }
+                    }
+                });
         },
 
         _openConfigurationDialog: function () {
@@ -534,34 +670,14 @@ sap.ui.define([
         _openWizardDialog: function () {
             const oWizardModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardData.json"));
             oWizardModel.attachRequestCompleted(() => {
-                // Store full lists for filtering
-                const aEmpresas = oWizardModel.getProperty("/empresas") || [];
+                const aEmpresas = this._getWizardEmpresasData(oWizardModel.getProperty("/empresas"));
 
-                const oCashpoolModel = this.getView().getModel("Cashpool");
-                if (!oCashpoolModel) {
-                    MessageToast.show("No se pudo acceder al servicio OData.");
-                    return;
-                }
+                oWizardModel.setProperty("/empresas", aEmpresas);
+                oWizardModel.setProperty("/_empresasAll", aEmpresas.slice());
+                this._clearWizardBanksData(oWizardModel);
 
-                const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
-                    $expand: "AccountBalance"
-                });
-                oBanksBinding.requestContexts(0, 1000).then((aContexts) => {
-                    const aBanks = aContexts.map((oContext) => oContext.getObject());
-                    const oTransformed = this._transformBanksODataToBancos({ value: aBanks });
-
-                    oWizardModel.setProperty("/_empresasAll", aEmpresas.slice());
-                    oWizardModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oTransformed.bancos)));
-                    oWizardModel.setProperty("/_cuentasCentralAll", oTransformed.cuentasCentralizadoras.slice());
-                    oWizardModel.setProperty("/bancos", JSON.parse(JSON.stringify(oTransformed.bancos)));
-                    oWizardModel.setProperty("/cuentasCentralizadoras", oTransformed.cuentasCentralizadoras.slice());
-
-                    this.getView().setModel(oWizardModel, "wizard");
-                    this._openWizardDialogFragment();
-                }).catch((oError) => {
-                    MessageToast.show("No se pudo cargar las cuentas bancarias del servicio.");
-                    console.error("Error loading banks from OData:", oError);
-                });
+                this.getView().setModel(oWizardModel, "wizard");
+                this._openWizardDialogFragment();
             });
             oWizardModel.attachRequestFailed(() => {
                 MessageToast.show("No se pudo cargar la configuración del wizard.");
@@ -729,8 +845,8 @@ sap.ui.define([
             const oSelected = oEmpresaTable ? oEmpresaTable.getItems().find((i) => i.getSelected()) : null;
             if (oSelected) {
                 const oCtx = oSelected.getBindingContext("wizard");
-                oModel.setProperty("/review/razonSocial", oCtx.getProperty("razonSocial"));
-                oModel.setProperty("/review/cif", oCtx.getProperty("cif"));
+                oModel.setProperty("/review/razonSocial", oCtx.getProperty("CompanyName"));
+                oModel.setProperty("/review/cif", oCtx.getProperty("VatNumber"));
             } else {
                 oModel.setProperty("/review/razonSocial", "");
                 oModel.setProperty("/review/cif", "");
@@ -868,8 +984,7 @@ sap.ui.define([
             const aFiltered = sQuery
                 ? aAll.filter((o) =>
                     o.razonSocial?.toLowerCase().includes(sQuery) ||
-                    o.cif?.toLowerCase().includes(sQuery) ||
-                    o.companyCode?.toLowerCase().includes(sQuery)
+                    o.cif?.toLowerCase().includes(sQuery)
                 )
                 : aAll.slice();
             oModel.setProperty("/empresas", aFiltered);
@@ -938,7 +1053,7 @@ sap.ui.define([
             const aSteps = oWizard ? oWizard.getSteps() : [];
             const bIsLast = iIndex === aSteps.length - 1;
             const bCurrentValid = iIndex === 0
-                ? this._isStep1Valid()
+                ? this._isStep1Valid() && !!oModel.getProperty("/companyContextReady")
                 : (aSteps[iIndex] ? aSteps[iIndex].getValidated() : false);
 
             this._setWizardPropertyIfChanged("/nav/backVisible", iIndex > 0);
@@ -985,10 +1100,38 @@ sap.ui.define([
         },
 
         onEmpresaSelectionChange: function () {
-            const bValid = this.byId("empresaTable").getItems().some((i) => i.getSelected());
+            const oTable = this.byId("empresaTable");
+            const oModel = this._getWizardModel();
+            const oSelectedItem = oTable?.getItems().find((oItem) => oItem.getSelected());
+            const oSelectedContext = oSelectedItem?.    getBindingContext("wizard");
+            const sCompanyCode = oSelectedContext?.getProperty("CompanyCode") || "";
+            const bValid = !!oSelectedItem;
+
             this._setWizardStepValidation("wizardStep1", bValid);
-            this._updateNavState(this._iCurrentStepIndex);
             this._updateReviewEmpresa();
+
+            if (!bValid || !oModel) {
+                this._clearWizardDependentState();
+                this._updateNavState(this._iCurrentStepIndex);
+                return;
+            }
+
+            this._clearWizardDependentState();
+            this._updateNavState(this._iCurrentStepIndex);
+
+            this._loadBanksForSelectedCompany({
+                CompanyCode: sCompanyCode,
+                modelName: "wizard",
+                dialog: this._wizardDialog,
+                onSuccess: (oWizardModel, oTransformed) => {
+                    this._setWizardBanksData(oWizardModel, oTransformed);
+                    this._updateNavState(this._iCurrentStepIndex);
+                },
+                errorMessage: "No se pudo cargar las cuentas bancarias del servicio."
+            }).catch((oError) => {
+                console.error("Error loading banks from OData:", oError);
+                this._updateNavState(this._iCurrentStepIndex);
+            });
         },
 
         onCuentasSelectionChange: function () {
@@ -1344,34 +1487,14 @@ sap.ui.define([
         onCreateSingleTransfer: function () {
             const oTransferModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardTransferData.json"));
             oTransferModel.attachRequestCompleted(() => {
-                const aEmpresas = oTransferModel.getProperty("/empresas") || [];
+                const aEmpresas = this._getWizardEmpresasData(oTransferModel.getProperty("/empresas"));
 
-                // Get banks from OData service
-                const oCashpoolModel = this.getView().getModel("Cashpool");
-                if (oCashpoolModel) {
-                    const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
-                        $expand: "AccountBalance"
-                    });
-                    oBanksBinding.requestContexts(0, 1000).then((aContexts) => {
-                        const aBanks = aContexts.map((oContext) => oContext.getObject());
-                        const oTransformed = this._transformBanksODataToBancos({ value: aBanks });
+                oTransferModel.setProperty("/empresas", aEmpresas);
+                oTransferModel.setProperty("/_empresasAll", aEmpresas.slice());
+                this._clearWizardBanksData(oTransferModel);
 
-                        oTransferModel.setProperty("/_empresasAll", aEmpresas.slice());
-                        oTransferModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oTransformed.bancos)));
-                        oTransferModel.setProperty("/_cuentasCentralAll", oTransformed.cuentasCentralizadoras.slice());
-
-                        oTransferModel.setProperty("/bancos", JSON.parse(JSON.stringify(oTransformed.bancos)));
-                        oTransferModel.setProperty("/cuentasCentralizadoras", oTransformed.cuentasCentralizadoras.slice());
-
-                        this.getView().setModel(oTransferModel, "wizardTransfer");
-                        this._openTransferWizardDialogFragment();
-                    }).catch((oError) => {
-                        MessageToast.show("No se pudo cargar las cuentas bancarias del servicio.");
-                        console.error("Error loading banks from OData:", oError);
-                    });
-                } else {
-                    MessageToast.show("No se pudo acceder al servicio OData.");
-                }
+                this.getView().setModel(oTransferModel, "wizardTransfer");
+                this._openTransferWizardDialogFragment();
             });
             oTransferModel.attachRequestFailed(() => {
                 MessageToast.show("No se pudo cargar la configuración del wizard de transferencia.");
@@ -1382,17 +1505,15 @@ sap.ui.define([
             const aBancos = [];
             const aCuentasCentralizadoras = [];
             const aBanksData = oODataResponse.value || [];
-            // filter aBanksData to only include banks with AccountBalance
-            const aFilteredBanksData = aBanksData.filter((oBank) => Array.isArray(oBank.AccountBalance) && oBank.AccountBalance.length > 0);
 
             // Group accounts by normalized bank name to create hierarchical structure
             const oBankMap = new Map();
 
-            aFilteredBanksData.forEach((oBank) => {
+            aBanksData.forEach((oBank) => {
                 const sBankName = oBank.BankName || "";
                 const sBankKey = sBankName.toLowerCase();
                 const sHouseBank = oBank.HouseBank || "";
-                const aAccountBalance = oBank.AccountBalance || [];
+                const aAccountBalance = Array.isArray(oBank.AccountBalance) ? oBank.AccountBalance : [];
 
                 // Transform account data
                 const aCuentas = aAccountBalance.map((oAccount) => ({
@@ -1500,25 +1621,7 @@ sap.ui.define([
             let bNextEnabled = false;
             if (iIndex === 0) {
                 const oTable = this.byId("empresaTableTransfer");
-                const aSelectedItems = oTable ? oTable.getSelectedItems() : [];
-                const oSelectedItem = aSelectedItems[0];
-
-                if (oSelectedItem) {
-                    const sSelectedCompanyCode = oSelectedItem.getBindingContext("saldos").getProperty("CompanyCode");
-                    const oCashpoolModel = this.getView().getModel("Cashpool");
-                    const oActionBinding = oCashpoolModel.bindContext("/postSelectCompany(...)");
-
-                    oModel.setProperty("/nav/nextEnabled", false);
-                    oActionBinding.setParameter("parameters", {CompanyCode: sSelectedCompanyCode}); 
-                    oActionBinding.invoke().then(function () {
-                        oModel.setProperty("/nav/nextEnabled", oTable.getSelectedItems().length > 0);
-                    }).catch(function () {
-                        oModel.setProperty("/nav/nextEnabled", false);
-                    });
-                    return;
-                }
-                oModel.setProperty("/nav/nextEnabled", false);
-                return;
+                bNextEnabled = !!oTable && oTable.getSelectedItems().length > 0 && !!oModel.getProperty("/companyContextReady");
             } else if (iIndex === 1) {
                 bNextEnabled = this._isTransferOrigenSelected();
             } else if (iIndex === 2) {
@@ -1600,25 +1703,57 @@ sap.ui.define([
 
         onEmpresaSearchTransfer: function (oEvent) {
             const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
-            const oModel = this._getTransferWizardModel();
-            if (!oModel) {
+            const oModelEmp = this.getView().getModel("empresas")
+            const oModelWiz = this._getTransferWizardModel();
+            if (!oModelEmp || !oModelWiz) {
                 return;
             }
-            const aAll = oModel.getProperty("/_empresasAll") || [];
+            const aAll = oModelWiz.getProperty("/_empresasAll") || [];
             if (!sQuery) {
-                oModel.setProperty("/empresas", aAll.slice());
+                oModelEmp.setProperty("/", aAll);
                 return;
             }
             const aFiltered = aAll.filter((o) =>
                 o.razonSocial?.toLowerCase().includes(sQuery) ||
-                o.cif?.toLowerCase().includes(sQuery) ||
-                o.companyCode?.toLowerCase().includes(sQuery)
+                o.cif?.toLowerCase().includes(sQuery)
             );
-            oModel.setProperty("/empresas", aFiltered);
+            oModelEmp.setProperty("/", aFiltered);
         },
 
         onEmpresaSelectionChangeTransfer: function () {
+            const oTable = this.byId("empresaTableTransfer");
+            const oModel = this._getTransferWizardModel();
+            const oSelectedItem = oTable?.getSelectedItems()[0];
+            const oSelectedContext = oSelectedItem?.getBindingContext("empresas");
+            const sCompanyCode = oSelectedContext?.getProperty("CompanyCode") || "";
+            const sVatNo = oSelectedContext.getProperty('VatNumber')
+            const sCompanyName = oSelectedContext.getProperty('CompanyName')
+
+            if (!oSelectedItem || !oModel) {
+                this._clearTransferWizardDependentState();
+                this._updateTransferNavState(0);
+                return;
+            }
+
+            this._clearTransferWizardDependentState();
             this._updateTransferNavState(0);
+
+            this._loadBanksForSelectedCompany({
+                CompanyCode: sCompanyCode,
+                modelName: "wizardTransfer",
+                dialog: this._transferWizardDialog,
+                onSuccess: (oTransferModel, oTransformed) => {
+                    this._setWizardBanksData(oTransferModel, oTransformed);
+                    this._updateTransferNavState(0);
+                    this.getView().getModel("wizardTransfer").setProperty('/review/cif', sVatNo);
+                    this.getView().getModel("wizardTransfer").setProperty('/review/razonSocial', sCompanyName);
+
+                },
+                errorMessage: "No se pudo cargar las cuentas bancarias del servicio."
+            }).catch((oError) => {
+                console.error("Error loading banks from OData:", oError);
+                this._updateTransferNavState(0);
+            });
         },
 
         onCuentasSearchTransfer: function (oEvent) {
@@ -1696,11 +1831,14 @@ sap.ui.define([
             if (oEmpresaTable) {
                 const aSelected = oEmpresaTable.getSelectedItems();
                 if (aSelected.length > 0) {
-                    const oCtx = aSelected[0].getBindingContext("saldos");
+                    const oCtx = aSelected[0].getBindingContext("wizardTransfer");
                     if (oCtx) {
-                        oModel.setProperty("/review/razonSocial", oCtx.getProperty("CompanyName"));
-                        oModel.setProperty("/review/cif", oCtx.getProperty("VatNumber"));
+                        oModel.setProperty("/review/razonSocial", oCtx.getProperty("razonSocial"));
+                        oModel.setProperty("/review/cif", oCtx.getProperty("cif"));
                     }
+                } else {
+                    oModel.setProperty("/review/razonSocial", "");
+                    oModel.setProperty("/review/cif", "");
                 }
             }
 

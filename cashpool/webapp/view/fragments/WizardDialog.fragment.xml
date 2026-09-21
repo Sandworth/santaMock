@@ -21,7 +21,7 @@
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField 
                                     placeholder="{i18n>wizardSearchStep1Placeholder}"
-                                    search=".onEmpresaSearch"
+                                    search=".onEmpresaSearchTransfer"
                                     class="sapUiSmallMarginBottom"/>
                         <Table id="empresaTable"
                                 items="{wizard>/empresas}"
