@@ -51,11 +51,17 @@ sap.ui.define([
                     const aDataEUR = aData.filter((oItem) => oItem.Currency === "EUR");
                     const oSaldosModel = new JSONModel(aDataEUR);
                     this.getView().setModel(oSaldosModel, "saldos");
-                    this.getView().setModel(oSaldosModel, "empresas");
+                    // Independent instance for empresas: wizard searches filter this model
+                    // without mutating the "saldos" list shown in the main view.
+                    const oEmpresasModel = new JSONModel(aDataEUR.slice());
+                    this.getView().setModel(oEmpresasModel, "empresas");
+                    // Source of truth for empresa search (both wizards share the "empresas" model).
+                    this._aEmpresasAll = aDataEUR.slice();
                 }).catch(() => {
                     MessageToast.show(this._oResourceBundle.getText("errorLoadingSaldos"));
                     this.getView().setModel(new JSONModel([]), "saldos");
                     this.getView().setModel(new JSONModel([]), "empresas");
+                    this._aEmpresasAll = [];
                 }).finally(() => {
                     oVizFrame.setBusy(false);
                     oConfigureNowButton.setBusy(false);
@@ -565,7 +571,7 @@ sap.ui.define([
         },
 
         _clearTransferWizardDependentState: function () {
-            const oModel = this._getTransferWizardModel();
+            const oModel = this._getWizardModel("transfer");
             if (!oModel) {
                 return;
             }
@@ -685,24 +691,44 @@ sap.ui.define([
         },
 
         _openWizardDialogFragment: function () {
+            // Dialogs are now destroyed in onAfterClose, so always load fresh.
+            Fragment.load({
+                id: this.getView().getId(),
+                name: "cashpool.app.cashpool.view.fragments.WizardDialog",
+                controller: this
+            }).then((oDialog) => {
+                this._wizardDialog = oDialog;
+                this.getView().addDependent(oDialog);
+                oDialog.open();
+            });
+        },
 
-            if (!this._wizardDialog) {
-                Fragment.load({
-                    id: this.getView().getId(),
-                    name: "cashpool.app.cashpool.view.fragments.WizardDialog",
-                    controller: this
-                }).then((oDialog) => {
-                    this._wizardDialog = oDialog;
-                    this.getView().addDependent(oDialog);
-                    oDialog.open();
-                });
-            } else {
-                this._wizardDialog.open();
+        // Centralized wizard configuration. Both wizards (automatic "config" and
+        // one-time "transfer") share the same helper logic parametrized by type.
+        _wizardConfigs: {
+            config: {
+                modelName: "wizard",
+                wizardId: "configWizard",
+                step1Id: "wizardStep1",
+                empresaTableId: "empresaTable",
+                cuentaCentralTableId: "cuentaCentralTable",
+                instanceVar: "_wizardDialog"
+            },
+            transfer: {
+                modelName: "wizardTransfer",
+                wizardId: "transferConfigWizard",
+                step1Id: "wizardTransferStep1",
+                empresaTableId: "empresaTableTransfer",
+                cuentaCentralTableId: "cuentaDestinoTable",
+                instanceVar: "_transferWizardDialog"
             }
         },
 
-        _getWizardModel: function () {
-            return this.getView().getModel("wizard");
+        // Single, parametrized model accessor. Replaces the former
+        // _getWizardModel() + _getTransferWizardModel() duplicate pair.
+        _getWizardModel: function (sType) {
+            const oConfig = this._wizardConfigs[sType] || this._wizardConfigs.config;
+            return this.getView().getModel(oConfig.modelName);
         },
 
         _getViewModel: function () {
@@ -720,8 +746,14 @@ sap.ui.define([
             }
         },
 
-        _setWizardPropertyIfChanged: function (sPath, vValue) {
-            this._setModelPropertyIfChanged(this._getWizardModel(), sPath, vValue);
+        _setWizardPropertyIfChanged: function (sType, sPath, vValue) {
+            // Backward compatible: allow calling with (sPath, vValue) for the config wizard.
+            if (arguments.length === 2) {
+                vValue = sPath;
+                sPath = sType;
+                sType = "config";
+            }
+            this._setModelPropertyIfChanged(this._getWizardModel(sType), sPath, vValue);
         },
 
         _setWizardStepValidation: function (sStepId, bValid) {
@@ -774,29 +806,67 @@ sap.ui.define([
             });
         },
 
-        _resetWizard: function () {
-            const oWizard = this.byId("configWizard");
-            const oStep1 = this.byId("wizardStep1");
-            if (!oWizard || !oStep1) {
-                return;
+        _resetWizard: function (sType) {
+            // Parametrized reset for both config and transfer wizards.
+            // Reverts empresas model to unfiltered state and clears all wizard data.
+            sType = sType || "config";
+
+            // Revert empresas model to original unfiltered data (both wizards share this model).
+            const oEmpresasModel = this.getView().getModel("empresas");
+            if (oEmpresasModel && this._aEmpresasAll) {
+                oEmpresasModel.setProperty("/", this._aEmpresasAll.slice());
             }
 
-            // Force a clean wizard state to avoid stale validation carrying over between openings.
-            oWizard.discardProgress(oStep1);
-            oWizard.goToStep(oStep1, true);
+            // Get wizard-specific IDs and model from centralized config.
+            const oCfg = this._wizardConfigs[sType] || this._wizardConfigs.config;
+            const sWizardId = oCfg.wizardId;
+            const sStep1Id = oCfg.step1Id;
+            const sEmpresaTableId = oCfg.empresaTableId;
+            const sCuentaCentralTableId = oCfg.cuentaCentralTableId;
+            const oModel = this._getWizardModel(sType);
 
-            oWizard.getSteps().forEach((oStep) => {
-                oWizard.invalidateStep(oStep);
-            });
+            // Revert wizard UI to initial step and invalidate all steps.
+            const oWizard = this.byId(sWizardId);
+            const oStep1 = this.byId(sStep1Id);
+            if (oWizard && oStep1) {
+                oWizard.discardProgress(oStep1, true);
+                //oWizard.goToStep(oStep1, true);
+                oWizard.getSteps().forEach((oStep) => {
+                    oWizard.invalidateStep(oStep);
+                });
+            }
 
-            const oEmpresaTable = this.byId("empresaTable");
+            // Clear wizard model data (bancos, review, transfer-specific fields, etc.).
+            if (oModel) {
+                this._clearWizardBanksData(oModel);
+                oModel.setProperty("/transferAmount", "");
+                oModel.setProperty("/review", {
+                    razonSocial: "", cif: "",
+                    cuentasSeleccionadas: "",
+                    cuentaCentralNombre: "", cuentaCentralCuenta: "",
+                    horario: "", dias: "", saldoAdicionalData: "",
+                    cuentaOrigenBanco: "", cuentaOrigenCuenta: "",
+                    cuentaDestinoBanco: "", cuentaDestinoCuenta: "",
+                    importe: ""
+                });
+            }
+
+            // Clear empresa and central account table selections.
+            const oEmpresaTable = this.byId(sEmpresaTableId);
             if (oEmpresaTable) {
                 oEmpresaTable.removeSelections(true);
             }
 
-            const oCuentaCentralTable = this.byId("cuentaCentralTable");
+            const oCuentaCentralTable = this.byId(sCuentaCentralTableId);
             if (oCuentaCentralTable) {
                 oCuentaCentralTable.removeSelections(true);
+            }
+
+            // Reset navigation and step counters.
+            if (sType === "config") {
+                this._iCurrentStepIndex = 0;
+            } else {
+                this._iTransferCurrentStepIndex = 0;
             }
         },
 
@@ -807,7 +877,7 @@ sap.ui.define([
         },
 
         onWizardAccept: function () {
-            const oModel = this._getWizardModel();
+            const oModel = this._getWizardModel("config");
             const oReview = oModel.getProperty("/review");
             //MessageToast.show(`Configuració guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
             MessageToast.show(this._oResourceBundle.getText("msgSavedConfig", [oReview.razonSocial, oReview.cuentaCentralNombre, oReview.horario]));
@@ -817,17 +887,15 @@ sap.ui.define([
         },
 
         onWizardDialogAfterClose: function () {
-            this._resetWizard();
-
-            const oModel = this._getWizardModel();
-            if (oModel) {
-                this._setWizardPropertyIfChanged("/nav/backVisible", false);
-                this._setWizardPropertyIfChanged("/nav/nextVisible", true);
-                this._setWizardPropertyIfChanged("/nav/nextEnabled", false);
-                this._setWizardPropertyIfChanged("/nav/acceptVisible", false);
+            this._resetWizard("config");
+            // Destroy the dialog to guarantee clean state on next opening.
+            // Fragment will be reloaded fresh.
+            if (this._wizardDialog) {
+                this.getView().removeDependent(this._wizardDialog);
+                this._wizardDialog.destroyContent();
+                this._wizardDialog.destroy(true);
+                this._wizardDialog = null;
             }
-
-            this._iCurrentStepIndex = 0;
         },
 
         onReviewStepActivate: function () {
@@ -844,7 +912,7 @@ sap.ui.define([
             const oEmpresaTable = this.byId("empresaTable");
             const oSelected = oEmpresaTable ? oEmpresaTable.getItems().find((i) => i.getSelected()) : null;
             if (oSelected) {
-                const oCtx = oSelected.getBindingContext("wizard");
+                const oCtx = oSelected.getBindingContext("empresas");
                 oModel.setProperty("/review/razonSocial", oCtx.getProperty("CompanyName"));
                 oModel.setProperty("/review/cif", oCtx.getProperty("VatNumber"));
             } else {
@@ -977,48 +1045,71 @@ sap.ui.define([
             return this._getLocalizedFloatFormatter().format(nValue);
         },
 
+        // Unified empresa search. Both wizards (config and transfer) share the
+        // "empresas" model, so a single handler filters it from the raw source of
+        // truth captured in onInit (_aEmpresasAll).
         onEmpresaSearch: function (oEvent) {
-            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
-            const oModel = this._getWizardModel();
-            const aAll = oModel.getProperty("/_empresasAll");
+            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase().trim();
+            const oEmpresasModel = this.getView().getModel("empresas");
+            if (!oEmpresasModel) {
+                return;
+            }
+            const aAll = this._aEmpresasAll || [];
             const aFiltered = sQuery
                 ? aAll.filter((o) =>
-                    o.razonSocial?.toLowerCase().includes(sQuery) ||
-                    o.cif?.toLowerCase().includes(sQuery)
-                )
+                    o.CompanyName?.toLowerCase().includes(sQuery) ||
+                    o.VatNumber?.toLowerCase().includes(sQuery))
                 : aAll.slice();
-            oModel.setProperty("/empresas", aFiltered);
+            oEmpresasModel.setProperty("/", aFiltered);
         },
 
-        onCuentasSearch: function (oEvent) {
-            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
-            const oModel = this._getWizardModel();
-            const aAll = oModel.getProperty("/_bancosAll");
+        // Shared bancos search for wizard step 2. Both wizards filter their own
+        // "/_bancosAll" by Description and cuentaCorriente, and auto-expand matches.
+        _onBancosSearch: function (oEvent, sType) {
+            const oModel = this._getWizardModel(sType);
+            if (!oModel) {
+                return;
+            }
+            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase().trim();
+            const aAll = oModel.getProperty("/_bancosAll") || [];
+
             if (!sQuery) {
                 const aReset = JSON.parse(JSON.stringify(aAll)).map((b) => Object.assign(b, { expanded: false }));
                 oModel.setProperty("/bancos", aReset);
                 return;
             }
-            const aFiltered = aAll
+
+            const aFiltered = JSON.parse(JSON.stringify(aAll))
                 .map((oBanco) => {
                     const bBancoMatch = oBanco.BankName.toLowerCase().includes(sQuery);
-                    const aCuentasFiltradas = bBancoMatch
-                        ? oBanco.cuentas
-                        : oBanco.cuentas.filter((c) =>
-                            c.Description.toLowerCase().includes(sQuery) ||
-                            c.cuentaCorriente.toLowerCase().includes(sQuery));
-                    return aCuentasFiltradas.length > 0
-                        ? Object.assign({}, oBanco, { cuentas: aCuentasFiltradas, expanded: true })
-                        : null;
+                    if (!bBancoMatch) {
+                        oBanco.cuentas = oBanco.cuentas.filter((c) =>
+                            (c.Description || "").toLowerCase().includes(sQuery) ||
+                            (c.cuentaCorriente || "").toLowerCase().includes(sQuery));
+                    }
+                    if (oBanco.cuentas.length === 0) {
+                        return null;
+                    }
+                    oBanco.expanded = true;
+                    return oBanco;
                 })
                 .filter(Boolean);
             oModel.setProperty("/bancos", aFiltered);
         },
 
-        onCuentaCentralSearch: function (oEvent) {
-            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
-            const oModel = this._getWizardModel();
-            const aAll = oModel.getProperty("/_cuentasCentralAll");
+        onCuentasSearch: function (oEvent) {
+            this._onBancosSearch(oEvent, "config");
+        },
+
+        // Shared search for centralized/destination accounts. Both wizards use the
+        // exact same filtering logic; only the source model differs (by sType).
+        _onCuentaCentralSearch: function (oEvent, sType) {
+            const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase().trim();
+            const oModel = this._getWizardModel(sType);
+            if (!oModel) {
+                return;
+            }
+            const aAll = oModel.getProperty("/_cuentasCentralAll") || [];
             const aFiltered = sQuery
                 ? aAll.filter((o) =>
                     o.Description.toLowerCase().includes(sQuery) ||
@@ -1026,6 +1117,10 @@ sap.ui.define([
                     o.cuentaCorriente.toLowerCase().includes(sQuery))
                 : aAll.slice();
             oModel.setProperty("/cuentasCentralizadoras", aFiltered);
+        },
+
+        onCuentaCentralSearch: function (oEvent) {
+            this._onCuentaCentralSearch(oEvent, "config");
         },
 
         onWizardDialogAfterOpen: function () {
@@ -1103,7 +1198,7 @@ sap.ui.define([
             const oTable = this.byId("empresaTable");
             const oModel = this._getWizardModel();
             const oSelectedItem = oTable?.getItems().find((oItem) => oItem.getSelected());
-            const oSelectedContext = oSelectedItem?.    getBindingContext("wizard");
+            const oSelectedContext = oSelectedItem?.getBindingContext("empresas");
             const sCompanyCode = oSelectedContext?.getProperty("CompanyCode") || "";
             const bValid = !!oSelectedItem;
 
@@ -1555,24 +1650,16 @@ sap.ui.define([
         },
 
         _openTransferWizardDialogFragment: function () {
-            if (!this._transferWizardDialog) {
-                Fragment.load({
-                    id: this.getView().getId(),
-                    name: "cashpool.app.cashpool.view.fragments.WizardTransferDialog",
-                    controller: this
-                }).then((oDialog) => {
-                    this._transferWizardDialog = oDialog;
-                    this.getView().addDependent(this._transferWizardDialog);
-                    this._transferWizardDialog.open();
-                });
-            } else {
-                this._resetTransferWizard();
+            // Dialogs are now destroyed in onAfterClose, so always load fresh.
+            Fragment.load({
+                id: this.getView().getId(),
+                name: "cashpool.app.cashpool.view.fragments.WizardTransferDialog",
+                controller: this
+            }).then((oDialog) => {
+                this._transferWizardDialog = oDialog;
+                this.getView().addDependent(oDialog);
                 this._transferWizardDialog.open();
-            }
-        },
-
-        _getTransferWizardModel: function () {
-            return this.getView().getModel("wizardTransfer");
+            });
         },
 
         // ─── Transfer wizard navigation ───────────────────────────────
@@ -1583,29 +1670,21 @@ sap.ui.define([
         },
 
         onTransferWizardDialogAfterClose: function () {
-            this._resetTransferWizard();
+            this._resetWizard("transfer");
+            // Destroy the dialog to guarantee clean state on next opening.
+            // Fragment will be reloaded fresh.
+            if (this._transferWizardDialog) {
+                this.getView().removeDependent(this._transferWizardDialog);
+                this._transferWizardDialog.destroyContent();
+                this._transferWizardDialog.destroy(true);
+                this._transferWizardDialog = null;
+            }
         },
 
-        _resetTransferWizard: function () {
-            const oWizard = this.byId("transferConfigWizard");
-            if (oWizard) {
-                oWizard.discardProgress(this.byId("wizardTransferStep1"), true);
-            }
-            const oModel = this._getTransferWizardModel();
-            if (oModel) {
-                oModel.setProperty("/transferAmount", "");
-                oModel.setProperty("/review", {
-                    razonSocial: "", cif: "",
-                    cuentaOrigenBanco: "", cuentaOrigenCuenta: "",
-                    cuentaDestinoBanco: "", cuentaDestinoCuenta: "",
-                    importe: ""
-                });
-            }
-            this._iTransferCurrentStepIndex = 0;
-        },
+
 
         _updateTransferNavState: function (iIndex) {
-            const oModel = this._getTransferWizardModel();
+            const oModel = this._getWizardModel("transfer");
             if (!oModel) {
                 return;
             }
@@ -1701,28 +1780,9 @@ sap.ui.define([
 
         // ─── Transfer wizard step handlers ────────────────────────────
 
-        onEmpresaSearchTransfer: function (oEvent) {
-            const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
-            const oModelEmp = this.getView().getModel("empresas")
-            const oModelWiz = this._getTransferWizardModel();
-            if (!oModelEmp || !oModelWiz) {
-                return;
-            }
-            const aAll = oModelWiz.getProperty("/_empresasAll") || [];
-            if (!sQuery) {
-                oModelEmp.setProperty("/", aAll);
-                return;
-            }
-            const aFiltered = aAll.filter((o) =>
-                o.razonSocial?.toLowerCase().includes(sQuery) ||
-                o.cif?.toLowerCase().includes(sQuery)
-            );
-            oModelEmp.setProperty("/", aFiltered);
-        },
-
         onEmpresaSelectionChangeTransfer: function () {
             const oTable = this.byId("empresaTableTransfer");
-            const oModel = this._getTransferWizardModel();
+            const oModel = this._getWizardModel("transfer");
             const oSelectedItem = oTable?.getSelectedItems()[0];
             const oSelectedContext = oSelectedItem?.getBindingContext("empresas");
             const sCompanyCode = oSelectedContext?.getProperty("CompanyCode") || "";
@@ -1757,27 +1817,7 @@ sap.ui.define([
         },
 
         onCuentasSearchTransfer: function (oEvent) {
-            const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
-            const oModel = this._getTransferWizardModel();
-            if (!oModel) {
-                return;
-            }
-            const aAll = oModel.getProperty("/_bancosAll") || [];
-            if (!sQuery) {
-                oModel.setProperty("/bancos", JSON.parse(JSON.stringify(aAll)));
-                return;
-            }
-            const aFiltered = JSON.parse(JSON.stringify(aAll)).map((oBanco) => {
-                const bBankMatch = oBanco.BankName.toLowerCase().includes(sQuery);
-                if (!bBankMatch) {
-                    oBanco.cuentas = oBanco.cuentas.filter((c) =>
-                        c.HouseBank.toLowerCase().includes(sQuery) ||
-                        c.cuentaCorriente.toLowerCase().includes(sQuery)
-                    );
-                }
-                return oBanco;
-            }).filter((oBanco) => oBanco.cuentas.length > 0);
-            oModel.setProperty("/bancos", aFiltered);
+            this._onBancosSearch(oEvent, "transfer");
         },
 
         onCuentaOrigenSelectionChange: function (oEvent) {
@@ -1787,22 +1827,7 @@ sap.ui.define([
         },
 
         onCuentaDestinoSearchTransfer: function (oEvent) {
-            const sQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").toLowerCase().trim();
-            const oModel = this._getTransferWizardModel();
-            if (!oModel) {
-                return;
-            }
-            const aAll = oModel.getProperty("/_cuentasCentralAll") || [];
-            if (!sQuery) {
-                oModel.setProperty("/cuentasCentralizadoras", aAll.slice());
-                return;
-            }
-            const aFiltered = aAll.filter((o) =>
-                o.Description.toLowerCase().includes(sQuery) ||
-                o.HouseBank.toLowerCase().includes(sQuery) ||
-                o.cuentaCorriente.toLowerCase().includes(sQuery)
-            );
-            oModel.setProperty("/cuentasCentralizadoras", aFiltered);
+            this._onCuentaCentralSearch(oEvent, "transfer");
         },
 
         onCuentaDestinoSelectionChange: function () {
@@ -1810,7 +1835,7 @@ sap.ui.define([
         },
 
         onTransferAmountChange: function (oEvent) {
-            this._getTransferWizardModel().setProperty('/transferAmount', oEvent.getParameter('newValue'))
+            this._getWizardModel("transfer").setProperty('/transferAmount', oEvent.getParameter('newValue'))
             this._updateTransferNavState(3);
         },
 
@@ -1821,7 +1846,7 @@ sap.ui.define([
         },
 
         _updateTransferReview: function () {
-            const oModel = this._getTransferWizardModel();
+            const oModel = this._getWizardModel("transfer");
             if (!oModel) {
                 return;
             }
@@ -1899,7 +1924,7 @@ sap.ui.define([
         },
 
         onTransferWizardAccept: function () {
-            const oModel = this._getTransferWizardModel();
+            const oModel = this._getWizardModel("transfer");
             if (!oModel) {
                 return;
             }
@@ -1930,12 +1955,13 @@ sap.ui.define([
 
         onAnotherButtonPress: function (oTransferObject) {
             const oTreasureModel = this.getView().getModel("Cashpool");
-            const oBancoDestinoDetails = this._getTransferWizardModel().getData()._bancosAll.find(e => e.BankName == this._getTransferWizardModel().getData().review.cuentaDestinoBanco);
-            const oBancoOrigenDetails = this._getTransferWizardModel().getData()._bancosAll.find(e => e.BankName == this._getTransferWizardModel().getData().review.cuentaOrigenBanco);
-            const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaOrigenCuenta.split("\n")[1].slice(-24));
-            const oCuentaDestinoDetails = this._getTransferWizardModel().getData()._cuentasCentralAll.find(e => e.cuentaCorriente == this._getTransferWizardModel().getData().review.cuentaDestinoCuenta.split("\n")[1].slice(-24));
-            const sImporteFixed2=Number.parseFloat(-this._getTransferWizardModel().getData().preparedTransfer.importe).toFixed(2);
-            const sImporteFixed8=Number.parseFloat(-this._getTransferWizardModel().getData().preparedTransfer.importe).toFixed(8);
+            const oTransferModel = this._getWizardModel("transfer");
+            const oBancoDestinoDetails = oTransferModel.getData()._bancosAll.find(e => e.BankName == oTransferModel.getData().review.cuentaDestinoBanco);
+            const oBancoOrigenDetails = oTransferModel.getData()._bancosAll.find(e => e.BankName == oTransferModel.getData().review.cuentaOrigenBanco);
+            const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaOrigenCuenta.split("\n")[1].slice(-24));
+            const oCuentaDestinoDetails = oTransferModel.getData()._cuentasCentralAll.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaDestinoCuenta.split("\n")[1].slice(-24));
+            const sImporteFixed2=Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(2);
+            const sImporteFixed8=Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(8);
             const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
             let oToPostBank = {
                 "parameters": {

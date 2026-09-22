@@ -21,7 +21,7 @@
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField 
                                     placeholder="{i18n>wizardSearchStep1Placeholder}"
-                                    search=".onEmpresaSearchTransfer"
+                                    search=".onEmpresaSearch"
                                     class="sapUiSmallMarginBottom"/>
                         <Table id="empresaTableTransfer"
                                 items="{empresas>/}"
@@ -70,7 +70,6 @@
                                         class="sapUiSmallMarginBottom">
                                     <Table items="{wizardTransfer>cuentas}"
                                            mode="SingleSelectLeft"
-                                           id="cuentaOrigenTable"
                                            selectionChange=".onCuentaOrigenSelectionChange"
                                            fixedLayout="false">
                                         <columns>
