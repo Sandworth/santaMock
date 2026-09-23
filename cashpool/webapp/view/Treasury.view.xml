@@ -211,10 +211,15 @@
                                                                     }" />
                                                         <m:Text text="{view>paymentDoc}" />
                                                         <m:Text text="{view>requestId}" />
-                                                        <m:ObjectStatus
-                                                            text="{view>status/text}"
-                                                            state="{view>status/state}"
-                                                        />
+                                                        <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMarginTopBottom">
+                                                            <m:ObjectStatus
+                                                                text="{view>status/text}"
+                                                                state="{view>status/state}"
+                                                            />
+                                                            <m:Button icon="sap-icon://synchronize" 
+                                                                      iconFirst="true"
+                                                                      text=""/>
+                                                        </m:HBox>
                                                     </m:cells>
                                                 </m:ColumnListItem>
                                             </m:items>

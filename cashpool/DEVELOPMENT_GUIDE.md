@@ -369,18 +369,35 @@ Contains company balance data retrieved from OData:
 - **Parameters**:
   - `sRawStatus` - Raw status code from backend
 - **Status Codes**:
-  | Code  | i18n Key        | UI State      | Description |
-  |-------|-----------------|---------------|-------------|
-  | BCR   | statusCodeBCR   | Information   | Bank Confirmed Request |
-  | TBA   | statusCodeTBA   | Warning       | To Be Approved |
-  | AAPRV | statusCodeAAPRV | Success       | Auto Approved |
-  | APRV  | statusCodeAPRV  | Success       | Approved |
-  | REJ   | statusCodeREJ   | Error         | Rejected |
-  | SENT  | statusCodeSENT  | Information   | Sent |
-  | ACK   | statusCodeACK   | Information   | Acknowledged |
-  | ACCP  | statusCodeACCP  | Success       | Accepted |
-  | RJCT  | statusCodeRJCT  | Error         | Rejected (Final) |
-  | CMP   | statusCodeCMP   | Success       | Complete |
+  | Code  | i18n Key         | UI State      | Description |
+  |-------|------------------|---------------|-------------|
+  | bab   | statusCodeBab    | Success       | Accepted by Bank |
+  | ban   | statusCodeBan    | Warning       | Network Cancellation Message |
+  | bap   | statusCodeBap    | Warning       | Pending Authorization |
+  | bbk   | statusCodeBbk    | Information   | Received by Bank |
+  | bbp   | statusCodeBbp    | Information   | Batch Processed |
+  | bbs   | statusCodeBbs    | Information   | Confirmation Received |
+  | bbst  | statusCodeBbst   | Information   | Statement Partially Received |
+  | bck   | statusCodeBck    | Information   | File Syntax/Content Verified |
+  | bcr   | statusCodeBcr    | Information   | Sent to SAP |
+  | bdw   | statusCodeBdw    | Warning       | Non-delivery Warning |
+  | bfc   | statusCodeBfc    | Information   | Sent to Bank |
+  | bfe   | statusCodeBfe    | Error         | Payment Method Creation Error |
+  | bhb   | statusCodeBhb    | Information   | Sent to Internal Bank |
+  | bnp   | statusCodeBnp    | Error         | Batch Not Processed |
+  | bot   | statusCodeBot    | Information   | Additional Verifications Performed |
+  | bpa   | statusCodeBpa    | Warning       | Partially Accepted by Bank |
+  | bpe   | statusCodeBpe    | Information   | Processing by Bank |
+  | bpp   | statusCodeBpp    | Warning       | Batch Partially Processed |
+  | bra   | statusCodeBra    | Error         | Automatic Denial |
+  | bre   | statusCodeBre    | Error         | Rejected by Bank |
+  | brj   | statusCodeBrj    | Error         | Rejected by Authorizer |
+  | brl   | statusCodeBrl    | Success       | Released by Company |
+  | brt   | statusCodeBrt    | Warning       | Resubmitted by Authorizer |
+  | bse   | statusCodeBse    | Error         | Payment Network Error |
+  | bsn   | statusCodeBsn    | Information   | Received by Payment Network |
+  | COMP  | statusCodeCOMP   | Success       | Settled |
+  | -     | statusCodeUnknown | Warning      | Unknown Status |
 - **Returns**: Object with `code`, `text` (localized), and `state`
 
 ##### `_getStatusOptions()`

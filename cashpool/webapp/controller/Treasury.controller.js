@@ -339,16 +339,32 @@ sap.ui.define([
             const sCode = String(sRawStatus || "").trim().toUpperCase();
 
             const oStatusMap = {
-                BCR: { textKey: "statusCodeBCR", state: "Information" },
-                TBA: { textKey: "statusCodeTBA", state: "Warning" },
-                AAPRV: { textKey: "statusCodeAAPRV", state: "Success" },
-                APRV: { textKey: "statusCodeAPRV", state: "Success" },
-                REJ: { textKey: "statusCodeREJ", state: "Error" },
-                SENT: { textKey: "statusCodeSENT", state: "Information" },
-                ACK: { textKey: "statusCodeACK", state: "Information" },
-                ACCP: { textKey: "statusCodeACCP", state: "Success" },
-                RJCT: { textKey: "statusCodeRJCT", state: "Error" },
-                CMP: { textKey: "statusCodeCMP", state: "Success" },
+                bab: { textKey: "statusCodeBab", state: "Success" },
+                ban: { textKey: "statusCodeBan", state: "Warning" },
+                bap: { textKey: "statusCodeBap", state: "Warning" },
+                bbk: { textKey: "statusCodeBbk", state: "Information" },
+                bbp: { textKey: "statusCodeBbp", state: "Information" },
+                bbs: { textKey: "statusCodeBbs", state: "Information" },
+                bbst: { textKey: "statusCodeBbst", state: "Information" },
+                bck: { textKey: "statusCodeBck", state: "Information" },
+                bcr: { textKey: "statusCodeBcr", state: "Information" },
+                bdw: { textKey: "statusCodeBdw", state: "Warning" },
+                bfc: { textKey: "statusCodeBfc", state: "Information" },
+                bfe: { textKey: "statusCodeBfe", state: "Error" },
+                bhb: { textKey: "statusCodeBhb", state: "Information" },
+                bnp: { textKey: "statusCodeBnp", state: "Error" },
+                bot: { textKey: "statusCodeBot", state: "Information" },
+                bpa: { textKey: "statusCodeBpa", state: "Warning" },
+                bpe: { textKey: "statusCodeBpe", state: "Information" },
+                bpp: { textKey: "statusCodeBpp", state: "Warning" },
+                bra: { textKey: "statusCodeBra", state: "Error" },
+                bre: { textKey: "statusCodeBre", state: "Error" },
+                brj: { textKey: "statusCodeBrj", state: "Error" },
+                brl: { textKey: "statusCodeBrl", state: "Success" },
+                brt: { textKey: "statusCodeBrt", state: "Warning" },
+                bse: { textKey: "statusCodeBse", state: "Error" },
+                bsn: { textKey: "statusCodeBsn", state: "Information" },
+                COMP: { textKey: "statusCodeCOMP", state: "Success" },
                 "-": { textKey: "statusCodeUnknown", state: "Warning" }
             };
 
@@ -381,16 +397,32 @@ sap.ui.define([
         _getStatusOptions: function () {
             return [
                 { key: "ALL", text: this._oResourceBundle.getText("allStatusesOption") },
-                { key: "BCR", text: this._oResourceBundle.getText("statusCodeBCR") },
-                { key: "TBA", text: this._oResourceBundle.getText("statusCodeTBA") },
-                { key: "AAPRV", text: this._oResourceBundle.getText("statusCodeAAPRV") },
-                { key: "APRV", text: this._oResourceBundle.getText("statusCodeAPRV") },
-                { key: "REJ", text: this._oResourceBundle.getText("statusCodeREJ") },
-                { key: "SENT", text: this._oResourceBundle.getText("statusCodeSENT") },
-                { key: "ACK", text: this._oResourceBundle.getText("statusCodeACK") },
-                { key: "ACCP", text: this._oResourceBundle.getText("statusCodeACCP") },
-                { key: "RJCT", text: this._oResourceBundle.getText("statusCodeRJCT") },
-                { key: "CMP", text: this._oResourceBundle.getText("statusCodeCMP") },
+                { key: "bab", text: this._oResourceBundle.getText("statusCodeBab") },
+                { key: "ban", text: this._oResourceBundle.getText("statusCodeBan") },
+                { key: "bap", text: this._oResourceBundle.getText("statusCodeBap") },
+                { key: "bbk", text: this._oResourceBundle.getText("statusCodeBbk") },
+                { key: "bbp", text: this._oResourceBundle.getText("statusCodeBbp") },
+                { key: "bbs", text: this._oResourceBundle.getText("statusCodeBbs") },
+                { key: "bbst", text: this._oResourceBundle.getText("statusCodeBbst") },
+                { key: "bck", text: this._oResourceBundle.getText("statusCodeBck") },
+                { key: "bcr", text: this._oResourceBundle.getText("statusCodeBcr") },
+                { key: "bdw", text: this._oResourceBundle.getText("statusCodeBdw") },
+                { key: "bfc", text: this._oResourceBundle.getText("statusCodeBfc") },
+                { key: "bfe", text: this._oResourceBundle.getText("statusCodeBfe") },
+                { key: "bhb", text: this._oResourceBundle.getText("statusCodeBhb") },
+                { key: "bnp", text: this._oResourceBundle.getText("statusCodeBnp") },
+                { key: "bot", text: this._oResourceBundle.getText("statusCodeBot") },
+                { key: "bpa", text: this._oResourceBundle.getText("statusCodeBpa") },
+                { key: "bpe", text: this._oResourceBundle.getText("statusCodeBpe") },
+                { key: "bpp", text: this._oResourceBundle.getText("statusCodeBpp") },
+                { key: "bra", text: this._oResourceBundle.getText("statusCodeBra") },
+                { key: "bre", text: this._oResourceBundle.getText("statusCodeBre") },
+                { key: "brj", text: this._oResourceBundle.getText("statusCodeBrj") },
+                { key: "brl", text: this._oResourceBundle.getText("statusCodeBrl") },
+                { key: "brt", text: this._oResourceBundle.getText("statusCodeBrt") },
+                { key: "bse", text: this._oResourceBundle.getText("statusCodeBse") },
+                { key: "bsn", text: this._oResourceBundle.getText("statusCodeBsn") },
+                { key: "COMP", text: this._oResourceBundle.getText("statusCodeCOMP") },
                 { key: "-", text: this._oResourceBundle.getText("statusCodeUnknown") }
             ];
         },
@@ -2473,23 +2505,26 @@ sap.ui.define([
                     saldoSAP: Number(oAccount.StatementAmount) || 0,
                 }));
 
-                // Create or update bank entry
-                if (!oBankMap.has(sBankKey)) {
-                    oBankMap.set(sBankKey, {
-                        ...oBank,
-                        expanded: false,
-                        cuentas: []
-                    });
-                }
+                // Only add bank if it has accounts
+                if (aCuentas.length > 0) {
+                    // Create or update bank entry
+                    if (!oBankMap.has(sBankKey)) {
+                        oBankMap.set(sBankKey, {
+                            ...oBank,
+                            expanded: false,
+                            cuentas: []
+                        });
+                    }
 
-                const oBankEntry = oBankMap.get(sBankKey);
-                oBankEntry.cuentas.push(...aCuentas);
+                    const oBankEntry = oBankMap.get(sBankKey);
+                    oBankEntry.cuentas.push(...aCuentas);
 
-                // Extract centralized accounts (HouseBank starts with "SANT")
-                if (sHouseBank.startsWith("SANT")) {
-                    aCuentas.forEach((oCuenta) => {
-                        aCuentasCentralizadoras.push(oCuenta);
-                    });
+                    // Extract centralized accounts (HouseBank starts with "SANT")
+                    if (sHouseBank.startsWith("SANT")) {
+                        aCuentas.forEach((oCuenta) => {
+                            aCuentasCentralizadoras.push(oCuenta);
+                        });
+                    }
                 }
             });
 
