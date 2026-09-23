@@ -291,7 +291,7 @@
                             <buttons>
                                 <RadioButton text="{i18n>wizardSaldo1}"/>
                                 <RadioButton text="{i18n>wizardSaldo2}"/>
-                                <RadioButton text="{i18n>wizardSaldo3}"/>
+                                <!-- <RadioButton text="{i18n>wizardSaldo3}"/> -->
                             </buttons>
                         </RadioButtonGroup>
                         <VBox visible="{= ${wizard>/selectedSaldoType} === 0 }"
@@ -312,7 +312,7 @@
                                     </Column>
                                     <Column hAlign="End" width="14rem">
                                         <header>
-                                            <Text text=""/>
+                                            <Text text="{i18n>colSaldoObjetivo}"/>
                                         </header>
                                     </Column>
                                 </columns>
@@ -355,7 +355,7 @@
                                     </Column>
                                     <Column hAlign="End" width="14rem">
                                         <header>
-                                            <Text text=""/>
+                                            <Text text="{i18n>colSaldoObjetivo}"/>
                                         </header>
                                     </Column>
                                 </columns>

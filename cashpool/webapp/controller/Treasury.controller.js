@@ -16,6 +16,15 @@ sap.ui.define([
     "use strict";
 
     return Controller.extend("cashpool.app.cashpool.controller.Treasury", {
+        /**
+         * Initialize the Treasury controller
+         * 
+         * Loads all required models (i18n, view, companies, balance data) and configures
+         * the chart visualization for displaying balance information.
+         * 
+         * @public
+         * @function
+         */
         onInit: function () {
             // Get i18n bundle for translations from component
             const oResourceBundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
@@ -99,6 +108,16 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Handle tab selection in the icon tab bar
+         * 
+         * Lazy-loads transfer history when MANUAL or AUTO tabs are selected.
+         * Updates the view model's selected tab property.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - The select event from IconTabBar
+         */
         onTabSelect: function (oEvent) {
             const sSelectedKey = oEvent.getParameter("selectedKey");
             this._getViewModel().setProperty("/selectedTab", sSelectedKey);
@@ -109,6 +128,15 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Apply i18n localization to view model properties
+         * 
+         * Translates all properties with *Key suffix to localized text using the resource bundle.
+         * 
+         * @private
+         * @function
+         * @param {sap.ui.model.json.JSONModel} oViewModel - The view model to localize
+         */
         _applyViewModelI18n: function (oViewModel) {
             const aTabs = oViewModel.getProperty("/tabs") || [];
             aTabs.forEach((oTab) => {
@@ -133,6 +161,16 @@ sap.ui.define([
             oViewModel.refresh(true);
         },
 
+        /**
+         * Handle download receipt button click
+         * 
+         * Prepares a message with transfer details for downloading receipts.
+         * Currently shows a toast - implement actual download logic as needed.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - The button press event
+         */
         onDownloadReceipt: function (oEvent) {
             // Obtener la fila seleccionada
             const oSource = oEvent.getSource();
@@ -146,6 +184,17 @@ sap.ui.define([
             MessageToast.show(this._oResourceBundle.getText("msgDownloadExtract", [oData.fecha, sFormattedCurrency]));
         },
 
+        /**
+         * Load transfer history data from backend
+         * 
+         * Fetches transfer history for the specified type (MANUAL or AUTO) and groups
+         * the results by company. Shows a busy indicator during loading.
+         * 
+         * @private
+         * @function
+         * @param {string} sType - Transfer type: "MANUAL" or "AUTO"
+         * @returns {void}
+         */
         _loadTransferHistoryData: function (sType) {
             // Load specific type with busy indicator on the tab bar
             const oIconTabBar = this.getView().byId("idIconTabBar");
@@ -168,6 +217,17 @@ sap.ui.define([
                 });
         },
 
+        /**
+         * Fetch transfer history from OData backend
+         * 
+         * Retrieves transfer records from the OData service filtered by transfer type.
+         * Transforms each record using _mapTransferHistoryItem.
+         * 
+         * @private
+         * @function
+         * @param {string} sType - Transfer type: "MANUAL" or "AUTO"
+         * @returns {Promise<Array>} Promise resolving to array of mapped transfer objects
+         */
         _fetchTransferHistoryByType: function (sType) {
             const oCashpoolModel = this.getOwnerComponent().getModel("Cashpool");
             if (!oCashpoolModel) {
@@ -186,6 +246,32 @@ sap.ui.define([
             );
         },
 
+        /**
+         * Map OData transfer record to UI transfer model
+         * 
+         * Transforms raw OData transfer object to the structure expected by the view.
+         * Extracts and formats origin/destination account information, balances, and status.
+         * 
+         * @private
+         * @function
+         * @param {Object} oItem - Raw OData transfer object
+         * @param {string} sType - Transfer type for the mapped object
+         * @returns {Object} Mapped transfer object with structure:
+         *   {
+         *     razonSocial: string,
+         *     cif: string,
+         *     fecha: string,
+         *     origen: {banco, oficina, cuenta},
+         *     destino: {banco, oficina, cuenta},
+         *     saldoAntes: {monto, moneda},
+         *     saldoProgramado: {monto, moneda},
+         *     valorTransferencia: {monto, moneda},
+         *     paymentDoc: string,
+         *     requestId: string,
+         *     status: {code, text, state},
+         *     tipo: string
+         *   }
+         */
         _mapTransferHistoryItem: function (oItem, sType) {
             const sTransferCurrency = oItem.amounts_paymCurr || oItem.payerAccount?.Currency || "EUR";
             const sBalanceCurrency = oItem.payerAccount?.Currency || sTransferCurrency;
@@ -223,11 +309,32 @@ sap.ui.define([
             };
         },
 
+        /**
+         * Safely convert value to number
+         * 
+         * Returns 0 if the value is not a finite number.
+         * 
+         * @private
+         * @function
+         * @param {*} vAmount - Value to convert
+         * @returns {number} Converted number or 0
+         */
         _toNumber: function (vAmount) {
             const nAmount = Number(vAmount);
             return Number.isFinite(nAmount) ? nAmount : 0;
         },
 
+        /**
+         * Map transfer status code to UI status object
+         * 
+         * Converts backend status codes (e.g., "APRV", "REJ") to UI-friendly objects
+         * with localized text and state for styling (Success, Warning, Error, Information).
+         * 
+         * @private
+         * @function
+         * @param {string} sRawStatus - Raw status code from backend
+         * @returns {Object} Status object with {code, text, state}
+         */
         _mapTransferStatus: function (sRawStatus) {
             const sCode = String(sRawStatus || "").trim().toUpperCase();
 
@@ -261,6 +368,16 @@ sap.ui.define([
             };
         },
 
+        /**
+         * Get available status filter options
+         * 
+         * Returns array of status options for SELECT controls used in transfer filtering.
+         * Each option includes the i18n key for localization.
+         * 
+         * @private
+         * @function
+         * @returns {Array} Array of status options with {key, text}
+         */
         _getStatusOptions: function () {
             return [
                 { key: "ALL", text: this._oResourceBundle.getText("allStatusesOption") },
@@ -278,6 +395,19 @@ sap.ui.define([
             ];
         },
 
+        /**
+         * Build transfer groups organized by company
+         * 
+         * Groups transfer records by company (razonSocial + CIF), sorts each group
+         * by date descending, and sets both all and filtered arrays in the model.
+         * For AUTO type, marks the first group as active.
+         * 
+         * @private
+         * @function
+         * @param {string} sType - Transfer type: "MANUAL" or "AUTO"
+         * @param {Array} aTransferencias - Array of mapped transfer objects
+         * @returns {void}
+         */
         _buildTransferenciasGroupsByType: function (sType, aTransferencias) {
             const oModel = this._getViewModel();
             const oGroupsByKey = new Map();
@@ -322,6 +452,17 @@ sap.ui.define([
             oModel.setProperty(oPaths.visiblePath, aGroups.slice());
         },
 
+        /**
+         * Get model paths for transfer groups
+         * 
+         * Returns the model property paths for storing both unfiltered and
+         * filtered transfer group arrays for a given transfer type.
+         * 
+         * @private
+         * @function
+         * @param {string} sType - Transfer type: "MANUAL" or "AUTO"
+         * @returns {Object} Object with {allPath, visiblePath} properties
+         */
         _getTransferGroupPaths: function (sType) {
             if (sType === "MANUAL") {
                 return {
@@ -336,6 +477,17 @@ sap.ui.define([
             };
         },
 
+        /**
+         * Search transfer groups by company name or CIF
+         * 
+         * Filters transfer groups based on search query matching company name or CIF.
+         * Updates the visible transfer groups while preserving the unfiltered copy.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event with query or newValue parameter
+         * @returns {void}
+         */
         onTransferenciasGroupSearch: function (oEvent) {
             const sRawQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").trim();
             const sNormalizedQuery = this._normalizeNifSearch(sRawQuery);
@@ -357,10 +509,31 @@ sap.ui.define([
             oModel.setProperty(oPaths.visiblePath, aFilteredGroups);
         },
 
+        /**
+         * Normalize search value for case-insensitive matching
+         * 
+         * Converts string to lowercase and trims whitespace.
+         * 
+         * @private
+         * @function
+         * @param {string} sValue - String to normalize
+         * @returns {string} Normalized string (lowercase, trimmed)
+         */
         _normalizeNifSearch: function (sValue) {
             return (sValue || "").toLowerCase().trim();
         },
 
+        /**
+         * Handle transfer group activation switch change
+         * 
+         * Shows a confirmation dialog when toggling automatic transfer group active state.
+         * Reverts the switch if user cancels the confirmation.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Switch change event
+         * @returns {void}
+         */
         onTransferGroupActivationChange: function (oEvent) {
             const bNextState = oEvent.getParameter("state");
             const oSwitch = oEvent.getSource();
@@ -401,6 +574,17 @@ sap.ui.define([
             oDialog.open();
         },
 
+        /**
+         * Apply date range and status filters to transfers
+         * 
+         * Filters transfers within a specific group based on date range and status.
+         * Updates the visible transfers while preserving the complete unfiltered list.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Button press event
+         * @returns {void}
+         */
         onTransferenciasSearch: function (oEvent) {
             const oContext = oEvent.getSource().getBindingContext("view");
             if (!oContext) {
@@ -429,6 +613,17 @@ sap.ui.define([
             oModel.setProperty(`${sPath}/selectedCount`, 0);
         },
 
+        /**
+         * Clear all transfer filters and restore full list
+         * 
+         * Resets date range and status filters, restoring all transfers
+         * for the specific transfer group.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Button press event
+         * @returns {void}
+         */
         onTransferenciasClear: function (oEvent) {
             const oContext = oEvent.getSource().getBindingContext("view");
             if (!oContext) {
@@ -459,6 +654,15 @@ sap.ui.define([
         //     this._getViewModel().setProperty(`${oContext.getPath()}/selectedCount`, iSelectedCount);
         // },
 
+        /**
+         * Consult existing transfer configuration
+         * 
+         * Opens the configuration wizard for reviewing/editing automatic transfer setups.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onConsultConfiguration: function () {
             this._openWizardDialog();
         },
@@ -476,6 +680,16 @@ sap.ui.define([
         //     MessageToast.show(this._oResourceBundle.getText("msgExportReceipts", [iSelected]));
         // },
 
+        /**
+         * Traverse up DOM hierarchy to find parent Panel control
+         * 
+         * Used to find the containing panel for nested controls.
+         * 
+         * @private
+         * @function
+         * @param {sap.ui.core.Control} oControl - Starting control
+         * @returns {sap.m.Panel|null} Parent Panel or null if not found
+         */
         _getParentPanel: function (oControl) {
             let oParent = oControl;
             while (oParent && !oParent.isA("sap.m.Panel")) {
@@ -484,6 +698,17 @@ sap.ui.define([
             return oParent;
         },
 
+        /**
+         * Parse transfer date string in DD/MM/YYYY format
+         * 
+         * Converts date string to normalized Date object (midnight UTC).
+         * Used for transfer history date filtering.
+         * 
+         * @private
+         * @function
+         * @param {string} sDate - Date string in DD/MM/YYYY format
+         * @returns {Date|null} Normalized Date or null if invalid format
+         */
         _parseTransferDate: function (sDate) {
             if (!sDate) {
                 return null;
@@ -502,6 +727,17 @@ sap.ui.define([
             return this._normalizeDate(oDate);
         },
 
+        /**
+         * Normalize date to midnight UTC for comparison
+         * 
+         * Sets time to 00:00:00.000 for consistent date-only comparisons
+         * in filter operations.
+         * 
+         * @private
+         * @function
+         * @param {Date} oDate - Date to normalize
+         * @returns {Date|null} Normalized date or null if input not a Date
+         */
         _normalizeDate: function (oDate) {
             if (!(oDate instanceof Date)) {
                 return null;
@@ -512,6 +748,17 @@ sap.ui.define([
             return oNormalizedDate;
         },
 
+        /**
+         * Map company data to wizard display format
+         * 
+         * Normalizes company objects for display in wizard tables,
+         * handling both OData (CompanyName, VatNumber) and JSON model formats.
+         * 
+         * @private
+         * @function
+         * @param {Object} oEmpresa - Company object
+         * @returns {Object} Mapped company with {razonSocial, cif, CompanyCode}
+         */
         _mapEmpresaForWizard: function (oEmpresa) {
             return {
                 razonSocial: oEmpresa?.razonSocial || oEmpresa?.CompanyName || "",
@@ -520,6 +767,17 @@ sap.ui.define([
             };
         },
 
+        /**
+         * Get companies data for wizard initialization
+         * 
+         * Returns companies from saldos model if available, otherwise uses fallback data.
+         * Maps companies to wizard display format.
+         * 
+         * @private
+         * @function
+         * @param {Array} aFallbackEmpresas - Fallback company array if saldos not loaded
+         * @returns {Array} Array of companies in wizard format
+         */
         _getWizardEmpresasData: function (aFallbackEmpresas) {
             const aSaldos = this.getView().getModel("empresas")?.getData();
             const aSource = Array.isArray(aSaldos) && aSaldos.length ? aSaldos : (aFallbackEmpresas || []);
@@ -527,6 +785,18 @@ sap.ui.define([
             return aSource.map((oEmpresa) => this._mapEmpresaForWizard(oEmpresa));
         },
 
+        /**
+         * Set bank data on wizard model
+         * 
+         * Updates both unfiltered (_*All) and filtered copies of bank and
+         * centralized account data in the wizard model.
+         * 
+         * @private
+         * @function
+         * @param {sap.ui.model.json.JSONModel} oModel - Target wizard model
+         * @param {Object} oTransformed - Transformed bank data with {bancos, cuentasCentralizadoras}
+         * @returns {void}
+         */
         _setWizardBanksData: function (oModel, oTransformed) {
             oModel.setProperty("/_bancosAll", JSON.parse(JSON.stringify(oTransformed.bancos)));
             oModel.setProperty("/_cuentasCentralAll", oTransformed.cuentasCentralizadoras.slice());
@@ -535,6 +805,17 @@ sap.ui.define([
             oModel.setProperty("/companyContextReady", true);
         },
 
+        /**
+         * Clear bank-related data from wizard model
+         * 
+         * Clears all bank and centralized account data, indicating
+         * that company context is not ready.
+         * 
+         * @private
+         * @function
+         * @param {sap.ui.model.json.JSONModel} oModel - Wizard model to clear
+         * @returns {void}
+         */
         _clearWizardBanksData: function (oModel) {
             if (!oModel) {
                 return;
@@ -547,6 +828,16 @@ sap.ui.define([
             oModel.setProperty("/companyContextReady", false);
         },
 
+        /**
+         * Clear all wizard dependent state
+         * 
+         * Clears banks, schedules, balance rules, and review data.
+         * Used when company selection changes to reset dependent choices.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _clearWizardDependentState: function () {
             const oModel = this._getWizardModel();
             if (!oModel) {
@@ -570,6 +861,16 @@ sap.ui.define([
             });
         },
 
+        /**
+         * Clear all transfer wizard dependent state
+         * 
+         * Resets banks, amount, and review fields when company selection changes
+         * in the transfer wizard.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _clearTransferWizardDependentState: function () {
             const oModel = this._getWizardModel("transfer");
             if (!oModel) {
@@ -589,6 +890,23 @@ sap.ui.define([
             oModel.setProperty("/review/importe", "");
         },
 
+        /**
+         * Load banks and accounts for selected company from OData
+         * 
+         * Calls OData service to fetch bank and account data for the selected company.
+         * Implements request deduplication to handle rapid company changes.
+         * Uses callback pattern for flexible success/error handling.
+         * 
+         * @private
+         * @function
+         * @param {Object} oOptions - Configuration options
+         * @param {string} oOptions.CompanyCode - Company identifier
+         * @param {string} oOptions.modelName - Target model name (wizard or wizardTransfer)
+         * @param {sap.m.Dialog} oOptions.dialog - Dialog to show busy indicator
+         * @param {Function} oOptions.onSuccess - Callback(oModel, oTransformed) on success
+         * @param {string} oOptions.errorMessage - Error message for failure toast
+         * @returns {Promise<void>} Promise handling the async operation
+         */
         _loadBanksForSelectedCompany: function (oOptions) {
             const {
                 CompanyCode: sCompanyCode,
@@ -650,6 +968,16 @@ sap.ui.define([
                 });
         },
 
+        /**
+         * Open configuration information dialog
+         * 
+         * Lazy-loads configuration dialog fragment on first open,
+         * then caches and reuses the instance.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _openConfigurationDialog: function () {
             if (!this._configDialog) {
                 Fragment.load({
@@ -666,6 +994,15 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Handle configure now button press
+         * 
+         * Closes configuration dialog if open and opens the configuration wizard.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onConfigureNow: function () {
             if (this._configDialog) {
                 this._configDialog.close();
@@ -673,6 +1010,16 @@ sap.ui.define([
             this._openWizardDialog();
         },
 
+        /**
+         * Initialize and open configuration wizard
+         * 
+         * Loads the wizard template, initializes companies and models,
+         * then opens the wizard dialog fragment.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _openWizardDialog: function () {
             const oWizardModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardData.json"));
             oWizardModel.attachRequestCompleted(() => {
@@ -690,6 +1037,15 @@ sap.ui.define([
             });
         },
 
+        /**
+         * Load and display wizard dialog fragment
+         * 
+         * Always loads a fresh fragment instance (dialog is destroyed in afterClose).
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _openWizardDialogFragment: function () {
             // Dialogs are now destroyed in onAfterClose, so always load fresh.
             Fragment.load({
@@ -731,10 +1087,29 @@ sap.ui.define([
             return this.getView().getModel(oConfig.modelName);
         },
 
+        /**
+         * Get main view model
+         * 
+         * @private
+         * @function
+         * @returns {sap.ui.model.json.JSONModel} View model instance
+         */
         _getViewModel: function () {
             return this.getView().getModel("view");
         },
 
+        /**
+         * Set model property only if value has changed
+         * 
+         * Avoids unnecessary model refresh triggers when value is already set.
+         * 
+         * @private
+         * @function
+         * @param {sap.ui.model.json.JSONModel} oModel - Target model
+         * @param {string} sPath - Property path
+         * @param {*} vValue - New value
+         * @returns {void}
+         */
         _setModelPropertyIfChanged: function (oModel, sPath, vValue) {
             if (!oModel) {
                 return;
@@ -746,6 +1121,19 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Set wizard model property with backward compatibility
+         * 
+         * Supports both 2-parameter (backward compat for config wizard)
+         * and 3-parameter (explicit type) calls.
+         * 
+         * @private
+         * @function
+         * @param {string} sTypeOrPath - Wizard type or property path (if 2-param call)
+         * @param {string|*} sPathOrValue - Property path or value (if 2-param call)
+         * @param {*} vValue - Value (if 3-param call)
+         * @returns {void}
+         */
         _setWizardPropertyIfChanged: function (sType, sPath, vValue) {
             // Backward compatible: allow calling with (sPath, vValue) for the config wizard.
             if (arguments.length === 2) {
@@ -756,6 +1144,17 @@ sap.ui.define([
             this._setModelPropertyIfChanged(this._getWizardModel(sType), sPath, vValue);
         },
 
+        /**
+         * Mark wizard step as valid or invalid
+         * 
+         * Updates step validation state in the wizard control.
+         * 
+         * @private
+         * @function
+         * @param {string} sStepId - Step control ID (e.g., "wizardStep1")
+         * @param {boolean} bValid - Validation state
+         * @returns {void}
+         */
         _setWizardStepValidation: function (sStepId, bValid) {
             const oWizard = this.byId("configWizard");
             const oStep = this.byId(sStepId);
@@ -765,6 +1164,16 @@ sap.ui.define([
             bValid ? oWizard.validateStep(oStep) : oWizard.invalidateStep(oStep);
         },
 
+        /**
+         * Get all selected accounts from wizard step 2
+         * 
+         * Collects accounts selected across multiple bank panels.
+         * Each account includes bank name and full account data.
+         * 
+         * @private
+         * @function
+         * @returns {Array} Array of {banco: string, data: Object} entries
+         */
         _getSelectedStep2Accounts: function () {
             const oBancosList = this.byId("bancosListStep2");
             if (!oBancosList) {
@@ -796,6 +1205,17 @@ sap.ui.define([
             return aSelectedAccounts;
         },
 
+        /**
+         * Validate that all items have valid localized number inputs
+         * 
+         * Checks that each item has a non-empty saldoPersonalizadoInput
+         * that parses successfully to a number.
+         * 
+         * @private
+         * @function
+         * @param {Array} aItems - Array of balance items with saldoPersonalizadoInput
+         * @returns {boolean} True if all items have valid numeric input
+         */
         _hasValidLocalizedInputs: function (aItems) {
             return aItems.length > 0 && aItems.every((oItem) => {
                 const sInput = (oItem.saldoPersonalizadoInput || "").trim();
@@ -806,6 +1226,17 @@ sap.ui.define([
             });
         },
 
+        /**
+         * Reset wizard to initial state
+         * 
+         * Reverts all wizard selections and data. Restores empresas model from
+         * unfiltered source, clears step validations, and resets UI controls.
+         * 
+         * @private
+         * @function
+         * @param {string} sType - Wizard type: "config" or "transfer"
+         * @returns {void}
+         */
         _resetWizard: function (sType) {
             // Parametrized reset for both config and transfer wizards.
             // Reverts empresas model to unfiltered state and clears all wizard data.
@@ -870,22 +1301,50 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Handle wizard cancel button
+         * 
+         * Closes the configuration wizard without saving.
+         * Cleanup happens in onWizardDialogAfterClose.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onWizardCancel: function () {
             if (this._wizardDialog) {
                 this._wizardDialog.close();
             }
         },
 
+        /**
+         * Handle wizard accept button
+         * 
+         * Shows success message and closes the configuration wizard after save.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onWizardAccept: function () {
             const oModel = this._getWizardModel("config");
             const oReview = oModel.getProperty("/review");
-            //MessageToast.show(`Configuració guardada: ${oReview.razonSocial} | ${oReview.cuentaCentralNombre} | ${oReview.horario}`);
             MessageToast.show(this._oResourceBundle.getText("msgSavedConfig", [oReview.razonSocial, oReview.cuentaCentralNombre, oReview.horario]));
             if (this._wizardDialog) {
                 this._wizardDialog.close();
             }
         },
 
+        /**
+         * Handle wizard dialog close event
+         * 
+         * Cleans up wizard state and destroys the dialog to guarantee
+         * fresh state on next opening.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onWizardDialogAfterClose: function () {
             this._resetWizard("config");
             // Destroy the dialog to guarantee clean state on next opening.
@@ -898,6 +1357,16 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Handle review step activation
+         * 
+         * Updates all review fields when the review step becomes active.
+         * Pulls latest values from wizard selections.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onReviewStepActivate: function () {
             this._updateReviewEmpresa();
             this._updateReviewCuentas();
@@ -907,6 +1376,15 @@ sap.ui.define([
             this._updateReviewSaldo();
         },
 
+        /**
+         * Update review with selected company
+         * 
+         * Displays company name and tax ID in the review section.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _updateReviewEmpresa: function () {
             const oModel = this._getWizardModel();
             const oEmpresaTable = this.byId("empresaTable");
@@ -921,12 +1399,30 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Update review with selected bank accounts
+         * 
+         * Lists all selected accounts in comma-separated format.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _updateReviewCuentas: function () {
             const oModel = this._getWizardModel();
             const aCuentasSeleccionadas = this._getSelectedStep2Accounts().map((oEntry) => oEntry.data);
             oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.Description).join(", ") || "-");
         },
 
+        /**
+         * Update review with selected centralized account
+         * 
+         * Displays destination/pooling account details including bank name and account info.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _updateReviewCuentaCentral: function () {
             const oModel = this._getWizardModel();
             const oCuentaTable = this.byId("cuentaCentralTable");
@@ -941,6 +1437,16 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Update review with selected schedule configuration
+         * 
+         * Formats schedule information based on selected type:
+         * single, by-bank, or by-account with associated times.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _updateReviewHorario: function () {
             const oModel = this._getWizardModel();
             const oHorarioGroup = this.byId("horarioGroup");
@@ -977,6 +1483,15 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Update review with selected days of week
+         * 
+         * Displays comma-separated list of selected transfer days.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _updateReviewDias: function () {
             const oModel = this._getWizardModel();
             const oDias = oModel.getProperty("/dias") || {};
@@ -986,6 +1501,16 @@ sap.ui.define([
             oModel.setProperty("/review/dias", aDiasSeleccionados.join(", ") || "-");
         },
 
+        /**
+         * Update review with custom balance configuration
+         * 
+         * Formats balance information based on selected type:
+         * by-bank, by-account, or no customization.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _updateReviewSaldo: function () {
             const oModel = this._getWizardModel();
             const oSaldoGroup = this.byId("saldoGroup");
@@ -1019,6 +1544,17 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Format amount for display in review section
+         * 
+         * Formats currency with symbol if available, otherwise uses localized number format.
+         * 
+         * @private
+         * @function
+         * @param {number} vAmount - Amount to format
+         * @param {string} sCurrency - Currency code (optional)
+         * @returns {string} Formatted amount string
+         */
         _formatAmountForReview: function (vAmount, sCurrency) {
             const nAmount = Number(vAmount);
             if (Number.isNaN(nAmount)) {
@@ -1030,6 +1566,16 @@ sap.ui.define([
             return this._formatLocalizedNumber(nAmount);
         },
 
+        /**
+         * Get localized float number formatter
+         * 
+         * Returns cached formatter instance configured for current locale.
+         * Lazy-loads on first access.
+         * 
+         * @private
+         * @function
+         * @returns {sap.ui.core.format.NumberFormat} Singleton formatter instance
+         */
         _getLocalizedFloatFormatter: function () {
             if (!this._oLocalizedFloatFormatter) {
                 this._oLocalizedFloatFormatter = NumberFormat.getFloatInstance({
@@ -1041,13 +1587,31 @@ sap.ui.define([
             return this._oLocalizedFloatFormatter;
         },
 
+        /**
+         * Format number to localized string
+         * 
+         * Applies locale-specific formatting (decimal separator, grouping).
+         * 
+         * @private
+         * @function
+         * @param {number} nValue - Number to format
+         * @returns {string} Formatted number string
+         */
         _formatLocalizedNumber: function (nValue) {
             return this._getLocalizedFloatFormatter().format(nValue);
         },
 
-        // Unified empresa search. Both wizards (config and transfer) share the
-        // "empresas" model, so a single handler filters it from the raw source of
-        // truth captured in onInit (_aEmpresasAll).
+        /**
+         * Search companies by name or VAT number
+         * 
+         * Filters the shared empresas model used by both config and transfer wizards.
+         * Searches against CompanyName and VatNumber fields.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event with query or newValue
+         * @returns {void}
+         */
         onEmpresaSearch: function (oEvent) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase().trim();
             const oEmpresasModel = this.getView().getModel("empresas");
@@ -1063,8 +1627,18 @@ sap.ui.define([
             oEmpresasModel.setProperty("/", aFiltered);
         },
 
-        // Shared bancos search for wizard step 2. Both wizards filter their own
-        // "/_bancosAll" by Description and cuentaCorriente, and auto-expand matches.
+        /**
+         * Search and filter banks by description or account number
+         * 
+         * Filters bank list for specified wizard type, auto-expanding matching banks.
+         * Used by both config and transfer wizards.
+         * 
+         * @private
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event
+         * @param {string} sType - Wizard type: "config" or "transfer"
+         * @returns {void}
+         */
         _onBancosSearch: function (oEvent, sType) {
             const oModel = this._getWizardModel(sType);
             if (!oModel) {
@@ -1097,12 +1671,32 @@ sap.ui.define([
             oModel.setProperty("/bancos", aFiltered);
         },
 
+        /**
+         * Search banks in config wizard
+         * 
+         * Wrapper delegating to _onBancosSearch for config wizard type.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event
+         * @returns {void}
+         */
         onCuentasSearch: function (oEvent) {
             this._onBancosSearch(oEvent, "config");
         },
 
-        // Shared search for centralized/destination accounts. Both wizards use the
-        // exact same filtering logic; only the source model differs (by sType).
+        /**
+         * Search centralized/destination accounts
+         * 
+         * Filters centralized account list for specified wizard type.
+         * Searches by description, bank code, or account number.
+         * 
+         * @private
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event
+         * @param {string} sType - Wizard type: "config" or "transfer"
+         * @returns {void}
+         */
         _onCuentaCentralSearch: function (oEvent, sType) {
             const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase().trim();
             const oModel = this._getWizardModel(sType);
@@ -1119,10 +1713,29 @@ sap.ui.define([
             oModel.setProperty("/cuentasCentralizadoras", aFiltered);
         },
 
+        /**
+         * Search centralized accounts in config wizard
+         * 
+         * Wrapper delegating to _onCuentaCentralSearch for config wizard type.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event
+         * @returns {void}
+         */
         onCuentaCentralSearch: function (oEvent) {
             this._onCuentaCentralSearch(oEvent, "config");
         },
 
+        /**
+         * Handle wizard dialog open event
+         * 
+         * Initializes wizard navigation state when dialog opens.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onWizardDialogAfterOpen: function () {
             const oWizard = this.byId("configWizard");
             if (!oWizard) {
@@ -1134,11 +1747,29 @@ sap.ui.define([
             this._updateNavState(Math.max(0, iIndex));
         },
 
+        /**
+         * Check if company is selected in step 1
+         * 
+         * @private
+         * @function
+         * @returns {boolean} True if company selected and banks loaded
+         */
         _isStep1Valid: function () {
             const oEmpresaTable = this.byId("empresaTable");
             return !!oEmpresaTable && oEmpresaTable.getItems().some((i) => i.getSelected());
         },
 
+        /**
+         * Update wizard navigation button states
+         * 
+         * Calculates visibility and enabled state of back/next/accept buttons
+         * based on current step and validation state.
+         * 
+         * @private
+         * @function
+         * @param {number} iIndex - Current step index (0-based)
+         * @returns {void}
+         */
         _updateNavState: function (iIndex) {
             const oModel = this._getWizardModel();
             const oWizard = this.byId("configWizard");
@@ -1158,6 +1789,16 @@ sap.ui.define([
             this._iCurrentStepIndex = iIndex;
         },
 
+        /**
+         * Handle wizard step navigation change
+         * 
+         * Updates navigation state when user navigates between wizard steps.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Navigation event
+         * @returns {void}
+         */
         onWizardNavChange: function (oEvent) {
             const oWizard = this.byId("configWizard");
             if (!oWizard) {
@@ -1168,6 +1809,15 @@ sap.ui.define([
             this._updateNavState(Math.max(0, iIndex));
         },
 
+        /**
+         * Navigate to next wizard step
+         * 
+         * Calls nextStep() for new steps or goToStep() for re-visiting steps.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onWizardNext: function () {
             const oWizard = this.byId("configWizard");
             if (!oWizard) {
@@ -1184,6 +1834,13 @@ sap.ui.define([
             this._updateNavState(iNext);
         },
 
+        /**
+         * Navigate to previous wizard step
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onWizardBack: function () {
             const oWizard = this.byId("configWizard");
             if (!oWizard || this._iCurrentStepIndex <= 0) {
@@ -1194,6 +1851,16 @@ sap.ui.define([
             this._updateNavState(iPrev);
         },
 
+        /**
+         * Handle company selection change in step 1
+         * 
+         * Loads banks for selected company, clears dependent selections,
+         * and updates validation and navigation state.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onEmpresaSelectionChange: function () {
             const oTable = this.byId("empresaTable");
             const oModel = this._getWizardModel();
@@ -1229,6 +1896,16 @@ sap.ui.define([
             });
         },
 
+        /**
+         * Handle account selection change in step 2
+         * 
+         * Builds schedule and balance configurations for selected accounts.
+         * Updates validation and review.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onCuentasSelectionChange: function () {
             const aSelectedAccounts = this._getSelectedStep2Accounts();
             const bValid = aSelectedAccounts.length > 0;
@@ -1239,6 +1916,15 @@ sap.ui.define([
             this._updateReviewCuentas();
         },
 
+        /**
+         * Handle centralized account selection change in step 3
+         * 
+         * Validates selection and updates review.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onCuentaCentralSelectionChange: function () {
             const bValid = this.byId("cuentaCentralTable").getItems().some((i) => i.getSelected());
             this._setWizardStepValidation("wizardStep3", bValid);
@@ -1246,6 +1932,16 @@ sap.ui.define([
             this._updateReviewCuentaCentral();
         },
 
+        /**
+         * Handle schedule type selection change
+         * 
+         * Builds specific schedule options when schedule type changes.
+         * Updates review and validates step.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onHorarioSelectionChange: function () {
             const oModel = this._getWizardModel();
             const oHorarioGroup = this.byId("horarioGroup");
@@ -1264,10 +1960,30 @@ sap.ui.define([
             this._validateStep4();
         },
 
+        /**
+         * Handle single schedule time change
+         * 
+         * Updates review when user changes the single schedule value.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onHorarioUnicoChange: function () {
             this._updateReviewHorario();
         },
 
+        /**
+         * Build per-bank or per-account schedule configurations
+         * 
+         * Creates arrays for specific schedule options based on selected accounts
+         * and schedule type (by-bank or by-account).
+         * 
+         * @private
+         * @function
+         * @param {Array} aSelectedAccountsParam - Selected accounts (optional)
+         * @returns {void}
+         */
         _buildHorariosEspecificos: function (aSelectedAccountsParam) {
             const oModel = this._getWizardModel();
             const iSelectedHorarioIndex = oModel.getProperty("/selectedHorario");
@@ -1315,6 +2031,16 @@ sap.ui.define([
             oModel.setProperty("/horariosPersonalizadosPorCuenta", aHorariosPorCuenta);
         },
 
+        /**
+         * Handle specific bank/account schedule selection
+         * 
+         * Updates the schedule for a specific bank or account.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Selection change event
+         * @returns {void}
+         */
         onHorarioEspecificoChange: function (oEvent) {
             const oSelectedItem = oEvent.getParameter("selectedItem");
             if (!oSelectedItem) {
@@ -1345,11 +2071,30 @@ sap.ui.define([
             this._updateReviewHorario();
         },
 
+        /**
+         * Handle day selection change
+         * 
+         * Updates review and validates step when selected days change.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onDiaSelectionChange: function () {
             this._updateReviewDias();
             this._validateStep4();
         },
 
+        /**
+         * Handle balance type selection change
+         * 
+         * Builds custom balance data and updates review when balance type changes.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Selection change event (optional)
+         * @returns {void}
+         */
         onSaldoSelectionChange: function (oEvent) {
             const oModel = this._getWizardModel();
             const oSaldoGroup = oEvent ? oEvent.getSource() : this.byId("saldoGroup");
@@ -1362,6 +2107,15 @@ sap.ui.define([
             this._validateStep5();
         },
 
+        /**
+         * Validate schedule step (step 4)
+         * 
+         * Checks that schedule is selected and at least one day is chosen.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _validateStep4: function () {
             const oHorarioGroup = this.byId("horarioGroup");
             const oModel = this._getWizardModel();
@@ -1380,6 +2134,15 @@ sap.ui.define([
             this._updateNavState(this._iCurrentStepIndex);
         },
 
+        /**
+         * Validate balance step (step 5)
+         * 
+         * Checks that custom balance inputs are valid for selected balance type.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _validateStep5: function () {
             const oSaldoGroup = this.byId("saldoGroup");
             const oModel = this._getWizardModel();
@@ -1406,6 +2169,18 @@ sap.ui.define([
             this._updateNavState(this._iCurrentStepIndex);
         },
 
+        /**
+         * Build per-bank or per-account custom balance configurations
+         * 
+         * Creates arrays for specific balance options based on selected accounts
+         * and balance type (by-bank or by-account).
+         * Preserves previously entered custom values.
+         * 
+         * @private
+         * @function
+         * @param {Array} aSelectedAccountsParam - Selected accounts (optional)
+         * @returns {void}
+         */
         _buildSaldosPersonalizados: function (aSelectedAccountsParam) {
             const oModel = this._getWizardModel();
             const iSelectedSaldoType = oModel.getProperty("/selectedSaldoType");
@@ -1493,6 +2268,17 @@ sap.ui.define([
             oModel.setProperty("/saldosPersonalizadosPorCuenta", aSaldosPorCuenta);
         },
 
+        /**
+         * Handle custom balance input change
+         * 
+         * Parses and formats localized number input, updates model,
+         * validates step, and updates review.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Value change event
+         * @returns {void}
+         */
         onSaldoPersonalizadoChange: function (oEvent) {
             const oSource = oEvent.getSource();
             const sScope = oSource.data("scope");
@@ -1523,6 +2309,17 @@ sap.ui.define([
             this._updateReviewSaldo();
         },
 
+        /**
+         * Parse localized number format with fallback
+         * 
+         * Attempts to parse using locale formatter first, then falls back
+         * to detecting decimal/thousands separators for pasted values.
+         * 
+         * @private
+         * @function
+         * @param {string} sValue - Number string to parse
+         * @returns {number} Parsed number or NaN
+         */
         _parseLocalizedNumber: function (sValue) {
             if (!sValue) {
                 return Number.NaN;
@@ -1555,10 +2352,29 @@ sap.ui.define([
             return Number.isNaN(nDirect) ? Number.NaN : nDirect;
         },
 
+        /**
+         * Handle balance consideration toggle change
+         * 
+         * Updates review when user changes whether to consider custom balance.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onSaldoConsiderChange: function () {
             this._updateReviewSaldo();
         },
 
+        /**
+         * Navigate to specific wizard step for editing
+         * 
+         * Used by review step edit buttons to jump to a specific step.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Button press event with "step" data
+         * @returns {void}
+         */
         onEditStep: function (oEvent) {
             const sStep = oEvent.getSource().data("step");
             const iIndex = parseInt(sStep, 10) - 1;
@@ -1569,16 +2385,44 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Handle close button on configuration dialog
+         * 
+         * Closes the config dialog without saving.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onCloseDialog: function () {
             if (this._configDialog) {
                 this._configDialog.close();
             }
         },
 
+        /**
+         * Handle configuration dialog close event
+         * 
+         * Cleans up dialog and related resources after dialog closes.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onDialogClose: function () {
             // Handle dialog close event
         },
 
+        /**
+         * Initialize transfer wizard with transfer data model
+         * 
+         * Loads transfer wizard data and opens the transfer dialog fragment.
+         * Sets up wizardTransfer model for transfer wizard steps.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onCreateSingleTransfer: function () {
             const oTransferModel = new JSONModel(sap.ui.require.toUrl("cashpool/app/cashpool/model/wizardTransferData.json"));
             oTransferModel.attachRequestCompleted(() => {
@@ -1596,6 +2440,17 @@ sap.ui.define([
             });
         },
 
+        /**
+         * Transform OData response to bank structure
+         * 
+         * Converts OData bank/account response into hierarchical structure
+         * used by wizard banks and centralized accounts tables.
+         * 
+         * @private
+         * @function
+         * @param {object} oODataResponse - OData response with /Banks data
+         * @returns {object} Transformed data with aBancos and aCuentasCentralizadoras
+         */
         _transformBanksODataToBancos: function (oODataResponse) {
             const aBancos = [];
             const aCuentasCentralizadoras = [];
@@ -1649,6 +2504,16 @@ sap.ui.define([
             };
         },
 
+        /**
+         * Open transfer wizard dialog fragment
+         * 
+         * Loads and displays the transfer wizard dialog with fresh state.
+         * Dialog is destroyed and reloaded on each use for clean state.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _openTransferWizardDialogFragment: function () {
             // Dialogs are now destroyed in onAfterClose, so always load fresh.
             Fragment.load({
@@ -1662,13 +2527,29 @@ sap.ui.define([
             });
         },
 
-        // ─── Transfer wizard navigation ───────────────────────────────
-
+        /**
+         * Handle transfer wizard dialog open event
+         * 
+         * Initializes transfer wizard navigation state when dialog opens.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onTransferWizardDialogAfterOpen: function () {
             this._iTransferCurrentStepIndex = 0;
             this._updateTransferNavState(0);
         },
 
+        /**
+         * Handle transfer wizard dialog close event
+         * 
+         * Cleans up wizard state and destroys dialog to guarantee fresh state.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onTransferWizardDialogAfterClose: function () {
             this._resetWizard("transfer");
             // Destroy the dialog to guarantee clean state on next opening.
@@ -1683,6 +2564,17 @@ sap.ui.define([
 
 
 
+        /**
+         * Update transfer wizard navigation button states
+         * 
+         * Calculates visibility and enabled state of navigation buttons
+         * based on current step and account selection state.
+         * 
+         * @private
+         * @function
+         * @param {number} iIndex - Current step index (0-based)
+         * @returns {void}
+         */
         _updateTransferNavState: function (iIndex) {
             const oModel = this._getWizardModel("transfer");
             if (!oModel) {
@@ -1713,6 +2605,15 @@ sap.ui.define([
             oModel.setProperty("/nav/nextEnabled", bNextEnabled);
         },
 
+        /**
+         * Check if origin account is selected in transfer step 2
+         * 
+         * Verifies that at least one account from banks list is selected.
+         * 
+         * @private
+         * @function
+         * @returns {boolean} True if any origin account is selected
+         */
         _isTransferOrigenSelected: function () {
             const oBancosList = this.byId("bancosListTransferStep2");
             if (!oBancosList) {
@@ -1733,6 +2634,16 @@ sap.ui.define([
             return false;
         },
 
+        /**
+         * Handle transfer wizard step navigation change
+         * 
+         * Updates navigation state when user navigates between wizard steps.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Navigation event
+         * @returns {void}
+         */
         onTransferWizardNavChange: function (oEvent) {
             const oStep = oEvent.getParameter("step");
             const oWizard = this.byId("transferConfigWizard");
@@ -1747,6 +2658,15 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Navigate to next step in transfer wizard
+         * 
+         * Advances wizard to next step and updates navigation state.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onTransferWizardNext: function () {
             const oWizard = this.byId("transferConfigWizard");
             if (oWizard) {
@@ -1760,6 +2680,15 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Navigate to previous step in transfer wizard
+         * 
+         * Goes back to previous step and updates navigation state.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onTransferWizardBack: function () {
             const oWizard = this.byId("transferConfigWizard");
             if (oWizard) {
@@ -1772,14 +2701,30 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Handle transfer wizard cancel button
+         * 
+         * Closes the transfer wizard without saving.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onTransferWizardCancel: function () {
             if (this._transferWizardDialog) {
                 this._transferWizardDialog.close();
             }
         },
 
-        // ─── Transfer wizard step handlers ────────────────────────────
-
+        /**
+         * Handle company selection change in transfer wizard step 1
+         * 
+         * Loads banks for selected company and clears dependent selections.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onEmpresaSelectionChangeTransfer: function () {
             const oTable = this.byId("empresaTableTransfer");
             const oModel = this._getWizardModel("transfer");
@@ -1816,35 +2761,104 @@ sap.ui.define([
             });
         },
 
+        /**
+         * Search source/origin accounts in transfer wizard step 2
+         * 
+         * Filters bank accounts by search query.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event
+         * @returns {void}
+         */
         onCuentasSearchTransfer: function (oEvent) {
             this._onBancosSearch(oEvent, "transfer");
         },
 
+        /**
+         * Handle origin/source account selection change
+         * 
+         * Updates wizard state when user selects source account.
+         * Only one account selection allowed at a time.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Item selection event
+         * @returns {void}
+         */
         onCuentaOrigenSelectionChange: function (oEvent) {
             this.byId("bancosListTransferStep2").getAggregation("items").map(e => { e.getContent()[0].getContent()[0].getSelectedItem()?.setSelected(false) })
             oEvent.getParameter("listItem").setSelected(true);
             this._updateTransferNavState(1);
         },
 
+        /**
+         * Search destination/centralized accounts in transfer wizard step 3
+         * 
+         * Filters centralized account list by search query.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Search event
+         * @returns {void}
+         */
         onCuentaDestinoSearchTransfer: function (oEvent) {
             this._onCuentaCentralSearch(oEvent, "transfer");
         },
 
+        /**
+         * Handle destination/centralized account selection change
+         * 
+         * Updates wizard state when user selects destination account.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onCuentaDestinoSelectionChange: function () {
             this._updateTransferNavState(2);
         },
 
+        /**
+         * Handle transfer amount change
+         * 
+         * Updates wizard model and navigation state when transfer amount changes.
+         * Validates amount format and enables/disables next button.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Value change event
+         * @returns {void}
+         */
         onTransferAmountChange: function (oEvent) {
             this._getWizardModel("transfer").setProperty('/transferAmount', oEvent.getParameter('newValue'))
             this._updateTransferNavState(3);
         },
 
-        // ─── Transfer wizard review ──────────────────────────────────
-
+        /**
+         * Handle transfer review step activation
+         * 
+         * Updates review fields when review step becomes active.
+         * Pulls latest values from wizard selections.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onTransferReviewStepActivate: function () {
             this._updateTransferReview();
         },
 
+        /**
+         * Update transfer review display
+         * 
+         * Updates all review fields with current selections from wizard steps.
+         * Populates empresa, cuenta origen, cuenta destino, and amount fields.
+         * 
+         * @private
+         * @function
+         * @returns {void}
+         */
         _updateTransferReview: function () {
             const oModel = this._getWizardModel("transfer");
             if (!oModel) {
@@ -1912,6 +2926,16 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Navigate to specific step in transfer wizard for editing
+         * 
+         * Used by review step edit buttons to jump to a specific step.
+         * 
+         * @public
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Button press event with "step" data
+         * @returns {void}
+         */
         onEditStepTransfer: function (oEvent) {
             const sStep = oEvent.getSource().data("step");
             const iIndex = parseInt(sStep, 10) - 1;
@@ -1923,6 +2947,16 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Handle transfer wizard accept/submit button
+         * 
+         * Validates selections, updates review, and submits transfer to OData service.
+         * Shows success message and closes wizard after submission.
+         * 
+         * @public
+         * @function
+         * @returns {void}
+         */
         onTransferWizardAccept: function () {
             const oModel = this._getWizardModel("transfer");
             if (!oModel) {
@@ -1953,6 +2987,17 @@ sap.ui.define([
             }
         },
 
+        /**
+         * Submit transfer to backend OData service
+         * 
+         * Constructs OData payload with accounts, amounts, bank data, and payment control info.
+         * Submits to /postBankTransfer operation with transfer details.
+         * 
+         * @public
+         * @function
+         * @param {object} oTransferObject - Prepared transfer object from wizard
+         * @returns {void}
+         */
         onAnotherButtonPress: function (oTransferObject) {
             const oTreasureModel = this.getView().getModel("Cashpool");
             const oTransferModel = this._getWizardModel("transfer");
