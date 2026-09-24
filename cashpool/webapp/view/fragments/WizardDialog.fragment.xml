@@ -27,7 +27,7 @@
                                 items="{empresas>/}"
                                 mode="SingleSelectLeft"
                                 selectionChange=".onEmpresaSelectionChange"
-                                fixedLayout="false">
+                                >
                             <columns>
                                 <Column>
                                     <header>
@@ -71,7 +71,7 @@
                                     <Table items="{wizard>cuentas}"
                                            mode="MultiSelect"
                                            selectionChange=".onCuentasSelectionChange"
-                                           fixedLayout="false">
+                                           >
                                         <columns>
                                             <Column>
                                                 <header>
@@ -95,21 +95,21 @@
                                             </Column> -->
                                             <Column hAlign="End">
                                                 <header>
-                                                    <Text text="{i18n>colSaldoInfoCent}"/>
+                                                    <Text text="{i18n>colSaldoSAP}"/>
                                                 </header>
                                             </Column>
                                         </columns>
                                         <items>
                                             <ColumnListItem type="Active">
                                                 <cells>
-                                                    <HBox alignItems="Center">
-                                                        <Text text="{wizard>Description}" class="sapUiTinyMarginEnd"/>
-                                                        <ObjectStatus inverted="true" text="{i18n>autorizado}"/>
-                                                    </HBox>
-                                                    <Text text="{wizard>HouseBank}"/>
+                                                    <!-- <HBox alignItems="Center"> -->
+                                                    <Text text="{wizard>Description}" class="sapUiTinyMarginEnd"/>
+                                                        <!-- <ObjectStatus inverted="true" text="{i18n>autorizado}"/> -->
+                                                    <!-- </HBox> -->
+                                                    <Text text="{wizard>oficina}"/>
                                                     <Text text="{wizard>cuentaCorriente}"/>
                                                     <!-- <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>Currency'}], formatter: 'Formatter.formatCurrency'}"/> -->
-                                                    <Text text="{parts: [{path: 'wizard>saldoInfoCent'}, {path: 'wizard>Currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                                    <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>Currency'}], formatter: 'Formatter.formatCurrency'}"/>
                                                 </cells>
                                             </ColumnListItem>
                                         </items>
@@ -132,30 +132,36 @@
                                items="{wizard>/cuentasCentralizadoras}"
                                mode="SingleSelectLeft"
                                selectionChange=".onCuentaCentralSelectionChange"
-                               fixedLayout="false">
+                               >
                             <columns>
-                                <Column width="40%">
+                                <Column>
                                     <header>
                                         <Text text="{i18n>colNombre}"/>
                                     </header>
                                 </Column>
-                                <Column width="30%">
+                                <Column>
                                     <header>
                                         <Text text="{i18n>colOficina}"/>
                                     </header>
                                 </Column>
-                                <Column width="30%">
+                                <Column>
                                     <header>
                                         <Text text="{i18n>colCuentaCorriente}"/>
                                     </header>
                                 </Column>
+                                <Column hAlign="End">
+                                    <header>
+                                        <Text text="{i18n>colSaldoSAP}"/>
+                                    </header>
+                                </Column>                                
                             </columns>
                             <items>
                                 <ColumnListItem type="Active">
                                     <cells>
                                         <Text text="{wizard>Description}"/>
-                                        <Text text="{wizard>HouseBank}"/>
+                                        <Text text="{wizard>oficina}"/>
                                         <Text text="{wizard>cuentaCorriente}"/>
+                                        <Text text="{parts: [{path: 'wizard>saldoSAP'}, {path: 'wizard>Currency'}], formatter: 'Formatter.formatCurrency'}"/>
                                     </cells>
                                 </ColumnListItem>
                             </items>
@@ -194,7 +200,7 @@
                             class="sapUiSmallMarginTop"
                             visible="{= ${wizard>/selectedHorario} === 1 }">
                             <Table items="{wizard>/horariosPersonalizadosPorBanco}"
-                                   fixedLayout="false"
+                                   
                                    width="100%">
                                 <columns>
                                     <Column>
@@ -229,7 +235,7 @@
                             class="sapUiSmallMarginTop"
                             visible="{= ${wizard>/selectedHorario} === 2 }">
                             <Table items="{path: 'wizard>/horariosPersonalizadosPorCuenta', sorter: {path: 'banco', group: true}}"
-                                   fixedLayout="false"
+                                   
                                    width="100%">
                                 <columns>
                                     <Column>
@@ -297,7 +303,7 @@
                         <VBox visible="{= ${wizard>/selectedSaldoType} === 0 }"
                               class="sapUiSmallMarginTop">
                             <Table items="{wizard>/saldosPersonalizadosPorBanco}"
-                                   fixedLayout="false"
+                                   
                                    width="100%">
                                 <columns>
                                     <Column>
@@ -335,7 +341,7 @@
                         <VBox visible="{= ${wizard>/selectedSaldoType} === 1 }"
                               class="sapUiSmallMarginTop">
                             <Table items="{path: 'wizard>/saldosPersonalizadosPorCuenta', sorter: {path: 'banco', group: true}}"
-                                   fixedLayout="false"
+                                   
                                    width="100%">
                                 <columns>
                                     <Column>

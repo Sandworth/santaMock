@@ -215,10 +215,12 @@
                                                             <m:ObjectStatus
                                                                 text="{view>status/text}"
                                                                 state="{view>status/state}"
+                                                                class="sapUiSmallMarginEnd"                                                                
                                                             />
                                                             <m:Button icon="sap-icon://synchronize" 
                                                                       iconFirst="true"
-                                                                      text=""/>
+                                                                      text=""
+                                                                      press=".onSynchronizeStatus"/>
                                                         </m:HBox>
                                                     </m:cells>
                                                 </m:ColumnListItem>
@@ -289,8 +291,8 @@
                                                     <m:Button text="{i18n>btnBuscar}" icon="sap-icon://search" press=".onTransferenciasSearch" />
                                                     <m:Button text="{i18n>btnLimpiar}" type="Transparent" press=".onTransferenciasClear" />
                                                     <m:ToolbarSpacer />
-                                                    <m:ToolbarSeparator />
-                                                    <m:Button text="{i18n>btnConsultarConfiguracion}" type="Transparent" press=".onConsultConfiguration" />
+                                                    <!-- <m:ToolbarSeparator />
+                                                    <m:Button text="{i18n>btnConsultarConfiguracion}" type="Transparent" press=".onConsultConfiguration" /> -->
                                                     <!-- <m:Button
                                                         text="{i18n>btnExportarComprobantes}"
                                                         type="Emphasized"
@@ -314,13 +316,13 @@
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Origen -->
-                                                <m:Column width="15%">
+                                                <m:Column width="18%">
                                                     <m:header>
                                                         <m:Text text="{i18n>colOrigen}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Destino -->
-                                                <m:Column width="15%">
+                                                <m:Column width="18%">
                                                     <m:header>
                                                         <m:Text text="{i18n>colDestino}" />
                                                     </m:header>
@@ -334,7 +336,7 @@
                                                 <!-- Saldo Programado -->
                                                 <m:Column width="12%">
                                                     <m:header>
-                                                        <m:Text text="{i18n>colSaldoProgramado}" />
+                                                        <m:Text text="{i18n>colSaldoObjetivo}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Valor de Transferencia -->
@@ -356,13 +358,10 @@
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Status -->
-                                                <m:Column width="8%">
+                                                <m:Column width="16%">
                                                     <m:header>
                                                         <m:Text text="{i18n>colStatus}" />
                                                     </m:header>
-                                                </m:Column>
-                                                <!-- Acciones -->
-                                                <m:Column width="14%">
                                                 </m:Column>
                                             </m:columns>
                                             <m:items>
@@ -438,10 +437,18 @@
                                                         <m:Text text="{view>paymentDoc}" />
                                                         <m:Text text="{view>requestId}" />
                                                         <!-- Status -->
-                                                        <m:ObjectStatus
-                                                            text="{view>status/text}"
-                                                            state="{view>status/state}"
-                                                        />
+                                                        <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMargin">
+                                                            <m:ObjectStatus
+                                                                text="{view>status/text}"
+                                                                state="{view>status/state}"
+                                                                class="sapUiTinyMargin"
+                                                            />
+                                                            <m:Button icon="sap-icon://synchronize" 
+                                                                      iconFirst="true"
+                                                                      text=""
+                                                                      press=".onSynchronizeStatus"
+                                                                      class="sapUiTinyMargin"/>
+                                                        </m:HBox>
                                                         <!-- Botón Descargar Comprobante
                                                         <m:Button
                                                             text="{i18n>btnDescargarComprobante}"

@@ -305,7 +305,15 @@ sap.ui.define([
                 paymentDoc: oItem.paymentDoc || "-",
                 requestId: oItem.requestId || "-",
                 status: this._mapTransferStatus(oItem.status) || "-",
-                tipo: sType
+                tipo: sType,
+                parameters: {
+                    amount: oItem.amounts_paymAmount,
+                    companyCode: oItem.payerAccount?.CompanyCode,
+                    houseBank: oItem.payerAccount?.HouseBank,
+                    runDate: oItem.createdAt.slice(0,-14),
+                    referenceDocumentNumber: oItem.paymentDoc
+
+                }
             };
         },
 
@@ -336,7 +344,7 @@ sap.ui.define([
          * @returns {Object} Status object with {code, text, state}
          */
         _mapTransferStatus: function (sRawStatus) {
-            const sCode = String(sRawStatus || "").trim().toUpperCase();
+            const sCode = String(sRawStatus || "").trim().toLowerCase();
 
             const oStatusMap = {
                 bab: { textKey: "statusCodeBab", state: "Success" },
@@ -1462,7 +1470,7 @@ sap.ui.define([
             if (oSelected) {
                 const oCtx = oSelected.getBindingContext("wizard");
                 oModel.setProperty("/review/cuentaCentralNombre", "Santander");
-                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().Description}\nOficina: ${oCtx.getObject().HouseBank}\nCuenta: ${oCtx.getObject().cuentaCorriente}`);
+                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().Description}\nOficina: ${oCtx.getObject().oficina}\nIBAN: ${oCtx.getObject().cuentaCorriente}`);
             } else {
                 oModel.setProperty("/review/cuentaCentralNombre", "");
                 oModel.setProperty("/review/cuentaCentralCuenta", "");
@@ -2495,6 +2503,7 @@ sap.ui.define([
                 const sBankName = oBank.BankName || "";
                 const sBankKey = sBankName.toLowerCase();
                 const sHouseBank = oBank.HouseBank || "";
+                const sBranch = oBank.Branch || "";
                 const aAccountBalance = Array.isArray(oBank.AccountBalance) ? oBank.AccountBalance : [];
 
                 // Transform account data
@@ -2503,6 +2512,7 @@ sap.ui.define([
                     cuentaCorriente: oAccount.Iban || oAccount.BankAccountNumber || "",
                     saldoInfoCent: Number(oAccount.StatementAmount) || 0,
                     saldoSAP: Number(oAccount.StatementAmount) || 0,
+                    oficina: sBranch
                 }));
 
                 // Only add bank if it has accounts
@@ -3106,6 +3116,38 @@ sap.ui.define([
             // }).catch((oError) => {
             //     MessageToast.show("Error posting bank transfer: " + oError.error.message);
             // });
+        },
+
+        onSynchronizeStatus: async function (oEvent) {
+            const oCashpoolModel = this.getOwnerComponent().getModel("Cashpool");
+            const oHistoryItem = oEvent.getSource().getBindingContext("view").getObject();
+            const sPathForItem = oEvent.getSource().getBindingContext("view").sPath;
+            const sPaymentDoc = oHistoryItem.paymentDoc
+            let oParamsForPost = oHistoryItem.parameters;
+            oEvent.getSource().getParent().setBusy(true);
+
+            const oActionBinding = oCashpoolModel.bindContext("/updateBankTransferStatus(...)");
+            oActionBinding.setParameter("parameters", oParamsForPost);
+
+            const oBinding = oCashpoolModel.bindList(
+                "/BankTransferHistory",
+                null,
+                null,
+                [new Filter("paymentDoc", FilterOperator.EQ, oHistoryItem.paymentDoc)]
+            );
+            await oActionBinding.invoke().then(() => {
+            }).catch((oError) => {
+                MessageToast.show("Error synchronizing bank transfer status: " + oError.error.message);
+            });
+            
+            await oBinding.requestContexts().then((aContexts) => {
+                const oItemToSwap = aContexts.map((oContext) => this._mapTransferHistoryItem(oContext.getObject(), oContext.getObject().type));
+                this._getViewModel().setProperty(sPathForItem, oItemToSwap[0]);
+                console.log("Updated item:", oItemToSwap[0]);
+            }).finally(() => {
+                MessageToast.show("Bank transfer status synchronized successfully!");
+                oEvent.getSource().getParent().setBusy(false);
+            });
         }
     });
 });
