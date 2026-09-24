@@ -115,7 +115,7 @@ sap.ui.define([
 		 * Calculates interest and total using the rate from the binding context.
 		 * 
 		 * Calculation formula:
-		 * Interest = Amount × (Rate / 100) × (Days / 360)
+		 * Interest = Amount × (Rate / 100) × (Days / 365)
 		 * Total = Amount + Interest
 		 * 
 		 * Sets ValueState to "Error" with i18n message if validation fails.
@@ -149,7 +149,7 @@ sap.ui.define([
 			const sCurrency = oCtx.getProperty("currency_ID");
 
 			const iDays = this._getTenorDays(sDuration);
-			const fInterest = fAmount * (fRate / 100) * (iDays / 360);
+			const fInterest = fAmount * (fRate / 100) * (iDays / 365);
 			const fTotal = fAmount + fInterest;
 
 			oSimModel.setData({

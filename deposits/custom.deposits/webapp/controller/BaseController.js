@@ -90,8 +90,8 @@ sap.ui.define([
 		 */
 		_DURATION_DAYS: {
 			"1W": 7,
-			"1M": 30, "2M": 60, "3M": 90, "4M": 120, "5M": 150, "6M": 180,
-			"7M": 210, "8M": 240, "9M": 270, "10M": 300, "11M": 330, "12M": 360
+			"1M": 31, "2M": 60, "3M": 90, "4M": 120, "5M": 150, "6M": 180,
+			"7M": 210, "8M": 240, "9M": 270, "10M": 300, "11M": 330, "12M": 365
 		},
 
 		/**
@@ -103,7 +103,7 @@ sap.ui.define([
 		 * @private
 		 */
 		_getTenorDays: function (sTenorCode) {
-			return this._DURATION_DAYS[sTenorCode] || 30;
+			return this._DURATION_DAYS[sTenorCode];
 		},
 
 		/**

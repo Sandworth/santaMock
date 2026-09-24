@@ -1349,6 +1349,11 @@ sap.ui.define([
 			const oFileUploader = this.byId("fileUploader");
 			const oFile = oFileUploader.getFocusDomRef().files[0];
 			// set Table busy while processing
+			const iCurrentHour = new Date().getHours();
+			if (iCurrentHour < 9 || iCurrentHour >= 17) {
+				MessageToast.show(this._getText("uploadOutsideBusinessHours"));
+				return;
+			}
 			oFileUploader.setBusy(true);
 			let sBase64 = "";
 			let oToSend;
