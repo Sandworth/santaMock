@@ -423,6 +423,13 @@ sap.ui.define([
 				return;
 			}
 
+			const emailRegex = /^[a-zA-Z0-9._%+-]+@servexternos.gruposantander.com$/i;
+			const hasInvalidEmail = aSelectedSigners.some((oSigner) => !emailRegex.test(oSigner.email.trim()));
+			if (hasInvalidEmail) {
+				MessageBox.error(this._getText("signerEmailInvalid"));
+				return;
+			}
+
 			try {
 				await this.getView().getModel("mainService").bindList("/Deposits").create(oWorkflow.payload);
 				this._oSignerSelectionDialog.close();

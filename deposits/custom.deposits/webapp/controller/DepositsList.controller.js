@@ -1092,6 +1092,18 @@ sap.ui.define([
 		onStep4AccountChanged: function (oEvent) {
 			const sAccount = oEvent.getSource().getSelectedKey();
 			const oModel = this.getModel("customRequest");
+			const sBancoName = oEvent.getParameter("selectedItem").getBindingContext("customRequest").getProperty('banco');
+			const oComboBox = oEvent.getSource();
+			const oBundle = this.getResourceBundle();
+
+			if (sBancoName !== "Santander") {
+				oComboBox.setValueState("Error");
+				oComboBox.setValueStateText(oBundle.getText("reqSelectSantanderAccount"));
+				return;
+			}			
+
+			oComboBox.setValueState("None");
+			oComboBox.setValueStateText("");
 			
 			oModel.setProperty("/amount", 0);  // Reset amount when account changes
 			oModel.setProperty("/amountDisplay", "");

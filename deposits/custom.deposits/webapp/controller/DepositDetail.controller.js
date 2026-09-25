@@ -106,6 +106,18 @@ sap.ui.define([
 			if (bIsDisplay) {
 				this._filterAccountsByCurrency();
 			}
+			// Reset input "reqAmountInput"
+			const oReqInput = this.getView().byId("reqAmountInput");
+			const oComboBox = this.getView().byId("reqAccountComboBox");
+			if (oReqInput && oComboBox) {
+				oReqInput.setValue("");
+				oReqInput.setValueState("None");
+				oReqInput.setValueStateText("");
+				oComboBox.setValueState("None");
+				oComboBox.setValueStateText("");
+				oComboBox.setSelectedKey("");
+				oReqInput.setEnabled(false);
+			}
 
 		},
 
@@ -474,7 +486,27 @@ sap.ui.define([
 		onRequestAccountChange: function (oEvent) {
 			const oReqModel = this.getModel("request");
 			const sSelectedAccount = oEvent.getParameter("selectedItem")?.getKey() || "";
+			const sBancoName = oEvent.getParameter("selectedItem").getBindingContext("request").getProperty('banco');
+			const oComboBox = oEvent.getSource();
+			const oBundle = this.getResourceBundle();
+			const oInput = this.getView().byId("reqAmountInput");
 
+			if (sBancoName !== "Santander") {
+				if (oComboBox) {
+					oComboBox.setValueState("Error");
+					oComboBox.setValueStateText(oBundle.getText("reqSelectSantanderAccount"));
+					oInput.setEnabled(false);
+					oInput.setValue("");
+				}
+				return;
+			} else {
+				if (oComboBox) {
+					oComboBox.setValueState("None");
+					oComboBox.setValueStateText("");
+					oInput.setEnabled(true);
+				}
+			}
+			
 			oReqModel.setProperty("/cuentaOrigen", sSelectedAccount);
 
 			if (!sSelectedAccount) {
@@ -628,6 +660,9 @@ sap.ui.define([
 		 */
 		handleClose: function () {
 			const sNextLayout = this.oModel.getProperty("/actionButtonsInfo/midColumn/closeColumn");
+			const oComboBox = this.getView().byId("reqAccountComboBox");
+			oComboBox.setValueState("None");
+			oComboBox.setValueStateText("");
 			this.oRouter.navTo("DepositsList", {
 				layout: sNextLayout
 			});
