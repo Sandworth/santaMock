@@ -282,12 +282,14 @@ sap.ui.define([
                 fecha: oItem.createdAt,
                 origen: {
                     banco: oItem.payerBankName || "-",
-                    oficina: oItem.payerAccount?.Iban.substring(8,12) || "-",
+                    oficina: oItem.payerBranch || "-",
+                    //oficina: oItem.payerAccount?.Iban.substring(8,12) + " | " + oItem.payerBranch || "-",
                     cuenta: oItem.payerAccount?.Iban || "-"
                 },
                 destino: {
                     banco: oItem.payeeBankName || "-",
-                    oficina: oItem.payeeAccount?.Iban.substring(8,12) || "-",
+                    //oficina: oItem.payeeBranch || "-",
+                    oficina: oItem.payeeAccount?.Iban.substring(8,12) + " | " + oItem.payeeBranch || "-",
                     cuenta: oItem.payeeAccount?.Iban || "-"
                 },
                 saldoAntes: {
@@ -1366,13 +1368,210 @@ sap.ui.define([
          * @function
          * @returns {void}
          */
-        onWizardAccept: function () {
+        onWizardAccept: async function () {
             const oModel = this._getWizardModel("config");
+            if (!oModel) {
+                return;
+            }
             const oReview = oModel.getProperty("/review");
-            MessageToast.show(this._oResourceBundle.getText("msgSavedConfig", [oReview.razonSocial, oReview.cuentaCentralNombre, oReview.horario]));
             if (this._wizardDialog) {
+                await this.onPostShedule();
+                MessageToast.show(this._oResourceBundle.getText("msgSavedConfig", [oReview.razonSocial, oReview.cuentaCentralNombre, oReview.horario]));
                 this._wizardDialog.close();
             }
+        },
+
+        /**
+         * Submit scheduled transfer to backend OData service
+         *
+         * Builds the schedule transfer payload from the wizard selections and
+         * submits it to the /scheduleTransfer operation. Shows a success or error
+         * message toast depending on the outcome.
+         *
+         * @public
+         * @function
+         * @returns {void}
+         */
+        onPostShedule: async function () {
+            const oTreasureModel = this.getView().getModel("JobScheduler");
+            const oPayload = this._prepareSchedulePayload();
+            const oContext = oTreasureModel.bindContext("/scheduleTransfer(...)");
+            oContext.setParameter("parameters", oPayload).invoke().then(() => {
+                const oActionContext = oContext.getBoundContext();
+                const sError = oActionContext.getObject().error;
+                if (sError) {
+                    MessageToast.show("Error from backend: " + sError);
+                    return;
+                }
+                MessageToast.show("Schedule transfer posted successfully!");
+            }).catch((oError) => {
+                MessageToast.show("Error posting schedule transfer: " + oError.error.message);
+            });
+        },
+
+        /**
+         * Build the complete schedule transfer payload
+         *
+         * Orchestrates construction of the payer accounts, payee account and
+         * transfer configuration from the current wizard selections.
+         *
+         * @private
+         * @function
+         * @returns {Object} Payload object with a `parameters` property
+         */
+        _prepareSchedulePayload: function () {
+            const oEmpresaTable = this.byId("empresaTable");
+            const oSelectedEmpresa = oEmpresaTable ? oEmpresaTable.getItems().find((i) => i.getSelected()) : null;
+            const sCompanyCode = oSelectedEmpresa
+                ? oSelectedEmpresa.getBindingContext("empresas").getProperty("CompanyCode")
+                : "";
+
+            return {
+                companyCode: sCompanyCode,
+                payerAccount: this._buildSchedulePayerAccounts(),
+                payeeAccount: this._buildSchedulePayeeAccount(),
+                transferConfiguration: this._buildScheduleTransferConfig()
+            };
+        },
+
+        /**
+         * Build the payer accounts array for the schedule transfer payload
+         *
+         * Iterates over the accounts selected in step 2 and resolves each
+         * account's amount and execution time from the wizard selections.
+         * Amounts come from the per-bank or per-account custom balances, and
+         * execution times come from the single/per-bank/per-account schedule.
+         *
+         * @private
+         * @function
+         * @returns {Array<Object>} Array of payer account entries
+         */
+        _buildSchedulePayerAccounts: function () {
+            const oModel = this._getWizardModel("config");
+            const oData = oModel.getData();
+            const iSaldoType = oData.selectedSaldoType;
+            const iHorarioType = oData.selectedHorario;
+            const aSaldosPorBanco = oData.saldosPersonalizadosPorBanco || [];
+            const aSaldosPorCuenta = oData.saldosPersonalizadosPorCuenta || [];
+            const aHorariosPorBanco = oData.horariosPersonalizadosPorBanco || [];
+            const aHorariosPorCuenta = oData.horariosPersonalizadosPorCuenta || [];
+            const sHorarioUnico = oData.horarioUnico || "";
+            const aSelectedAccounts = this._getSelectedStep2Accounts();
+
+            return aSelectedAccounts.map((oEntry) => {
+                const sBanco = oEntry.banco;
+                const oAccount = oEntry.data;
+                const sCuentaCorriente = oAccount.cuentaCorriente;
+
+                // Resolve amount: per-bank balance applies to every account of the
+                // bank, per-account balance is looked up by the account itself.
+                let sAmountInput = "";
+                if (iSaldoType === 0) {
+                    const oBancoSaldo = aSaldosPorBanco.find((b) => b.nombre === sBanco);
+                    sAmountInput = oBancoSaldo ? oBancoSaldo.saldoPersonalizadoInput : "";
+                } else if (iSaldoType === 1) {
+                    const oCuentaSaldo = aSaldosPorCuenta.find((c) => c.cuentaCorriente === sCuentaCorriente);
+                    sAmountInput = oCuentaSaldo ? oCuentaSaldo.saldoPersonalizadoInput : "";
+                }
+                const nAmount = this._parseLocalizedNumber(sAmountInput) || 0;
+
+                // Resolve execution time from the selected schedule option.
+                let sHorario = "";
+                if (iHorarioType === 0) {
+                    sHorario = sHorarioUnico;
+                } else if (iHorarioType === 1) {
+                    const oBancoHorario = aHorariosPorBanco.find((b) => b.nombre === sBanco);
+                    sHorario = oBancoHorario ? oBancoHorario.selectedHorario : "";
+                } else if (iHorarioType === 2) {
+                    const oCuentaHorario = aHorariosPorCuenta.find((c) => c.cuentaCorriente === sCuentaCorriente);
+                    sHorario = oCuentaHorario ? oCuentaHorario.selectedHorario : "";
+                }
+                const sExecutionTime = sHorario ? `${sHorario}:00` : "";
+
+                return {
+                    houseBankId: oAccount.HouseBank,
+                    houseBankAccId: oAccount.AccountId,
+                    amounts: {
+                        paymCurr: oAccount.Currency,
+                        paymAmount: nAmount.toFixed(2),
+                        paymAmountLong: nAmount.toFixed(8),
+                        executionTime: sExecutionTime
+                    }
+                };
+            });
+        },
+
+        /**
+         * Build the payee (destination) account for the schedule transfer payload
+         *
+         * Reads the centralized account selected in step 3 and extracts the
+         * house bank identifiers and partner account, mirroring the single
+         * transfer destination logic.
+         *
+         * @private
+         * @function
+         * @returns {Object} Payee account object
+         */
+        _buildSchedulePayeeAccount: function () {
+            const oCuentaTable = this.byId("cuentaCentralTable");
+            const oSelected = oCuentaTable ? oCuentaTable.getItems().find((i) => i.getSelected()) : null;
+            if (!oSelected) {
+                return {};
+            }
+            const oAccount = oSelected.getBindingContext("wizard").getObject();
+            return {
+                houseBankId: oAccount.HouseBank,
+                houseBankAccId: oAccount.AccountId,
+                partnerAccount: oAccount.PartnerAccount ? oAccount.PartnerAccount.slice(2) : ""
+            };
+        },
+
+        /**
+         * Build the transfer configuration for the schedule transfer payload
+         *
+         * Maps the selected days to their 1-7 (Monday-Sunday) representation,
+         * derives the balance type from the selected saldo option, and sets the
+         * scheduling window from today to one year ahead.
+         *
+         * @private
+         * @function
+         * @returns {Object} Transfer configuration object
+         */
+        _buildScheduleTransferConfig: function () {
+            const oModel = this._getWizardModel("config");
+            const oData = oModel.getData();
+            const oDias = oData.dias || {};
+            const oDayMap = {
+                monday: 1,
+                tuesday: 2,
+                wednesday: 3,
+                thursday: 4,
+                friday: 5,
+                saturday: 6,
+                sunday: 7
+            };
+            const aDaysOfWeek = Object.keys(oDayMap)
+                .filter((sDay) => oDias[sDay])
+                .map((sDay) => oDayMap[sDay])
+                .sort((a, b) => a - b);
+
+            const fnFormatDate = (oDate) => {
+                const sYear = oDate.getFullYear();
+                const sMonth = String(oDate.getMonth() + 1).padStart(2, "0");
+                const sDay = String(oDate.getDate()).padStart(2, "0");
+                return `${sYear}-${sMonth}-${sDay}`;
+            };
+            const oStartDate = new Date();
+            const oEndDate = new Date();
+            oEndDate.setFullYear(oEndDate.getFullYear() + 1);
+
+            return {
+                transferTimeType: 1,
+                daysOfWeek: aDaysOfWeek,
+                balanceType: oData.selectedSaldoType + 1,
+                startDate: fnFormatDate(oStartDate),
+                endDate: fnFormatDate(oEndDate)
+            };
         },
 
         /**
@@ -2778,7 +2977,6 @@ sap.ui.define([
             const sCompanyCode = oSelectedContext?.getProperty("CompanyCode") || "";
             const sVatNo = oSelectedContext.getProperty('VatNumber')
             const sCompanyName = oSelectedContext.getProperty('CompanyName')
-
             if (!oSelectedItem || !oModel) {
                 this._clearTransferWizardDependentState();
                 this._updateTransferNavState(0);
@@ -3084,19 +3282,22 @@ sap.ui.define([
                         "paymentMethods": "T",
                         "paycode": `${oCuentaOrigenDetails.HouseBank}/${oCuentaDestinoDetails.HouseBank}/T`
                     },
-                    "type": "MANUAL"
+                    "type": "MANUAL",
+                    "payerBranch": oCuentaOrigenDetails.oficina,
+                    "payeeBranch": oCuentaDestinoDetails.oficina
                 }
             };
             oToPostBank = oToPostBank.parameters
             //oContext.setParameter("parameters", oToPostBank);
             oContext.setParameter("parameters", oToPostBank).invoke().then(() => {
                 var oActionContext = oContext.getBoundContext();
-                var sError = oActionContext.getObject().error;
-                if (sError) {
-                    MessageToast.show("Error from backend: " + sError);
+                var sReturnType = oActionContext.getObject().return.type;
+                var sMessage = oActionContext.getObject().return.message;
+                if (sReturnType === "E") {
+                    MessageToast.show("Error from backend: " + sMessage);
                     return;
                 } else {
-                    console.log(sError);
+                    console.log(sMessage);
                     MessageToast.show("Bank transfer posted successfully!");
                     //this._loadTransferHistoryData();
                 }
@@ -3143,6 +3344,7 @@ sap.ui.define([
             await oBinding.requestContexts().then((aContexts) => {
                 const oItemToSwap = aContexts.map((oContext) => this._mapTransferHistoryItem(oContext.getObject(), oContext.getObject().type));
                 this._getViewModel().setProperty(sPathForItem, oItemToSwap[0]);
+                this._getViewModel().refresh(true);
                 console.log("Updated item:", oItemToSwap[0]);
             }).finally(() => {
                 MessageToast.show("Bank transfer status synchronized successfully!");
