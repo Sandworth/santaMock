@@ -651,7 +651,7 @@ sap.ui.define([
 				this.oTable.setNoData(
 					new IllustratedMessage({
 						// description: this._getText("noDataDescription"), // To be added in i18n when decided
-						description: "Permisos error.", // To be added in i18n when decided
+						description: oError.error.message, // To be added in i18n when decided
 						illustrationType: "sapIllus-NoEntries",
 					})
 				);
