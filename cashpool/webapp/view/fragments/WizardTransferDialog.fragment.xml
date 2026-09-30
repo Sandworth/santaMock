@@ -21,13 +21,12 @@
                     <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop">
                         <SearchField 
                                     placeholder="{i18n>wizardSearchStep1Placeholder}"
-                                    search=".onEmpresaSearchTransfer"
+                                    search=".onEmpresaSearch"
                                     class="sapUiSmallMarginBottom"/>
                         <Table id="empresaTableTransfer"
-                                items="{wizardTransfer>/empresas}"
+                                items="{empresas>/}"
                                 mode="SingleSelectLeft"
-                                selectionChange=".onEmpresaSelectionChangeTransfer"
-                                fixedLayout="false">
+                                selectionChange=".onEmpresaSelectionChangeTransfer">
                             <columns>
                                 <Column>
                                     <header>
@@ -43,8 +42,8 @@
                             <items>
                                 <ColumnListItem type="Active">
                                     <cells>
-                                        <Text text="{wizardTransfer>razonSocial}"/>
-                                        <Text text="{wizardTransfer>cif}"/>
+                                        <Text text="{empresas>CompanyName}"/>
+                                        <Text text="{empresas>VatNumber}"/>
                                     </cells>
                                 </ColumnListItem>
                             </items>
@@ -64,15 +63,13 @@
                               mode="None"
                               showSeparators="None">
                             <CustomListItem>
-                                <Panel expandable="true"
-                                       expanded="{wizardTransfer>expanded}"
-                                       headerText="{parts: [{path: 'wizardTransfer>nombre'}, {path: 'wizardTransfer>cuentas'}], formatter: 'Formatter.formatBankTitle'}"
-                                       class="sapUiSmallMarginBottom">
+                                    <Panel expandable="true"
+                                        expanded="{wizardTransfer>expanded}"
+                                            headerText="{parts: [{path: 'wizardTransfer>BankName'}, {path: 'wizardTransfer>cuentas'}], formatter: 'Formatter.formatBankTitle'}"
+                                        class="sapUiSmallMarginBottom">
                                     <Table items="{wizardTransfer>cuentas}"
                                            mode="SingleSelectLeft"
-                                           id="cuentaOrigenTable"
-                                           selectionChange=".onCuentaOrigenSelectionChange"
-                                           fixedLayout="false">
+                                           selectionChange=".onCuentaOrigenSelectionChange">
                                         <columns>
                                             <Column>
                                                 <header>
@@ -91,24 +88,24 @@
                                             </Column>
                                             <Column hAlign="End">
                                                 <header>
-                                                    <Text text="{i18n>colSaldoInfoCent}"/>
+                                                    <Text text="{i18n>colSaldoSAP}"/>
                                                 </header>
                                             </Column>
                                         </columns>
                                         <items>
                                             <ColumnListItem type="Active">
                                                 <cells>
-                                                    <HBox alignItems="Center">
-                                                        <Text text="{wizardTransfer>nombre}" class="sapUiTinyMarginEnd"/>
-                                                        <ObjectStatus inverted="true" text="{i18n>autorizado}"/>
-                                                    </HBox>
+                                                    <!-- <HBox alignItems="Center"> -->
+                                                    <Text text="{wizardTransfer>Description}" class="sapUiTinyMarginEnd"/>
+                                                        <!-- <ObjectStatus inverted="true" text="{i18n>autorizado}"/> -->
+                                                    <!-- </HBox> -->
                                                     <Text text="{wizardTransfer>oficina}"/>
                                                     <Text text="{wizardTransfer>cuentaCorriente}"/>
-                                                    <Text text="{parts: [{path: 'wizardTransfer>saldoInfoCent'}, {path: 'wizardTransfer>currency'}], formatter: 'Formatter.formatCurrency'}"/>
+                                                    <Text text="{parts: [{path: 'wizardTransfer>saldoSAP'}, {path: 'wizardTransfer>Currency'}], formatter: 'Formatter.formatCurrency'}"/>
                                                 </cells>
                                             </ColumnListItem>
                                         </items>
-                                    </Table>
+                                    </Table>    
                                 </Panel>
                             </CustomListItem>
                         </List>
@@ -126,31 +123,36 @@
                         <Table id="cuentaDestinoTable"
                                items="{wizardTransfer>/cuentasCentralizadoras}"
                                mode="SingleSelectLeft"
-                               selectionChange=".onCuentaDestinoSelectionChange"
-                               fixedLayout="false">
+                               selectionChange=".onCuentaDestinoSelectionChange">
                             <columns>
-                                <Column width="40%">
+                                <Column>
                                     <header>
                                         <Text text="{i18n>colNombre}"/>
                                     </header>
                                 </Column>
-                                <Column width="30%">
+                                <Column>
                                     <header>
                                         <Text text="{i18n>colOficina}"/>
                                     </header>
                                 </Column>
-                                <Column width="30%">
+                                <Column>
                                     <header>
                                         <Text text="{i18n>colCuentaCorriente}"/>
+                                    </header>
+                                </Column>
+                                <Column hAlign="End">
+                                    <header>
+                                        <Text text="{i18n>colSaldoSAP}"/>
                                     </header>
                                 </Column>
                             </columns>
                             <items>
                                 <ColumnListItem type="Active">
                                     <cells>
-                                        <Text text="{wizardTransfer>nombre}"/>
+                                        <Text text="{wizardTransfer>Description}"/>
                                         <Text text="{wizardTransfer>oficina}"/>
                                         <Text text="{wizardTransfer>cuentaCorriente}"/>
+                                        <Text text="{parts: [{path: 'wizardTransfer>saldoSAP'}, {path: 'wizardTransfer>Currency'}], formatter: 'Formatter.formatCurrency'}"/>
                                     </cells>
                                 </ColumnListItem>
                             </items>

@@ -37,6 +37,13 @@
         "settings": {
           "odataVersion": "4.0"
         }
+      },
+      "jobSchedulerService": {
+        "uri": "/jobscheduler/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
       }
     }
   },
@@ -76,6 +83,15 @@
     "models": {
       "Cashpool": {
         "dataSource": "mainService",
+        "type": "sap.ui.model.odata.v4.ODataModel",
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
+      },
+      "JobScheduler": {
+        "dataSource": "jobSchedulerService",
         "type": "sap.ui.model.odata.v4.ODataModel",
         "settings": {
           "operationMode": "Server",
@@ -131,6 +147,6 @@
   },
   "sap.cloud": {
     "public": true,
-    "service": "cashpoolappcashpool"
+    "service": "treasury-suite"
   }
 }

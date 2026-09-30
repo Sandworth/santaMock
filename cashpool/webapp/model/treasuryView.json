@@ -145,5 +145,9 @@
     }
   ],
   "transferenciasAgrupadas": [],
-  "_transferenciasAgrupadasAll": []
+  "_transferenciasAgrupadasAll": [],
+  "transferenciasAgrupadasAuto": [],
+  "_transferenciasAgrupadasAutoAll": [],
+  "transferenciasAgrupadasManual": [],
+  "_transferenciasAgrupadasManualAll": []
 }

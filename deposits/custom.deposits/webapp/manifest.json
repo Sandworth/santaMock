@@ -18,10 +18,36 @@
     },
     "dataSources": {
       "mainService": {
-        "uri": "/here/goes/your/serviceurl/",
+        "uri": "/odata/",
         "type": "OData",
         "settings": {
           "odataVersion": "4.0"
+        }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "Deposits-display": {
+          "semanticObject": "Deposits",
+          "action": "display",
+          "title": "{{Deposits-display.flpTitle}}",
+          "subTitle": "{{Deposits-display.flpSubtitle}}",
+          "icon": "sap-icon://loan",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        },
+        "Deposits-history": {
+          "semanticObject": "Deposits",
+          "action": "history",
+          "title": "{{Deposits-history.flpTitle}}",
+          "subTitle": "{{Deposits-history.flpSubtitle}}",
+          "icon": "sap-icon://history",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
         }
       }
     }
@@ -71,13 +97,24 @@
       },
       "mainService": {
         "dataSource": "mainService",
-        "preload": true,
+        "type": "sap.ui.model.odata.v4.ODataModel",
         "settings": {
-          "autoExpandSelect": true,
-          "earlyRequests": true,
-          "operationMode": "Server"
+          "operationMode": "Server",
+          "autoExpandSelect": false, 
+          "earlyRequests": true
         }
+      },
+      "banks": {
+        "type": "sap.ui.model.json.JSONModel",
+        "uri": "model/data/Banks.json"
       }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
     },
     "routing": {
       "config": {
@@ -128,6 +165,6 @@
   },
   "sap.cloud": {
     "public": true,
-    "service": "customdeposits"
+    "service": "treasury-suite"
   }
 }

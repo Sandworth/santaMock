@@ -1,0 +1,49 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog
+        id="signerSelectionDialog"
+        title="{signers>/dialogTitle}"
+        contentWidth="38rem"
+        draggable="true"
+        state="Information"
+        class="sapUiResponsivePadding--content"
+        resizable="true">
+        <content>
+            <Text
+                text="{signers>/confirmationText}"
+                wrapping="true"
+                class="sapUiSmallMarginTopBottom" />
+            <Title text="{i18n>signerSelectionTitle}" level="H4" />
+            <List
+                id="signerList"
+                showSeparators="Inner"
+                items="{signers>/signers}">
+                <CustomListItem>
+                    <HBox   class="sapUiTinyMarginTopBottom"
+                            alignItems="Center"
+				            justifyContent="SpaceBetween">
+                        <CheckBox
+                            text="{signers>name}"
+                            selected="{signers>selected}"
+                            select=".onSignerSelectionChange" />
+                        <Input
+                            class="sapUiTinyMarginTop"
+                            width="250px"
+                            type="Email"
+                            placeholder="{i18n>signerEmailPlaceholder}"
+                            value="{signers>email}"
+                            enabled="{signers>selected}" />
+                    </HBox>
+                </CustomListItem>
+            </List>
+        </content>
+        <beginButton>
+            <Button text="{i18n>customReqCancelBtn}" press=".onCancelSignerSelection" />
+        </beginButton>
+        <endButton>
+            <Button
+                text="{signers>/confirmButtonText}"
+                type="Emphasized"
+                press=".onConfirmDepositWithSigners" />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>

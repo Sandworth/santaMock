@@ -5,7 +5,11 @@
     xmlns:m="sap.m"
     xmlns:l="sap.ui.layout"
     xmlns:core="sap.ui.core"
-    core:require="{Currency: 'sap/ui/model/type/Currency'}">
+    core:require="{
+		Currency: 'sap/ui/model/type/Currency',
+		DateTimeType: 'sap/ui/model/type/DateTime',
+		Formatter: 'cashpool/app/cashpool/utils/Formatter'
+	}">
     <f:DynamicPage id="dynamicPageId" showFooter="false" class="sapUiNoContentPadding">
         <!-- Dynamic Page Header -->
         <f:title>
@@ -15,12 +19,14 @@
                 </f:heading>
                 <f:actions>
                     <m:Button
+                        id="btnConfigureNow"
                         text="{i18n>configureNowBtn}"
                         type="Emphasized"
                         icon="sap-icon://settings"
                         press=".onConfigureNow"/>
                     <m:Button 
-                        text="Transferencia Manual"
+                        id="btnTransferenciaManual"
+                        text="{i18n>btnIndividualTransfer}"
                         type="Ghost"
                         icon="sap-icon://payment-approval"
                         press=".onCreateSingleTransfer"/>
@@ -45,16 +51,190 @@
                     </m:IconTabFilter>
                     <!-- Tab 2: Transferencias Manuales -->
                     <m:IconTabFilter
-                        key="tab2"
+                        key="MANUAL"
                         text="{i18n>tabTransferenciasManual}"
                         >
-                        <m:VBox class="sapUiSmallMargin">
-                            <m:Text text="{i18n>placeholderTransManual}" />
+                        <m:VBox>
+                            <m:Toolbar class="sapUiTinyMarginTop">
+                                <m:Title text="{i18n>transferHistoryTitleManual}" level="H3" />
+                                <m:ToolbarSpacer />
+                                <m:SearchField
+                                    width="16rem"
+                                    placeholder="{i18n>searchByCnpjPlaceholder}"
+                                    liveChange=".onTransferenciasGroupSearch"
+                                    search=".onTransferenciasGroupSearch">
+                                    <m:customData>
+                                        <core:CustomData key="transferType" value="MANUAL" />
+                                    </m:customData>
+                                </m:SearchField>
+                            </m:Toolbar>
+                            <m:List
+                                items="{view>/transferenciasAgrupadasManual}"
+                                mode="None"
+                                width="100%"
+                                showSeparators="None"
+                                class="sapUiSmallMarginEnd">
+                                <m:CustomListItem>
+                                    <m:Panel
+                                        expandable="true"
+                                        expanded="{view>expanded}">
+                                        <m:headerToolbar>
+                                            <m:Toolbar>
+                                                <m:Title text="{= ${view>razonSocial} + ' - ' + ${view>cif} }" level="H5" />
+                                                <m:ToolbarSpacer />
+                                            </m:Toolbar>
+                                        </m:headerToolbar>
+                                        <m:Table
+                                            items="{view>transferencias}"
+                                            mode="None"
+                                            includeItemInSelection="true">
+                                            <m:headerToolbar>
+                                                <m:Toolbar>
+                                                    <m:DateRangeSelection
+                                                        width="16rem"
+                                                        delimiter=" - "
+                                                        dateValue="{view>filters/dateFrom}"
+                                                        secondDateValue="{view>filters/dateTo}"
+                                                        placeholder="{i18n>filterDateRange}" />
+                                                    <m:Select
+                                                        width="12rem"
+                                                        selectedKey="{view>filters/status}"
+                                                        items="{view>statusOptions}">
+                                                        <core:Item key="{view>key}" text="{view>text}" />
+                                                    </m:Select>
+                                                    <m:Button text="{i18n>btnBuscar}" icon="sap-icon://search" press=".onTransferenciasSearch" />
+                                                    <m:Button text="{i18n>btnLimpiar}" type="Transparent" press=".onTransferenciasClear" />
+                                                </m:Toolbar>
+                                            </m:headerToolbar>
+                                            <m:columns>
+                                                <!-- Fecha -->
+                                                <m:Column width="12%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colFecha}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Datos de Origen -->
+                                                <m:Column width="18%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colOrigen}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Datos de Destino -->
+                                                <m:Column width="18%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colDestino}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Saldo Antes -->
+                                                <m:Column width="10%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colSaldoAntes}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Valor de Transferencia -->
+                                                <m:Column width="10%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colValorTransferencia}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Payment Document -->
+                                                <m:Column hAlign="Center" width="11%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colPaymentDoc}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Request ID -->
+                                                <m:Column hAlign="Center" width="11%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colRequestId}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Status -->
+                                                <m:Column hAlign="Center" width="16%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colStatus}" />
+                                                    </m:header>
+                                                </m:Column>
+                                            </m:columns>
+                                            <m:items>
+                                                <m:ColumnListItem type="Inactive">
+                                                    <m:cells>
+                                                        <m:Text text="{
+                                                                        parts: [
+                                                                            { path: 'view>fecha' }
+                                                                        ],
+                                                                        formatter: 'Formatter.dateTimeToDate'
+                                                                        }" />
+                                                        <m:VBox>
+                                                            <m:Link class="sapUiTinyMarginTop" text="{view>origen/banco}" />
+                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                                <m:Label text="{i18n>lblOficina}" width="60px" />
+                                                                <m:Text text="{view>origen/oficina}" />
+                                                            </m:HBox>
+                                                            <m:HBox class="sapUiTinyMarginBottom">
+                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                                <m:Text text="{view>origen/cuenta}" />
+                                                            </m:HBox>
+                                                        </m:VBox>
+                                                        <m:VBox>
+                                                            <m:Link class="sapUiTinyMarginTop" text="{view>destino/banco}" />
+                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                                <m:Label text="{i18n>lblOficina}" width="60px" />
+                                                                <m:Text text="{view>destino/oficina}" />
+                                                            </m:HBox>
+                                                            <m:HBox class="sapUiTinyMarginBottom">
+                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                                <m:Text text="{view>destino/cuenta}" />
+                                                            </m:HBox>
+                                                        </m:VBox>
+                                                        <m:Text text="{
+                                                                        parts: [
+                                                                            {path: 'view>saldoAntes/monto'},
+                                                                            {path: 'view>saldoAntes/moneda'}
+                                                                        ],
+                                                                        type: 'Currency',
+                                                                        formatOptions: {
+                                                                            currencyCode: false,
+                                                                            showMeasure: true
+                                                                        }
+                                                                    }" />
+                                                        <m:Text text="{
+                                                                        parts: [
+                                                                            {path: 'view>valorTransferencia/monto'},
+                                                                            {path: 'view>valorTransferencia/moneda'}
+                                                                        ],
+                                                                        type: 'Currency',
+                                                                        formatOptions: {
+                                                                            currencyCode: false,
+                                                                            showMeasure: true
+                                                                        }
+                                                                    }" />
+                                                        <m:Text text="{view>paymentDoc}" />
+                                                        <m:Text text="{view>requestId}" />
+                                                        <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMargin">
+                                                            <m:ObjectStatus
+                                                                text="{view>status/text}"
+                                                                state="{view>status/state}"
+                                                                class="sapUiTinyMargin"
+                                                            />
+                                                            <m:Button icon="sap-icon://synchronize" 
+                                                                      iconFirst="true"
+                                                                      text=""
+                                                                      press=".onSynchronizeStatus"
+                                                                      class="sapUiTinyMargin"/>
+                                                        </m:HBox>
+                                                    </m:cells>
+                                                </m:ColumnListItem>
+                                            </m:items>
+                                        </m:Table>
+                                    </m:Panel>
+                                </m:CustomListItem>
+                            </m:List>
                         </m:VBox>
                     </m:IconTabFilter>
                     <!-- Tab 3: Transferencias Automáticas -->
                     <m:IconTabFilter
-                        key="tab3"
+                        key="AUTO"
                         text="{i18n>tabTransferenciasAuto}"
                         >
                         <m:VBox>
@@ -65,10 +245,14 @@
                                     width="16rem"
                                     placeholder="{i18n>searchByCnpjPlaceholder}"
                                     liveChange=".onTransferenciasGroupSearch"
-                                    search=".onTransferenciasGroupSearch" />
+                                    search=".onTransferenciasGroupSearch">
+                                    <m:customData>
+                                        <core:CustomData key="transferType" value="AUTO" />
+                                    </m:customData>
+                                </m:SearchField>
                             </m:Toolbar>
                             <m:List
-                                items="{view>/transferenciasAgrupadas}"
+                                items="{view>/transferenciasAgrupadasAuto}"
                                 mode="None"
                                 width="100%"
                                 showSeparators="None"
@@ -89,8 +273,7 @@
                                         </m:headerToolbar>
                                         <m:Table
                                             items="{view>transferencias}"
-                                            mode="MultiSelect"
-                                            selectionChange=".onTransferenciaSelectionChange"
+                                            mode="None"
                                             includeItemInSelection="true">
                                             <m:headerToolbar>
                                                 <m:Toolbar>
@@ -109,9 +292,9 @@
                                                     <m:Button text="{i18n>btnBuscar}" icon="sap-icon://search" press=".onTransferenciasSearch" />
                                                     <m:Button text="{i18n>btnLimpiar}" type="Transparent" press=".onTransferenciasClear" />
                                                     <m:ToolbarSpacer />
-                                                    <m:ToolbarSeparator />
-                                                    <m:Button text="{i18n>btnConsultarConfiguracion}" type="Transparent" press=".onConsultConfiguration" />
-                                                    <m:Button
+                                                    <!-- <m:ToolbarSeparator />
+                                                    <m:Button text="{i18n>btnConsultarConfiguracion}" type="Transparent" press=".onConsultConfiguration" /> -->
+                                                    <!-- <m:Button
                                                         text="{i18n>btnExportarComprobantes}"
                                                         type="Emphasized"
                                                         press=".onExportReceipts"
@@ -123,7 +306,7 @@
                                                                 value="{view>selectedCount}"
                                                                 visible="{= ${view>selectedCount} > 0 }" />
                                                         </m:customData>
-                                                    </m:Button>
+                                                    </m:Button> -->
                                                 </m:Toolbar>
                                             </m:headerToolbar>
                                             <m:columns>
@@ -134,13 +317,13 @@
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Origen -->
-                                                <m:Column width="15%">
+                                                <m:Column width="18%">
                                                     <m:header>
                                                         <m:Text text="{i18n>colOrigen}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Destino -->
-                                                <m:Column width="15%">
+                                                <m:Column width="18%">
                                                     <m:header>
                                                         <m:Text text="{i18n>colDestino}" />
                                                     </m:header>
@@ -154,30 +337,44 @@
                                                 <!-- Saldo Programado -->
                                                 <m:Column width="12%">
                                                     <m:header>
-                                                        <m:Text text="{i18n>colSaldoProgramado}" />
+                                                        <m:Text text="{i18n>colSaldoObjetivo}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Valor de Transferencia -->
-                                                <m:Column width="12%">
+                                                <m:Column width="10%">
                                                     <m:header>
                                                         <m:Text text="{i18n>colValorTransferencia}" />
                                                     </m:header>
                                                 </m:Column>
+                                                <!-- Payment Document -->
+                                                <m:Column hAlign="Center" width="9%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colPaymentDoc}" />
+                                                    </m:header>
+                                                </m:Column>
+                                                <!-- Request ID -->
+                                                <m:Column hAlign="Center" width="9%">
+                                                    <m:header>
+                                                        <m:Text text="{i18n>colRequestId}" />
+                                                    </m:header>
+                                                </m:Column>
                                                 <!-- Status -->
-                                                <m:Column width="10%">
+                                                <m:Column hAlign="Center" width="16%">
                                                     <m:header>
                                                         <m:Text text="{i18n>colStatus}" />
                                                     </m:header>
-                                                </m:Column>
-                                                <!-- Acciones -->
-                                                <m:Column width="14%">
                                                 </m:Column>
                                             </m:columns>
                                             <m:items>
                                                 <m:ColumnListItem type="Inactive">
                                                     <!-- Fecha -->
                                                     <m:cells>
-                                                        <m:Text text="{view>fecha}" />
+                                                        <m:Text text="{
+                                                                        parts: [
+                                                                            { path: 'view>fecha' }
+                                                                        ],
+                                                                        formatter: 'Formatter.dateTimeToDate'
+                                                                        }" />
                                                         <!-- Datos de Origen -->
                                                         <m:VBox>
                                                             <m:Link class="sapUiTinyMarginTop" text="{view>origen/banco}" />
@@ -238,18 +435,28 @@
                                                                             showMeasure: true
                                                                         }
                                                                     }" />
+                                                        <m:Text text="{view>paymentDoc}" />
+                                                        <m:Text text="{view>requestId}" />
                                                         <!-- Status -->
-                                                        <m:ObjectStatus
-                                                            text="{view>status/text}"
-                                                            state="{view>status/state}"
-                                                        />
-                                                        <!-- Botón Descargar Comprobante -->
+                                                        <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMargin">
+                                                            <m:ObjectStatus
+                                                                text="{view>status/text}"
+                                                                state="{view>status/state}"
+                                                                class="sapUiTinyMargin"
+                                                            />
+                                                            <m:Button icon="sap-icon://synchronize" 
+                                                                      iconFirst="true"
+                                                                      text=""
+                                                                      press=".onSynchronizeStatus"
+                                                                      class="sapUiTinyMargin"/>
+                                                        </m:HBox>
+                                                        <!-- Botón Descargar Comprobante
                                                         <m:Button
                                                             text="{i18n>btnDescargarComprobante}"
                                                             type="Transparent"
                                                             icon="sap-icon://download"
                                                             press=".onDownloadReceipt"
-                                                        />
+                                                        /> -->
                                                     </m:cells>
                                                 </m:ColumnListItem>
                                             </m:items>
@@ -257,15 +464,6 @@
                                     </m:Panel>
                                 </m:CustomListItem>
                             </m:List>
-                        </m:VBox>
-                    </m:IconTabFilter>
-                    <!-- Tab 4: Aprobaciones (with Table) -->
-                    <m:IconTabFilter
-                        key="tab4"
-                        text="{i18n>tabAprobaciones}"
-                        >
-                        <m:VBox class="sapUiSmallMargin">
-                            <m:Text text="{i18n>placeholderAprobaciones}" />
                         </m:VBox>
                     </m:IconTabFilter>
                 </m:items>

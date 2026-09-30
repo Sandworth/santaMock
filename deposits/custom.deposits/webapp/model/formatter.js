@@ -1,11 +1,30 @@
-sap.ui.define(["sap/ui/core/format/NumberFormat"], function (NumberFormat) {
+sap.ui.define(["sap/ui/core/format/NumberFormat", "sap/ui/core/format/DateFormat"], function (NumberFormat, DateFormat) {
 	"use strict";
 
 	return {
+		/**
+		 * Initializes the formatter with the application's ResourceBundle.
+		 * Must be called once from the controller's onInit before any i18n-dependent formatter is used.
+		 * @param {sap.base.i18n.ResourceBundle} oResourceBundle
+		 */
+		init: function (oResourceBundle) {
+			this._oBundle = oResourceBundle;
+		},
+
+		/**
+		 * Converts a value to uppercase.
+		 * @param {string} value - The value to convert
+		 * @returns {string|undefined} The uppercase value, or undefined if input is null/falsy
+		 */
 		formatValue: function (value) {
 			return value && value.toUpperCase();
 		},
 
+		/**
+		 * Formats a floating-point number with grouping separators and 2 decimal places.
+		 * @param {number} fValue - The number to format
+		 * @returns {string} The formatted number string, or empty string if value is null, undefined, or 0
+		 */
 		formatFloat: function (fValue) {
 			if (fValue === null || fValue === undefined || fValue === 0) {
 				return "";
@@ -18,6 +37,12 @@ sap.ui.define(["sap/ui/core/format/NumberFormat"], function (NumberFormat) {
 			return oFormat.format(fValue);
 		},
 
+		/**
+		 * Formats a currency amount with grouping separators, 2 decimal places, and currency code.
+		 * @param {number} fAmount - The amount to format
+		 * @param {string} sCurrency - The currency code (e.g., "USD", "EUR")
+		 * @returns {string} The formatted amount with currency code (e.g., "1,234.56 USD"), or empty string if amount or currency is invalid
+		 */
 		formatCurrency: function (fAmount, sCurrency) {
 			if (fAmount === null || fAmount === undefined || !sCurrency) {
 				return "";
@@ -27,25 +52,32 @@ sap.ui.define(["sap/ui/core/format/NumberFormat"], function (NumberFormat) {
 				decimals: 2,
 				maxFractionDigits: 2
 			});
-			return oFormat.format(fAmount) + " " + sCurrency;
+			return `${oFormat.format(fAmount)} ${sCurrency}`;
 		},
 
-		// Suitability formatter  (Rate × DurationDays / 365)
-		// Log-normalised to [0.5 – 5.0], rounded to nearest 0.5
+		/**
+		 * Calculates a suitability score based on interest rate and duration.
+		 * Uses logarithmic normalization to scale the result to [0.5 – 5.0] range.
+		 * Formula: Score = 0.5 + 4.5 × (log(totalReturn) - log(min)) / (log(max) - log(min))
+		 * where totalReturn = Rate × DurationDays / 365
+		 * @param {number} fRate - The interest rate (e.g., 2.45, 4.05)
+		 * @param {number|string} iDuration - The duration code (1-12, representing months: 1=30 days, 2=60 days, etc.)
+		 * @returns {number} The suitability score clamped to [0.5 – 5.0] range, or 0 if parameters are invalid
+		 */
 		formatSuitability: function (fRate, iDuration) {
 			if (fRate === undefined || fRate === null || !iDuration) {
 				return 0;
 			}
 
-			var mDays = { 1: 30, 3: 91, 6: 182, 12: 365, 24: 730 };
-			var iDays = mDays[iDuration];
+			var mDays = { 1: 30, 2: 60, 3: 90, 4: 120, 5: 150, 6: 180, 7: 210, 8: 240, 9: 270, 10: 300, 11: 330, 12: 360 };
+			var iDays = mDays[parseInt(iDuration, 10)]; // handles "1M", "2M", etc.
 			if (!iDays) { return 0; }
 
 			// Reference min/max total-return values across all products
-			// min: 1M @ lowest rate (2.45) → 2.45×30/365
-			// max: 24M @ highest rate (4.55) → 4.55×730/365
-			var fMin = 2.45 * 30 / 365;   // ≈ 0.2014
-			var fMax = 4.55 * 730 / 365;   // ≈ 9.1000
+			// min: 1M @ lowest rate (2.45) → 2.45×31/365
+			// max: 12M @ highest rate (4.05) → 4.05×365/365
+			var fMin = 2.45 * 31 / 365;   // ≈ 0.2099
+			var fMax = 4.05 * 365 / 365;   // = 4.05
 
 			var fTotalReturn = fRate * iDays / 365;
 
@@ -56,6 +88,34 @@ sap.ui.define(["sap/ui/core/format/NumberFormat"], function (NumberFormat) {
 				/ (Math.log(fMax) - Math.log(fMin));
 
 			return fScore;
+		},
+
+		dateTimeToDate: function (sDateTime) {
+			if (!sDateTime) {
+				return null;
+			}
+			var oDateFormat = DateFormat.getDateTimeWithTimezoneInstance({showTime: false, showTimezone: false});
+			var oDate = DateFormat.getDateTimeInstance().parse(sDateTime);
+			return oDateFormat.format(oDate);
+		},
+
+		/**
+		 * Builds a localized deposit title combining tenor description and currency plural name.
+		 * Reads the i18n model from the bound control's context to resolve both the connector
+		 * word ("in" / "en") and the currency plural ("US Dollars" / "Dólares Americanos").
+		 * @param {string} sTenorDesc  - Tenor description, e.g. "3 Months" / "3 Meses"
+		 * @param {string} sCurrencyId - Currency code, e.g. "USD", "EUR", "GBP"
+		 * @returns {string} e.g. "3 Months in US Dollars" / "3 Meses en Dólares Americanos"
+		 */
+		formatDepositTitle: function (sTenorDesc, sCurrencyId) {
+			if (!sTenorDesc || !sCurrencyId) {
+				return sTenorDesc || "";
+			}
+			var oBundle = this._oBundle;
+			if (!oBundle) { return sTenorDesc; }
+			var sConnector = oBundle.getText("titleCurrencyConnector");
+			var sCurrencyPlural = oBundle.getText(`currency_${sCurrencyId}_plural`);
+			return `${sTenorDesc} ${sConnector} ${sCurrencyPlural}`;
 		}
 	};
 });

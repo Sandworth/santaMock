@@ -10,22 +10,34 @@
     <VBox>
         <viz:VizFrame
             id="saldosVizFrame"
+            uiConfig="{applicationSet:'fiori'}"
             vizType="column"
-            height="220px"
+            height="350px"
             width="100%"
         >
             <viz:dataset>
-                <viz.data:FlattenedDataset data="{empresas>/empresas}">
+                <viz.data:FlattenedDataset
+                    data="{
+                        path: 'saldos>/',
+                        filters: [
+                            {
+                                path: 'Currency',
+                                operator: 'EQ',
+                                value1: 'EUR'
+                            }
+                        ]
+                    }"
+                >
                     <viz.data:dimensions>
                         <viz.data:DimensionDefinition
-                            name="razonSocial"
-                            value="{razonSocial}"
+                            name="CompanyName"
+                            value="{CompanyName}"
                         />
                     </viz.data:dimensions>
                     <viz.data:measures>
                         <viz.data:MeasureDefinition
-                            name="balance"
-                            value="{balance}"
+                            name="Balance"
+                            value="{Balance}"
                         />
                     </viz.data:measures>
                 </viz.data:FlattenedDataset>
@@ -34,21 +46,24 @@
                 <viz.feeds:FeedItem
                     uid="categoryAxis"
                     type="Dimension"
-                    values="razonSocial"
+                    values="CompanyName"
                 />
                 <viz.feeds:FeedItem
                     uid="valueAxis"
                     type="Measure"
-                    values="balance"
+                    values="Balance"
                 />
             </viz:feeds>
         </viz:VizFrame>
         <List
+            id="saldosList"
             backgroundDesign="Transparent"
             class="sapUiContentPadding"
             showSeparators="None"
             width="100%"
-            items="{Cashpool>/Companies}"
+            items="{
+                path: 'saldos>/'
+            }"
         >
             <CustomListItem type="Inactive">
                 <Panel
@@ -63,29 +78,29 @@
                             justifyContent="SpaceBetween"
                             class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom"
                         >
-                            <HBox alignItems="Center">
+                            <!-- <HBox alignItems="Center"> -->
                                 <Title
-                                    text="{Cashpool>name}"
-                                    titleStyle="H3"
-                                    class="sapUiSmallMarginEnd sapUiTinyMarginTop"
-                                />
-                                <Button
+                                text="{saldos>CompanyName}"
+                                titleStyle="H3"
+                                class="sapUiSmallMarginEnd sapUiTinyMarginTop"
+                            />
+                                <!-- <Button
                                     icon="sap-icon://edit"
                                     type="Transparent"
-                                />
-                            </HBox>
-                            <Label text="CIF: {Cashpool>cif}" />
+                                  /> -->
+                            <!-- </HBox> -->
+                            <Label text="{i18n>colCIF}: {saldos>VatNumber}" />
                         </VBox>
                         <VBox
                             alignItems="End"
                             class="sapUiSmallMarginEnd sapUiSmallMarginTopBottom"
                         >
-                            <Label text="Total Balance" />
+                            <Label text="{i18n>colTotalBalance}" />
                             <Title
                                 text="{
                                                 parts: [
-                                                    {path: 'empresas>balance'},
-                                                    {path: 'empresas>currency'}
+                                                    {path: 'saldos>Balance'},
+                                                    {path: 'saldos>Currency'}
                                                 ],
                                                 type: 'Currency',
                                                 formatOptions: {
