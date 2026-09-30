@@ -21,6 +21,12 @@
       "destination": "CashPooling_Destination"
     },
     {
+      "source": "^/jobscheduler/(.*)$",
+      "target": "/$1",
+      "authenticationType": "xsuaa",
+      "destination": "JobSchedulerHandler_Destination"
+    },
+    {
       "source": "^(.*)$",
       "target": "$1",
       "service": "html5-apps-repo-rt",

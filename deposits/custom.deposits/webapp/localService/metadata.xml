@@ -23,14 +23,10 @@
                 </Key>
                 <Property Name="UUID"       Type="Edm.Guid"    Nullable="false" />
                 <Property Name="Name"       Type="Edm.String"  MaxLength="100"  Nullable="false" />
-                <Property Name="Rate"       Type="Edm.Decimal" Precision="5"    Scale="2"  Nullable="false" />
-                <Property Name="Duration"   Type="Edm.String"  MaxLength="3"    Nullable="false" />
-                <Property Name="Currency"   Type="Edm.String"  MaxLength="3"    Nullable="false" />
-                <Property Name="Cancelable"   Type="Edm.Boolean"                  Nullable="false" />
+                <Property Name="Rate"        Type="Edm.Decimal" Precision="5"    Scale="2"  Nullable="false" />
+                <Property Name="Currency"    Type="Edm.String"  MaxLength="3"    Nullable="false" />
                 <Property Name="Suitability" Type="Edm.Decimal" Precision="3"    Scale="1"  Nullable="false" />
-                <NavigationProperty Name="to_TenorCode" Type="DepositService.TenorCode" Nullable="true">
-                    <ReferentialConstraint Property="Duration" ReferencedProperty="Code" />
-                </NavigationProperty>
+                <NavigationProperty Name="to_TenorCode" Type="DepositService.TenorCode" Nullable="true" />
                 <NavigationProperty Name="to_CurrencyCode" Type="DepositService.CurrencyCode" Nullable="true">
                     <ReferentialConstraint Property="Currency" ReferencedProperty="Code" />
                 </NavigationProperty>

@@ -33,13 +33,13 @@
   ],
   "selectedSaldoType": null,
   "dias": {
-    "lunes": false,
-    "martes": false,
-    "miercoles": false,
-    "jueves": false,
-    "viernes": false,
-    "sabado": false,
-    "domingo": false
+    "monday": false,
+    "tuesday": false,
+    "wednesday": false,
+    "thursday": false,
+    "friday": false,
+    "saturday": false,
+    "sunday": false
   },
   "empresas": [
     {
