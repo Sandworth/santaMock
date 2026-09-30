@@ -269,7 +269,8 @@ sap.ui.define([
          *     paymentDoc: string,
          *     requestId: string,
          *     status: {code, text, state},
-         *     tipo: string
+         *     tipo: string,
+         *     parameters: {amount, companyCode, houseBank, runDate, referenceDocumentNumber}
          *   }
          */
         _mapTransferHistoryItem: function (oItem, sType) {
@@ -448,7 +449,7 @@ sap.ui.define([
          * @function
          * @param {string} sType - Transfer type: "MANUAL" or "AUTO"
          * @param {Array} aTransferencias - Array of mapped transfer objects
-         * @returns {void}
+         * @returns {Promise<void>} Promise resolved after the scheduler action is invoked
          */
         _buildTransferenciasGroupsByType: function (sType, aTransferencias) {
             const oModel = this._getViewModel();
@@ -528,7 +529,7 @@ sap.ui.define([
          * @public
          * @function
          * @param {sap.ui.base.Event} oEvent - Search event with query or newValue parameter
-         * @returns {void}
+         * @returns {Promise<void>} Promise resolved after the schedule submission is started
          */
         onTransferenciasGroupSearch: function (oEvent) {
             const sRawQuery = (oEvent.getParameter("newValue") || oEvent.getParameter("query") || "").trim();
@@ -703,7 +704,7 @@ sap.ui.define([
          * 
          * @public
          * @function
-         * @returns {void}
+         * @returns {Promise<void>} Promise resolved after the wizard submission flow
          */
         onConsultConfiguration: function () {
             this._openWizardDialog();
@@ -1122,8 +1123,18 @@ sap.ui.define([
             }
         },
 
-        // Single, parametrized model accessor. Replaces the former
-        // _getWizardModel() + _getTransferWizardModel() duplicate pair.
+        /**
+         * Get a wizard model by wizard type.
+         *
+         * Uses the centralized wizard configuration to resolve either the
+         * automatic-transfer configuration model or the one-time transfer model.
+         * Defaults to the configuration wizard for compatibility with existing calls.
+         *
+         * @private
+         * @function
+         * @param {string} [sType="config"] - Wizard type: "config" or "transfer"
+         * @returns {sap.ui.model.json.JSONModel|undefined} Requested wizard model
+         */
         _getWizardModel: function (sType) {
             const oConfig = this._wizardConfigs[sType] || this._wizardConfigs.config;
             return this.getView().getModel(oConfig.modelName);
@@ -1362,11 +1373,13 @@ sap.ui.define([
         /**
          * Handle wizard accept button
          * 
-         * Shows success message and closes the configuration wizard after save.
+         * Submits the configuration to the scheduler, shows the result, and
+         * closes the configuration wizard.
          * 
          * @public
+         * @async
          * @function
-         * @returns {void}
+         * @returns {Promise<void>} Promise resolved after submission starts
          */
         onWizardAccept: async function () {
             const oModel = this._getWizardModel("config");
@@ -1390,7 +1403,7 @@ sap.ui.define([
          *
          * @public
          * @function
-         * @returns {void}
+         * @returns {Promise<void>} Promise resolved after the scheduler invocation is started
          */
         onPostShedule: async function () {
             const oTreasureModel = this.getView().getModel("JobScheduler");
@@ -3319,6 +3332,19 @@ sap.ui.define([
             // });
         },
 
+        /**
+         * Synchronize a transfer status with the backend.
+         *
+         * Sends the transfer parameters to the OData
+         * `/updateBankTransferStatus` action, reloads the matching history
+         * record, and replaces the stale item in the view model.
+         *
+         * @public
+         * @async
+         * @function
+         * @param {sap.ui.base.Event} oEvent - Synchronization button press event
+         * @returns {Promise<void>} Promise resolved after the status refresh completes
+         */
         onSynchronizeStatus: async function (oEvent) {
             const oCashpoolModel = this.getOwnerComponent().getModel("Cashpool");
             const oHistoryItem = oEvent.getSource().getBindingContext("view").getObject();

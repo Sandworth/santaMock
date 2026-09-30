@@ -13,6 +13,7 @@
 9. [Utilities](#utilities)
 10. [State Management](#state-management)
 11. [Key Workflows](#key-workflows)
+12. [Recent Changes](#recent-changes)
 
 ---
 
@@ -102,17 +103,21 @@ The application uses a multi-model approach:
 
 2. **i18n Model**: Resource bundle for multi-language support
 
-3. **View Model (JSON)**: Controls UI state such as:
+3. **JobScheduler OData Model**: Connects to the scheduler service at `/jobscheduler/`
+  and is used to submit automatic-transfer schedules through the `scheduleTransfer`
+  action.
+
+4. **View Model (JSON)**: Controls UI state such as:
    - Selected tab
    - Transfer history data
    - Filter states
    - Configuration data
 
-4. **Wizard Models (JSON)**: Temporary models for wizard workflows:
+5. **Wizard Models (JSON)**: Temporary models for wizard workflows:
    - `wizard` - Configuration wizard state
    - `wizardTransfer` - Transfer wizard state
 
-5. **Empresas Model (JSON)**: Shared company data across wizards
+6. **Empresas Model (JSON)**: Shared company data across wizards
 
 ---
 
@@ -340,9 +345,20 @@ Contains company balance data retrieved from OData:
     paymentDoc: "",       // Payment document reference
     requestId: "",        // Request identifier
     status: {},           // Status object
-    tipo: sType
+    tipo: sType,
+    parameters: {           // Parameters used by status synchronization
+      amount: "",
+      companyCode: "",
+      houseBank: "",
+      runDate: "",
+      referenceDocumentNumber: ""
+    }
   }
   ```
+
+The `parameters` object is retained with each history item so the status
+synchronization action can reuse the backend identifiers without reconstructing
+them from formatted display fields.
 
 ##### `_buildTransferenciasGroupsByType(sType, aTransferencias)`
 - **Purpose**: Group transfers by company and organize for display
@@ -460,6 +476,18 @@ Contains company balance data retrieved from OData:
   - `oEvent` - Button click event
 - **Future**: Should implement actual file download logic
 
+##### `onSynchronizeStatus(oEvent)`
+- **Purpose**: Refresh the status of one transfer from the backend
+- **Trigger**: Synchronize icon displayed next to each transfer status
+- **Actions**:
+  1. Reads the selected history item's cached `parameters` and `paymentDoc`
+  2. Invokes `Cashpool` action `/updateBankTransferStatus(...)`
+  3. Queries `BankTransferHistory` filtered by `paymentDoc`
+  4. Maps the refreshed record and replaces the item at its original view-model path
+  5. Shows feedback and clears the row busy state
+- **Concurrency/UI**: The containing row is busy while the action and refresh query
+  are running.
+
 #### **Configuration Dialog**
 
 ##### `onConfigureNow()`
@@ -488,12 +516,46 @@ Contains company balance data retrieved from OData:
 - **Actions**: Closes and resets wizard dialog
 
 ##### `onWizardAccept()`
-- **Purpose**: Accept and save configuration
+- **Purpose**: Accept and submit the automatic-transfer configuration
 - **Actions**:
   1. Retrieves review data from model
-  2. Shows success toast
-  3. Closes wizard dialog
-  4. Dialog cleanup happens in `onWizardDialogAfterClose`
+  2. Calls `onPostShedule()` to build and submit the scheduler payload
+  3. Shows a success toast
+  4. Closes wizard dialog
+  5. Dialog cleanup happens in `onWizardDialogAfterClose`
+
+##### `onPostShedule()`
+- **Purpose**: Submit the automatic-transfer schedule to the scheduler backend
+- **Model**: `JobScheduler`
+- **OData Action**: `/scheduleTransfer(...)`
+- **Actions**:
+  1. Builds the payload with `_prepareSchedulePayload()`
+  2. Invokes the scheduler action
+  3. Shows success or backend-error feedback
+
+> Note: The method name is retained as `onPostShedule` for compatibility with the
+> existing controller and fragment bindings.
+
+##### `_prepareSchedulePayload()`
+- **Purpose**: Assemble the scheduler action payload
+- **Returns**: An object containing `companyCode`, `payerAccount`, `payeeAccount`,
+  and `transferConfiguration`
+- **Delegates To**: `_buildSchedulePayerAccounts()`, `_buildSchedulePayeeAccount()`,
+  and `_buildScheduleTransferConfig()`
+
+##### `_buildSchedulePayerAccounts()`
+- **Purpose**: Convert selected source accounts into scheduler payer entries
+- **Behavior**: Resolves the configured balance and execution time for each account,
+  then formats currency amounts to two and eight decimal places.
+
+##### `_buildSchedulePayeeAccount()`
+- **Purpose**: Convert the selected centralized account into the scheduler payee
+  structure, including house bank, account ID, and partner account.
+
+##### `_buildScheduleTransferConfig()`
+- **Purpose**: Build schedule metadata for the scheduler service
+- **Output**: Monday-Sunday day numbers, balance type, transfer time type, and a
+  date window from the current date through one year later.
 
 ##### `_openWizardDialog()`
 - **Purpose**: Initialize and open configuration wizard
@@ -1159,6 +1221,21 @@ Contains company balance data retrieved from OData:
 }
 ```
 
+### Job Scheduler OData Model
+
+The manifest also defines the `jobSchedulerService` data source at
+`/jobscheduler/` and exposes it as the `JobScheduler` OData v4 model. The
+configuration wizard uses this model only when the user accepts a schedule:
+
+```javascript
+const oJobSchedulerModel = this.getView().getModel("JobScheduler");
+const oContext = oJobSchedulerModel.bindContext("/scheduleTransfer(...)");
+oContext.setParameter("parameters", oPayload).invoke();
+```
+
+The `JobScheduler` model uses server operation mode, automatic `$expand`/
+`$select` handling, and early requests, matching the main `Cashpool` model.
+
 ### OData Operations Called
 
 #### 1. `getBalanceOfCompanies()`
@@ -1199,6 +1276,21 @@ Contains company balance data retrieved from OData:
 **Used In**: `onAnotherButtonPress()` (Transfer wizard submit)
 **Parameters**: Complex transfer parameters (see `onAnotherButtonPress` section)
 **Returns**: Confirmation with new transfer details
+
+#### 6. `scheduleTransfer(...)`
+**Purpose**: Create an automatic-transfer schedule from the configuration wizard
+**Used In**: `onPostShedule()` after `onWizardAccept()`
+**Model**: `JobScheduler`
+**Payload**: Contains the selected company code, payer accounts, centralized payee
+account, and transfer configuration (days of week, balance type, start date, end date,
+and transfer time type).
+
+#### 7. `updateBankTransferStatus(...)`
+**Purpose**: Request a fresh status for an existing bank transfer
+**Used In**: `onSynchronizeStatus()` from the synchronize button in transfer history
+**Model**: `Cashpool`
+**Follow-up**: The matching `BankTransferHistory` record is queried by `paymentDoc`
+and replaces the stale item in the `view` model.
 
 ---
 
@@ -1535,6 +1627,57 @@ onCreateSingleTransfer()
   → Show success toast
   → Close dialog
 ```
+
+## Recent Changes
+
+The current implementation includes the following changes compared with the
+original guide:
+
+### Automatic schedules are now submitted
+
+The configuration wizard no longer stops at a local success message. Accepting
+the review creates a scheduler payload and invokes `JobScheduler` through
+`scheduleTransfer`. The payload includes:
+
+- Selected company code
+- One payer entry per selected source account
+- Currency and amounts formatted as two- and eight-decimal strings
+- Selected execution time for the configured schedule type
+- Centralized payee account identifiers
+- Selected weekdays, balance type, and a one-year scheduling date range
+
+### Transfer status synchronization
+
+Every manual and automatic transfer row now displays a synchronize icon next to
+its status. Selecting it invokes `onSynchronizeStatus()`, calls
+`updateBankTransferStatus`, reloads the matching history item using its payment
+document, and updates only that item in the view model.
+
+### Bank and account display data
+
+Bank responses now retain the bank branch (`Branch`) as `oficina` on each
+account. Wizard account tables display:
+
+- Account description
+- Branch/office
+- IBAN or account number
+- SAP balance and currency
+
+Centralized-account review text uses the branch and IBAN values. The account
+tables no longer show the previous Info Center balance label for this display.
+
+### Transfer history mapping
+
+Transfer status codes are normalized to lowercase before lookup, matching the
+backend status map. Each mapped history item also stores the raw synchronization
+parameters required by `updateBankTransferStatus`.
+
+### Layout and actions
+
+Transfer history columns were resized to accommodate the synchronization action
+and the status display. The automatic-transfer configuration consultation action
+is currently commented out in the automatic-history toolbar while the schedule
+submission flow is being used instead.
 
 ---
 
