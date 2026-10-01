@@ -50,6 +50,11 @@ sap.ui.define([
 		},
 
 		_loadCashpoolAccounts: function () {
+			const oOwnerComponent = this.getOwnerComponent();
+			if (oOwnerComponent._pCashpoolAccounts) {
+				return oOwnerComponent._pCashpoolAccounts;
+			}
+
 			const oCashpoolModel = this.getOwnerComponent().getModel("Cashpooling");
 			if (!oCashpoolModel) {
 				return Promise.reject(new Error("Cashpooling OData model is not available"));
@@ -59,7 +64,7 @@ sap.ui.define([
 				$expand: "AccountBalance"
 			});
 
-			return oBanksBinding.requestContexts(0, 1000).then(function (aContexts) {
+			oOwnerComponent._pCashpoolAccounts = oBanksBinding.requestContexts(0, 1000).then(function (aContexts) {
 				return aContexts.reduce(function (aAccounts, oContext) {
 					const oBank = oContext.getObject();
 					const sBankName = oBank.BankName || "";
@@ -78,6 +83,8 @@ sap.ui.define([
 					return aAccounts;
 				}, []);
 			});
+
+			return oOwnerComponent._pCashpoolAccounts;
 		},
 
 		/**
