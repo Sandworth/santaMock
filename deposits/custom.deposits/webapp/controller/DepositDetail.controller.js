@@ -53,6 +53,7 @@ sap.ui.define([
 				importeSolicitudDisplay: "",
 				cuentasFiltradas: []
 			}), "request");
+			this._pCashpoolAccounts = this._loadCashpoolAccounts();
 
 			this.oRouter.getRoute("DepositDetail").attachPatternMatched(this._onDepositMatched, this);
 		},
@@ -104,7 +105,7 @@ sap.ui.define([
 			}
 
 			if (bIsDisplay) {
-				this._filterAccountsByCurrency();
+				await this._filterAccountsByCurrency();
 			}
 			// Reset input "reqAmountInput"
 			const oReqInput = this.getView().byId("reqAmountInput");
@@ -491,7 +492,7 @@ sap.ui.define([
 			const oBundle = this.getResourceBundle();
 			const oInput = this.getView().byId("reqAmountInput");
 
-			if (sBancoName !== "Santander") {
+			if (!sBancoName.includes("Santander")) {
 				if (oComboBox) {
 					oComboBox.setValueState("Error");
 					oComboBox.setValueStateText(oBundle.getText("reqSelectSantanderAccount"));
@@ -534,21 +535,11 @@ sap.ui.define([
 			if (!oCtx) { return; }
 			await oCtx.requestObject();
 			const sCurrency = oCtx.getProperty("currency_ID");
-			const aBancos = this.getModel("banks").getProperty("/bancos");
-			const aCuentasFiltradas = [];
-			aBancos.forEach(function (oBanco) {
-				oBanco.cuentas
-					.filter(function (oCuenta) { return oCuenta.currency === sCurrency; })
-					.forEach(function (oCuenta) {
-						aCuentasFiltradas.push({
-							banco: oBanco.nombre,
-							nombre: oCuenta.nombre,
-							cuentaCorriente: oCuenta.cuentaCorriente,
-							saldoInfoCent: oCuenta.saldoInfoCent,
-							currency: oCuenta.currency
-						});
-					});
+			const aAccounts = await this._pCashpoolAccounts;
+			const aCuentasFiltradas = aAccounts.filter(function (oAccount) {
+				return oAccount.currency === sCurrency;
 			});
+
 			this.getModel("request").setProperty("/cuentasFiltradas", aCuentasFiltradas);
 		},
 

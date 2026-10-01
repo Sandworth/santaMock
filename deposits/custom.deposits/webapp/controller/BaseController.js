@@ -49,6 +49,37 @@ sap.ui.define([
 			return this;
 		},
 
+		_loadCashpoolAccounts: function () {
+			const oCashpoolModel = this.getOwnerComponent().getModel("Cashpooling");
+			if (!oCashpoolModel) {
+				return Promise.reject(new Error("Cashpooling OData model is not available"));
+			}
+
+			const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
+				$expand: "AccountBalance"
+			});
+
+			return oBanksBinding.requestContexts(0, 1000).then(function (aContexts) {
+				return aContexts.reduce(function (aAccounts, oContext) {
+					const oBank = oContext.getObject();
+					const sBankName = oBank.BankName || "";
+					const aBalances = Array.isArray(oBank.AccountBalance) ? oBank.AccountBalance : [];
+
+					aBalances.forEach(function (oAccount) {
+						aAccounts.push({
+							banco: sBankName,
+							nombre: oAccount.Description || oAccount.Iban || oAccount.BankAccountNumber || "",
+							cuentaCorriente: oAccount.BankAccountNumber || "",
+							saldoInfoCent: Number(oAccount.StatementAmount) || 0,
+							currency: oAccount.Currency || ""
+						});
+					});
+
+					return aAccounts;
+				}, []);
+			});
+		},
+
 		/**
 		 * Convenience method for triggering the navigation to a specific target.
 		 * @public
