@@ -25,6 +25,9 @@ server:
             - /test-resources
           url: https://ui5.sap.com
         backend:
+          - path: /cashpooling
+            pathReplace: /
+            destination: CashPooling_Destination
           - path: /odata
             pathReplace: /
             destination: Deposits_Destination #Destination for client sub-accunt
