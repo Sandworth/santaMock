@@ -76,15 +76,17 @@ sap.ui.define([
 
 			// Initialize customRequest model for Custom Deposit Dialog
 			this._initCustomRequestModel();
-			this._pCashpoolAccounts = this._loadCashpoolAccounts();
-
+			
 			// ----- Detect intent early — must happen before SVM initialise() -----
 			const sHash        = (window.location.hash || "").replace(/^#/, "").split("?")[0];
 			const bIsSantander = window.location.host.startsWith("santander"); // Check if the app is running in the Santander environment
 			const bIsHistory   = sHash === "Deposits-history";
-			//bIsHistory = true // Force history view for testing — to be removed when both views are available in the FLP
-
 			const bIsDisplay = !bIsHistory;
+			//bIsHistory = true // Force history view for testing — to be removed when both views are available in the FLP
+			
+			this._pCashpoolAccounts = (!bIsSantander && bIsDisplay)
+									? this._loadCashpoolAccounts()
+									: Promise.resolve([]);
 
 			// Intent model — consumed by view bindings (visible, enabled, etc.)
 			this.getOwnerComponent().setModel(
@@ -1348,7 +1350,7 @@ sap.ui.define([
 			const oFile = oFileUploader.getFocusDomRef().files[0];
 			// set Table busy while processing
 			const iCurrentHour = new Date().getHours();
-			if (iCurrentHour < 9 || iCurrentHour >= 17) {
+			if (iCurrentHour < 6 || iCurrentHour >= 21) {
 				MessageToast.show(this._getText("uploadOutsideBusinessHours"));
 				return;
 			}
