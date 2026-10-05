@@ -22,7 +22,7 @@
                             alignItems="Center"
 				            justifyContent="SpaceBetween">
                         <CheckBox
-                            text="{signers>name}"
+                            text="{signers>fullName}"
                             selected="{signers>selected}"
                             select=".onSignerSelectionChange" />
                         <Input

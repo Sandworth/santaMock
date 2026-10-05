@@ -395,11 +395,10 @@ sap.ui.define([
 				confirmButtonText: oOptions.confirmButtonText,
 				confirmationText: oOptions.confirmationText,
 				signers: [
-					{ name: "Lucía Fernández", email: "", selected: false },
-					{ name: "Alejandro Martínez", email: "", selected: false },
-					{ name: "Carmen García", email: "", selected: false },
-					{ name: "Javier Rodríguez", email: "", selected: false },
-					{ name: "Sofía López", email: "", selected: false }
+					{ fullName: "Pedro González-Tarrío", email: "", selected: false },
+					{ fullName: "Pablo Borobio", email: "pablo.borobio@servexternos.gruposantander.com", selected: false },
+					{ fullName: "Carmen García", email: "", selected: false },
+					{ fullName: "Javier Rodríguez", email: "", selected: false }
 				]
 			});
 
@@ -467,9 +466,52 @@ sap.ui.define([
 				MessageBox.error(this._getText("signerEmailInvalid"));
 				return;
 			}
+			const aSigners = aSelectedSigners.map((oSigner) => {
+				const { selected, ...rest } = oSigner;
+				return rest;
+			});
+			const sStart = new Date(oWorkflow.payload.startDate).toLocaleString("es-ES", {
+				year: "numeric",
+				month: "long",
+				day: "numeric",
+			})
+			const oContractPayload = {
+				"signers": aSigners,
+				"email": "x673375@gruposantander.com",
+				"fullName": "Pablo B",
+				"bank": "Banco Santander, S.A. (en adelante, el Banco), Sucursal 2613 TORREVIEJA,PO. VISTA ALEGRE,13, sita en TORREVIEJA, PO. VI",
+				"automaticRenewal": "SI",
+				"operatingInstructions": "Indistinta",
+				"term": "12 meses a contar desde la fecha de adeudo del importe de la imposición en la cuenta asociada",
+				"startDate": "los intereses se devengarán a partir de la fecha de adeudo del importe de la imposición en la cuenta asociada",
+				"interest": `${oWorkflow.payload.rate}% (TAE: ${Number.parseFloat(Number(oWorkflow.payload.rate)+0.045).toString()}%)`,
+				"interestSettlement": "anual, calculados en la forma prevista en el apartado A de la Condición General 'Intereses'",
+				"iban": "ES9400490001502616255451 ",
+				"penalties": "2 %",
+				"place": "TORREVIEJA, PO. VI",
+				"contractDate": sStart,
+				"document": "92247040C",
+				"nationality": "Español",
+				"residence": "España",
+				"address": "Calle Mayor 1, Madrid",
+				"cnae": "5510 HOTELY ALOJAMIENTOS SIMILAR",
+				"professionalStatus": "CUENTA PROPIA",
+				"capacity": "TITULAR",
+				"amountCurrency": `${oWorkflow.confirmationText.split(" de ")[2].split(". ")[0]}`
+			}
 
 			try {
-				await this.getView().getModel("mainService").bindList("/Deposits").create(oWorkflow.payload);
+				const oDepositContext = this.getView().getModel("mainService")
+					.bindList("/Deposits")
+					.create(oWorkflow.payload, true);
+				const oContractContext = this.getView().getModel("mainService")
+					.bindList("/Contract")
+					.create(oContractPayload, true);
+
+				await Promise.all([
+					oDepositContext.created(),
+					oContractContext.created()
+				]);
 				this._oSignerSelectionDialog.close();
 				if (oWorkflow.onSuccess) {
 					oWorkflow.onSuccess.call(this, aSelectedSigners, oWorkflow.payload);
