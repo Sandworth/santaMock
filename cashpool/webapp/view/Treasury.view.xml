@@ -96,65 +96,65 @@
                                                         dateValue="{view>filters/dateFrom}"
                                                         secondDateValue="{view>filters/dateTo}"
                                                         placeholder="{i18n>filterDateRange}" />
-                                                    <m:Select
+                                                    <!-- <m:Select
                                                         width="12rem"
                                                         selectedKey="{view>filters/status}"
                                                         items="{view>statusOptions}">
                                                         <core:Item key="{view>key}" text="{view>text}" />
-                                                    </m:Select>
+                                                    </m:Select> -->
                                                     <m:Button text="{i18n>btnBuscar}" icon="sap-icon://search" press=".onTransferenciasSearch" />
                                                     <m:Button text="{i18n>btnLimpiar}" type="Transparent" press=".onTransferenciasClear" />
                                                 </m:Toolbar>
                                             </m:headerToolbar>
                                             <m:columns>
                                                 <!-- Fecha -->
-                                                <m:Column width="12%">
+                                                <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colFecha}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Origen -->
-                                                <m:Column width="18%">
+                                                <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colOrigen}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Destino -->
-                                                <m:Column width="18%">
+                                                <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colDestino}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Saldo Antes -->
-                                                <m:Column width="10%">
+                                                <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colSaldoAntes}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Valor de Transferencia -->
-                                                <m:Column width="10%">
+                                                <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colValorTransferencia}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Payment Document -->
-                                                <m:Column hAlign="Center" width="11%">
+                                                <!-- <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colPaymentDoc}" />
                                                     </m:header>
-                                                </m:Column>
+                                                </m:Column> -->
                                                 <!-- Request ID -->
-                                                <m:Column hAlign="Center" width="11%">
+                                                <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colRequestId}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Status -->
-                                                <m:Column hAlign="Center" width="16%">
+                                                <!-- <m:Column width="auto">
                                                     <m:header>
                                                         <m:Text text="{i18n>colStatus}" />
                                                     </m:header>
-                                                </m:Column>
+                                                </m:Column> -->
                                             </m:columns>
                                             <m:items>
                                                 <m:ColumnListItem type="Inactive">
@@ -165,25 +165,25 @@
                                                                         ],
                                                                         formatter: 'Formatter.dateTimeToDate'
                                                                         }" />
-                                                        <m:VBox>
-                                                            <m:Link class="sapUiTinyMarginTop" text="{view>origen/banco}" />
-                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                        <m:VBox class="sapUiTinyMarginTopBottom" >
+                                                            <m:Link text="{view>origen/banco}" />
+                                                            <!-- <m:HBox class="sapUiTinyMarginTopBottom">
                                                                 <m:Label text="{i18n>lblOficina}" width="60px" />
                                                                 <m:Text text="{view>origen/oficina}" />
-                                                            </m:HBox>
-                                                            <m:HBox class="sapUiTinyMarginBottom">
-                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                            </m:HBox> -->
+                                                            <m:HBox class="sapUiTinyMarginTop">
+                                                                <m:Label text="{i18n>lblCuenta}" class="sapUiTinyMarginEnd"/>
                                                                 <m:Text text="{view>origen/cuenta}" />
                                                             </m:HBox>
                                                         </m:VBox>
                                                         <m:VBox>
-                                                            <m:Link class="sapUiTinyMarginTop" text="{view>destino/banco}" />
-                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                            <m:Link class="sapUiTinyMarginTopBottom" text="{view>destino/banco}" />
+                                                            <!-- <m:HBox class="sapUiTinyMarginTopBottom">
                                                                 <m:Label text="{i18n>lblOficina}" width="60px" />
                                                                 <m:Text text="{view>destino/oficina}" />
-                                                            </m:HBox>
+                                                            </m:HBox> -->
                                                             <m:HBox class="sapUiTinyMarginBottom">
-                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                                <m:Label text="{i18n>lblCuenta}" class="sapUiTinyMarginEnd"/>
                                                                 <m:Text text="{view>destino/cuenta}" />
                                                             </m:HBox>
                                                         </m:VBox>
@@ -209,9 +209,9 @@
                                                                             showMeasure: true
                                                                         }
                                                                     }" />
-                                                        <m:Text text="{view>paymentDoc}" />
+                                                        <!-- <m:Text text="{view>paymentDoc}" /> -->
                                                         <m:Text text="{view>requestId}" />
-                                                        <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMargin">
+                                                        <!-- <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMargin">
                                                             <m:ObjectStatus
                                                                 text="{view>status/text}"
                                                                 state="{view>status/state}"
@@ -222,7 +222,7 @@
                                                                       text=""
                                                                       press=".onSynchronizeStatus"
                                                                       class="sapUiTinyMargin"/>
-                                                        </m:HBox>
+                                                        </m:HBox> -->
                                                     </m:cells>
                                                 </m:ColumnListItem>
                                             </m:items>
@@ -283,12 +283,12 @@
                                                         dateValue="{view>filters/dateFrom}"
                                                         secondDateValue="{view>filters/dateTo}"
                                                         placeholder="{i18n>filterDateRange}" />
-                                                    <m:Select
+                                                    <!-- <m:Select
                                                         width="12rem"
                                                         selectedKey="{view>filters/status}"
                                                         items="{view>statusOptions}">
                                                         <core:Item key="{view>key}" text="{view>text}" />
-                                                    </m:Select>
+                                                    </m:Select> -->
                                                     <m:Button text="{i18n>btnBuscar}" icon="sap-icon://search" press=".onTransferenciasSearch" />
                                                     <m:Button text="{i18n>btnLimpiar}" type="Transparent" press=".onTransferenciasClear" />
                                                     <m:ToolbarSpacer />
@@ -311,59 +311,59 @@
                                             </m:headerToolbar>
                                             <m:columns>
                                                 <!-- Fecha -->
-                                                <m:Column width="10%">
+                                                <m:Column>
                                                     <m:header>
                                                         <m:Text text="{i18n>colFecha}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Origen -->
-                                                <m:Column width="18%">
+                                                <m:Column>
                                                     <m:header>
                                                         <m:Text text="{i18n>colOrigen}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Datos de Destino -->
-                                                <m:Column width="18%">
+                                                <m:Column>
                                                     <m:header>
                                                         <m:Text text="{i18n>colDestino}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Saldo Antes -->
-                                                <m:Column width="12%">
+                                                <m:Column>
                                                     <m:header>
                                                         <m:Text text="{i18n>colSaldoAntes}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Saldo Programado -->
-                                                <m:Column width="12%">
+                                                <m:Column>
                                                     <m:header>
                                                         <m:Text text="{i18n>colSaldoObjetivo}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Valor de Transferencia -->
-                                                <m:Column width="10%">
+                                                <m:Column>
                                                     <m:header>
                                                         <m:Text text="{i18n>colValorTransferencia}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Payment Document -->
-                                                <m:Column hAlign="Center" width="9%">
+                                                <!-- <m:Column> 
                                                     <m:header>
                                                         <m:Text text="{i18n>colPaymentDoc}" />
                                                     </m:header>
-                                                </m:Column>
+                                                </m:Column> -->
                                                 <!-- Request ID -->
-                                                <m:Column hAlign="Center" width="9%">
+                                                <m:Column>
                                                     <m:header>
                                                         <m:Text text="{i18n>colRequestId}" />
                                                     </m:header>
                                                 </m:Column>
                                                 <!-- Status -->
-                                                <m:Column hAlign="Center" width="16%">
+                                                <!-- <m:Column >
                                                     <m:header>
                                                         <m:Text text="{i18n>colStatus}" />
                                                     </m:header>
-                                                </m:Column>
+                                                </m:Column> -->
                                             </m:columns>
                                             <m:items>
                                                 <m:ColumnListItem type="Inactive">
@@ -377,25 +377,25 @@
                                                                         }" />
                                                         <!-- Datos de Origen -->
                                                         <m:VBox>
-                                                            <m:Link class="sapUiTinyMarginTop" text="{view>origen/banco}" />
-                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                            <m:Link class="sapUiTinyMarginTopBottom" text="{view>origen/banco}" />
+                                                            <!-- <m:HBox class="sapUiTinyMarginTopBottom">
                                                                 <m:Label text="{i18n>lblOficina}" width="60px" />
                                                                 <m:Text text="{view>origen/oficina}" />
-                                                            </m:HBox>
+                                                            </m:HBox> -->
                                                             <m:HBox class="sapUiTinyMarginBottom">
-                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                                <m:Label text="{i18n>lblCuenta}" class="sapUiTinyMarginEnd"/>
                                                                 <m:Text text="{view>origen/cuenta}" />
                                                             </m:HBox>
                                                         </m:VBox>
                                                         <!-- Datos de Destino -->
                                                         <m:VBox>
-                                                            <m:Link class="sapUiTinyMarginTop" text="{view>destino/banco}" />
-                                                            <m:HBox class="sapUiTinyMarginTopBottom">
+                                                            <m:Link class="sapUiTinyMarginTopBottom" text="{view>destino/banco}" />
+                                                            <!-- <m:HBox class="sapUiTinyMarginTopBottom">
                                                                 <m:Label text="{i18n>lblOficina}" width="60px" />
                                                                 <m:Text text="{view>destino/oficina}" />
-                                                            </m:HBox>
+                                                            </m:HBox> -->
                                                             <m:HBox class="sapUiTinyMarginBottom">
-                                                                <m:Label text="{i18n>lblCuenta}" width="60px" />
+                                                                <m:Label text="{i18n>lblCuenta}" class="sapUiTinyMarginEnd"/>
                                                                 <m:Text text="{view>destino/cuenta}" />
                                                             </m:HBox>
                                                         </m:VBox>
@@ -435,10 +435,10 @@
                                                                             showMeasure: true
                                                                         }
                                                                     }" />
-                                                        <m:Text text="{view>paymentDoc}" />
+                                                        <!-- <m:Text text="{view>paymentDoc}" /> -->
                                                         <m:Text text="{view>requestId}" />
                                                         <!-- Status -->
-                                                        <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMargin">
+                                                        <!-- <m:HBox justifyContent="Center" alignItems="Center" class="sapUiTinyMargin">
                                                             <m:ObjectStatus
                                                                 text="{view>status/text}"
                                                                 state="{view>status/state}"
@@ -449,7 +449,7 @@
                                                                       text=""
                                                                       press=".onSynchronizeStatus"
                                                                       class="sapUiTinyMargin"/>
-                                                        </m:HBox>
+                                                        </m:HBox> -->
                                                         <!-- Botón Descargar Comprobante
                                                         <m:Button
                                                             text="{i18n>btnDescargarComprobante}"

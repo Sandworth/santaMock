@@ -206,7 +206,8 @@ sap.ui.define([
                 .then((aTransfers) => {
                     this._buildTransferenciasGroupsByType(sType, aTransfers);
                 })
-                .catch(() => {
+                .catch((oError) => {
+                    console.log(oError);
                     MessageToast.show("No se pudo cargar el histórico de transferencias.");
                     this._buildTransferenciasGroupsByType(sType, []);
                 })
@@ -283,15 +284,15 @@ sap.ui.define([
                 fecha: oItem.createdAt,
                 origen: {
                     banco: oItem.payerBankName || "-",
-                    oficina: oItem.payerBranch || "-",
-                    //oficina: oItem.payerAccount?.Iban.substring(8,12) + " | " + oItem.payerBranch || "-",
-                    cuenta: oItem.payerAccount?.Iban || "-"
+                    //oficina: oItem.payerBranch || "-",
+                    //oficina: oItem.payerAccount?.Iban.substring(8,12), // + " | " + oItem.payerBranch || "-",
+                    cuenta: oItem.payerAccount?.BankAccountNumber || "-"
                 },
                 destino: {
                     banco: oItem.payeeBankName || "-",
                     //oficina: oItem.payeeBranch || "-",
-                    oficina: oItem.payeeAccount?.Iban.substring(8,12) + " | " + oItem.payeeBranch || "-",
-                    cuenta: oItem.payeeAccount?.Iban || "-"
+                    //oficina: oItem.payeeAccount?.Iban.substring(8,12), // + " | " + oItem.payeeBranch || "-",
+                    cuenta: oItem.payeeAccount?.BankAccountNumber || "-"
                 },
                 saldoAntes: {
                     monto: this._toNumber(oItem.payerAccount?.StatementAmount),
@@ -307,16 +308,16 @@ sap.ui.define([
                 },
                 paymentDoc: oItem.paymentDoc || "-",
                 requestId: oItem.requestId || "-",
-                status: this._mapTransferStatus(oItem.status) || "-",
+                //status: this._mapTransferStatus(oItem.status) || "-",
                 tipo: sType,
-                parameters: {
-                    amount: oItem.amounts_paymAmount,
-                    companyCode: oItem.payerAccount?.CompanyCode,
-                    houseBank: oItem.payerAccount?.HouseBank,
-                    runDate: oItem.createdAt.slice(0,-14),
-                    referenceDocumentNumber: oItem.paymentDoc
+                // parameters: {
+                //     amount: oItem.amounts_paymAmount,
+                //     companyCode: oItem.payerAccount?.CompanyCode,
+                //     houseBank: oItem.payerAccount?.HouseBank,
+                //     runDate: oItem.createdAt.slice(0,-14),
+                //     referenceDocumentNumber: oItem.paymentDoc
 
-                }
+                // }
             };
         },
 
@@ -981,7 +982,9 @@ sap.ui.define([
                         return null;
                     }
 
-                    const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
+                    const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, [
+                        new Filter("companyCode", FilterOperator.EQ, sCompanyCode)
+                    ], {
                         $expand: "AccountBalance"
                     });
                     return oBanksBinding.requestContexts(0, 1000);
@@ -3238,7 +3241,7 @@ sap.ui.define([
             oModel.setProperty("/preparedTransfer", oPreparedTransfer);
             MessageToast.show(this._oResourceBundle.getText("msgTransferPrepared", [oReview.importe]));
             if (this._transferWizardDialog) {
-                this.onAnotherButtonPress(oPreparedTransfer);
+                this.onConfirmTransfer(oPreparedTransfer);
                 this._transferWizardDialog.close();
             }
         },
@@ -3254,17 +3257,35 @@ sap.ui.define([
          * @param {object} oTransferObject - Prepared transfer object from wizard
          * @returns {void}
          */
-        onAnotherButtonPress: function (oTransferObject) {
+        onConfirmTransfer: function (oTransferObject) {
             const oTreasureModel = this.getView().getModel("Cashpool");
             const oTransferModel = this._getWizardModel("transfer");
             const oBancoDestinoDetails = oTransferModel.getData()._bancosAll.find(e => e.BankName == oTransferModel.getData().review.cuentaDestinoBanco);
             const oBancoOrigenDetails = oTransferModel.getData()._bancosAll.find(e => e.BankName == oTransferModel.getData().review.cuentaOrigenBanco);
             const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaOrigenCuenta.split("\n")[1].slice(-24));
             const oCuentaDestinoDetails = oTransferModel.getData()._cuentasCentralAll.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaDestinoCuenta.split("\n")[1].slice(-24));
-            const sImporteFixed2=Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(2);
-            const sImporteFixed8=Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(8);
-            const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
+            // for RFC ---> const sImporteFixed2 = Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(2);
+            // for RFC ---> const sImporteFixed8 = Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(8);
+            // for RFC ---> const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
+            const sImporteFixed2 = oTransferModel.getData().preparedTransfer.importe.toFixed(2);
+            const oContext = oTreasureModel.bindContext('/postBankTransferOdata(...)');
             let oToPostBank = {
+                "parameters": {
+                    "payingBankAccount": oCuentaOrigenDetails.BankAccountNumber,
+                    "payingHouseBank": oCuentaOrigenDetails.HouseBank,
+                    "payingHouseBankAccount": oCuentaOrigenDetails.AccountId,
+                    "payeeHouseBank": oCuentaDestinoDetails.HouseBank,
+                    "payeeHouseBankAccount": oCuentaDestinoDetails.AccountId,
+                    "paymentMethod": "T",
+                    "paymentRequestAmountInPaytCrcy": sImporteFixed2,
+                    "paymentRequestCurrency": oCuentaOrigenDetails.Currency,
+                    "payeeBankAccount": oCuentaDestinoDetails.BankAccountNumber,
+                    "type": "MANUAL"
+                }
+            }
+            
+            // RFC payload structure for posting bank transfer
+            /*{
                 "parameters": {
                     "accounts":{
                         "acctType": "S",
@@ -3299,11 +3320,22 @@ sap.ui.define([
                     "payerBranch": oCuentaOrigenDetails.oficina,
                     "payeeBranch": oCuentaDestinoDetails.oficina
                 }
-            };
+            };*/
             oToPostBank = oToPostBank.parameters
             //oContext.setParameter("parameters", oToPostBank);
             oContext.setParameter("parameters", oToPostBank).invoke().then(() => {
                 var oActionContext = oContext.getBoundContext();
+                var oError = oActionContext.getProperty("error")
+                if (oError) {
+                    MessageToast.show("Error from backend: " + oError.message.value);
+                    return;
+                } else {
+                    console.log(oError);                    
+                    MessageToast.show("Bank transfer posted successfully!");
+                }
+                /*
+                *  Return handling for RFC
+                *
                 var sReturnType = oActionContext.getObject().return.type;
                 var sMessage = oActionContext.getObject().return.message;
                 if (sReturnType === "E") {
@@ -3314,8 +3346,10 @@ sap.ui.define([
                     MessageToast.show("Bank transfer posted successfully!");
                     //this._loadTransferHistoryData();
                 }
+                *
+                */
             }).catch((oError) => {
-                MessageToast.show("Error posting bank transfer: " + oError.error.message);
+                MessageToast.show("Local execution error: " + oError);
             });
 
             // oContext.execute().then(() => {
