@@ -95,11 +95,10 @@ The application uses a multi-model approach:
 
 1. **OData Model (Cashpool)**: Connects to backend services for:
    - `getBalanceOfCompanies()` - Retrieves company balances
-   - `postSelectCompany()` - Selects a company context
    - `Banks` - Lists banks for selected company
    - `AccountBalance` - Account details within banks
    - `BankTransferHistory` - Transfer history records
-   - `postBankTransfer()` - Submits new transfers
+  - `postBankTransferOdata(...)` - Submits manual transfers
 
 2. **i18n Model**: Resource bundle for multi-language support
 
@@ -151,7 +150,7 @@ The application uses a multi-model approach:
    - Tab 2: "Manual Transfers" (MANUAL)
      - Fragment-based expandable transfer history
      - Grouped by company (Reason Social + CIF)
-     - Includes date range and status filtering
+    - Includes company search and date-range filtering; status controls are currently disabled
    
    - Tab 3: "Automatic Transfers" (AUTO)
      - Similar structure to manual transfers
@@ -344,21 +343,14 @@ Contains company balance data retrieved from OData:
     valorTransferencia: {},// Transfer amount
     paymentDoc: "",       // Payment document reference
     requestId: "",        // Request identifier
-    status: {},           // Status object
-    tipo: sType,
-    parameters: {           // Parameters used by status synchronization
-      amount: "",
-      companyCode: "",
-      houseBank: "",
-      runDate: "",
-      referenceDocumentNumber: ""
-    }
+    tipo: sType
   }
   ```
 
-The `parameters` object is retained with each history item so the status
-synchronization action can reuse the backend identifiers without reconstructing
-them from formatted display fields.
+The current UI maps the transfer date, source and destination account numbers,
+balances, transfer amount, payment document, and request ID. Status data and the
+cached synchronization parameters remain available in the controller code for
+future reactivation, but are not currently exposed by the active table rows.
 
 ##### `_buildTransferenciasGroupsByType(sType, aTransferencias)`
 - **Purpose**: Group transfers by company and organize for display
@@ -418,8 +410,8 @@ them from formatted display fields.
 
 ##### `_getStatusOptions()`
 - **Purpose**: Return available status filter options
-- **Returns**: Array of status options for SELECT controls
-- **Used In**: Transfer history tables for filtering
+- **Returns**: Array of status options for a status SELECT control
+- **Current UI**: The status SELECT is commented out in both history tables.
 
 #### **Transfer History Filtering & Search**
 
@@ -435,23 +427,22 @@ them from formatted display fields.
 - **Model**: Uses both `_transferenciasAgrupadasXxxAll` and `/transferenciasAgrupadasXxx`
 
 ##### `onTransferenciasSearch(oEvent)`
-- **Purpose**: Apply date range and status filters to transfers
+- **Purpose**: Apply the active date-range filter to transfers
 - **Parameters**:
   - `oEvent` - Button click event
 - **Actions**:
   1. Gets binding context for transfer group
   2. Applies date range filter (from/to)
-  3. Applies status filter
-  4. Resets selection count
+  3. Resets selection count
   5. Updates visible transfers in group
 - **Date Handling**: Normalizes dates to midnight for comparison
 
 ##### `onTransferenciasClear(oEvent)`
-- **Purpose**: Clear all filters and reset to full transfer list
+- **Purpose**: Clear the active date-range filter and reset to the full transfer list
 - **Parameters**:
   - `oEvent` - Button click event
 - **Actions**:
-  1. Resets dateFrom, dateTo, status filters
+  1. Resets dateFrom and dateTo; the status property is retained for compatibility
   2. Restores full transfer list from `_allTransferencias`
   3. Clears selection count
 
@@ -478,15 +469,11 @@ them from formatted display fields.
 
 ##### `onSynchronizeStatus(oEvent)`
 - **Purpose**: Refresh the status of one transfer from the backend
-- **Trigger**: Synchronize icon displayed next to each transfer status
-- **Actions**:
-  1. Reads the selected history item's cached `parameters` and `paymentDoc`
-  2. Invokes `Cashpool` action `/updateBankTransferStatus(...)`
-  3. Queries `BankTransferHistory` filtered by `paymentDoc`
-  4. Maps the refreshed record and replaces the item at its original view-model path
-  5. Shows feedback and clears the row busy state
-- **Concurrency/UI**: The containing row is busy while the action and refresh query
-  are running.
+- **Current UI**: The synchronize button and status column are commented out in
+  the active manual and automatic history tables.
+- **When re-enabled**: Reads the history item's cached parameters, invokes
+  `/updateBankTransferStatus(...)`, reloads `BankTransferHistory` by payment
+  document, and replaces the matching item in the view model.
 
 #### **Configuration Dialog**
 
@@ -732,7 +719,7 @@ them from formatted display fields.
 - **Parameters**:
   - `oEvent` - Search event
   - `sType` - Wizard type
-- **Search Fields**: Description, HouseBank, Account number (IBAN)
+- **Search Fields**: Description, HouseBank, account number, and IBAN when present
 - **Behavior**: Filters `/_cuentasCentralAll` by query
 
 #### **Wizard Step 4: Schedule Configuration**
@@ -917,7 +904,7 @@ them from formatted display fields.
 - **Purpose**: Update selected accounts in review
 - **Actions**:
   1. Gets selected accounts from step 2
-  2. Joins account descriptions
+  2. Joins selected bank and account numbers
   3. Sets `/review/cuentasSeleccionadas`
 
 ##### `_updateReviewCuentaCentral()`
@@ -973,8 +960,7 @@ them from formatted display fields.
     - `onSuccess` - Success callback
     - `errorMessage` - Error message to show
 - **OData Calls**:
-  1. `postSelectCompany()` - Set company context
-  2. `bindList("/Banks")` - Get banks with AccountBalance expansion
+  1. `bindList("/Banks")` - Get the selected company's banks with AccountBalance expansion
 - **Request Management**: Tracks active requests to prevent race conditions
 - **Returns**: Promise
 
@@ -1116,45 +1102,30 @@ them from formatted display fields.
 - **Actions**:
   1. Updates review
   2. Prepares transfer object
-  3. Calls `onAnotherButtonPress()` with transfer data
+  3. Calls `onConfirmTransfer()` with transfer data
   4. Closes dialog
   5. Shows success toast
 
-##### `onAnotherButtonPress(oTransferObject)`
+##### `onConfirmTransfer(oTransferObject)`
 - **Purpose**: Submit transfer to backend via OData
 - **Parameters**:
   - `oTransferObject` - Prepared transfer data
-- **OData Call**: `postBankTransfer()` with complex parameters structure
+- **OData Call**: `postBankTransferOdata(...)` with SAP source/destination account
+  identifiers and payment parameters
 - **Parameters Submitted**:
   ```javascript
   {
-    accounts: {
-      acctType: "S",
-      partnerAccount: "",
-      reconcilAccount: "",
-      partnerAcctTransfer: ""
-    },
-    amounts: {
-      paymCurr: "",         // Currency
-      paymAmount: "",       // Amount with 2 decimals
-      paymAmountLong: ""    // Amount with 8 decimals
-    },
-    bankData: [{
-      accountRole: "2",
-      bankCtry: "",
-      bankKey: "",
-      swiftCode: "",
-      bankAcct: "",
-      ctrlKey: "",
-      iban: ""
-    }],
-    paymControl: {
-      housebankId: "",
-      housebankAcctId: "",
-      paymentMethods: "T",
-      paycode: ""
-    },
-    type: "MANUAL"
+    payingBankAccount: "",
+    payingHouseBank: "",
+    payingHouseBankAccount: "",
+    payeeHouseBank: "",
+    payeeHouseBankAccount: "",
+    paymentMethod: "T",
+    paymentRequestAmountInPaytCrcy: "0.00",
+    paymentRequestCurrency: "EUR",
+    payeeBankAccount: "",
+    type: "MANUAL",
+    companyCode: ""
   }
   ```
 
@@ -1254,13 +1225,7 @@ The `JobScheduler` model uses server operation mode, automatic `$expand`/
 }
 ```
 
-#### 2. `postSelectCompany(...)`
-**Purpose**: Set active company context for subsequent queries
-**Used In**: `_loadBanksForSelectedCompany()`
-**Parameters**: `{ CompanyCode: "" }`
-**Effect**: Subsequent Bank queries return data for this company
-
-#### 3. `Banks`
+#### 2. `Banks`
 **Purpose**: Get list of banks with accounts
 **Expansion**: `AccountBalance` - Includes account details
 **Filters**: Optional filters
@@ -1271,11 +1236,15 @@ The `JobScheduler` model uses server operation mode, automatic `$expand`/
 **Filters**: `type` filter (MANUAL or AUTO)
 **Returns**: Array of transfer history records
 
-#### 5. `postBankTransfer(...)`
+#### 5. `postBankTransferOdata(...)`
 **Purpose**: Submit new manual transfer
-**Used In**: `onAnotherButtonPress()` (Transfer wizard submit)
-**Parameters**: Complex transfer parameters (see `onAnotherButtonPress` section)
-**Returns**: Confirmation with new transfer details
+**Used In**: `onConfirmTransfer()` (Transfer wizard submit)
+**Parameters**: `payingBankAccount`, `payingHouseBank`, `payingHouseBankAccount`,
+`payeeHouseBank`, `payeeHouseBankAccount`, `paymentMethod`,
+`paymentRequestAmountInPaytCrcy`, `paymentRequestCurrency`, `payeeBankAccount`,
+`type`, and `companyCode`
+**Returns**: OData action result; manual history is reloaded when the MANUAL tab
+is selected
 
 #### 6. `scheduleTransfer(...)`
 **Purpose**: Create an automatic-transfer schedule from the configuration wizard
@@ -1287,7 +1256,7 @@ and transfer time type).
 
 #### 7. `updateBankTransferStatus(...)`
 **Purpose**: Request a fresh status for an existing bank transfer
-**Used In**: `onSynchronizeStatus()` from the synchronize button in transfer history
+**Used In**: `onSynchronizeStatus()` when the disabled synchronization control is re-enabled
 **Model**: `Cashpool`
 **Follow-up**: The matching `BankTransferHistory` record is queried by `paymentDoc`
 and replaces the stale item in the `view` model.
@@ -1306,19 +1275,24 @@ and replaces the stale item in the `view` model.
    - Table showing available companies (empresas)
    - Search by company name or VAT number
    - Single selection
-   - Automatically loads banks for selected company
+   - Automatically loads banks and accounts for the selected company through
+     `/Banks?$expand=AccountBalance`
 
 2. **Step 2: Select Accounts**
    - Displays banks with nested account hierarchy
    - Search/filter by bank name or account number
+   - Shows account number and SAP balance; description and branch columns are
+     currently hidden
    - Multi-select from multiple banks
    - Preserves custom schedules/balances if changing selection
 
 3. **Step 3: Select Centralized Account**
    - Choose destination/pooling account
-   - Search by description or IBAN
+   - Search by description, HouseBank, account number, or IBAN when present
    - Single selection
    - Typically Santander centralized accounts
+   - A destination with the same HouseBank as the selected source account is
+     hidden to prevent selecting an invalid pair
 
 4. **Step 4: Configure Schedule**
    - Three options:
@@ -1517,8 +1491,8 @@ Component
    → (Select Destination Account) → onCuentaDestinoSelectionChange()
    → (Enter Amount) → onTransferAmountChange()
    → (Review) → onTransferWizardAccept()
-   → onAnotherButtonPress()
-   → OData: postBankTransfer()
+   → onConfirmTransfer()
+  → OData: postBankTransferOdata(...)
    ```
 
 ---
@@ -1585,7 +1559,6 @@ onConfigureNow()
 → Load wizardData.json template
 → (Step 1) onEmpresaSelectionChange()
   → _loadBanksForSelectedCompany()
-  → OData postSelectCompany()
   → OData bindList("/Banks")
   → _transformBanksODataToBancos()
   → Update wizard model
@@ -1622,8 +1595,8 @@ onCreateSingleTransfer()
 → (Review) _updateTransferReview()
 → onTransferWizardAccept()
   → Prepare transfer object
-  → onAnotherButtonPress(oTransferObject)
-  → OData postBankTransfer()
+  → onConfirmTransfer(oTransferObject)
+  → OData postBankTransferOdata(...)
   → Show success toast
   → Close dialog
 ```
@@ -1648,36 +1621,50 @@ the review creates a scheduler payload and invokes `JobScheduler` through
 
 ### Transfer status synchronization
 
-Every manual and automatic transfer row now displays a synchronize icon next to
-its status. Selecting it invokes `onSynchronizeStatus()`, calls
-`updateBankTransferStatus`, reloads the matching history item using its payment
-document, and updates only that item in the view model.
+The controller still contains `onSynchronizeStatus()` and the
+`updateBankTransferStatus` action integration, but the status column and
+synchronize button are currently commented out in both transfer-history tables.
+The active history view displays the date, source and destination accounts,
+balances, transfer value, and request ID. Payment-document and status display can
+be re-enabled when the backend status flow is ready.
 
 ### Bank and account display data
 
-Bank responses now retain the bank branch (`Branch`) as `oficina` on each
-account. Wizard account tables display:
+Bank responses are transformed into grouped source banks and centralized
+accounts. The wizard tables currently display account number and SAP balance with
+currency. Description and branch columns are hidden, and the review uses the
+account number; centralized-account review uses the fixed `BANCO SANTANDER`
+label.
 
-- Account description
-- Branch/office
-- IBAN or account number
-- SAP balance and currency
-
-Centralized-account review text uses the branch and IBAN values. The account
-tables no longer show the previous Info Center balance label for this display.
+When a source account is selected, destination accounts with the same
+`HouseBank` are hidden. The one-time transfer wizard also enforces a single source
+selection across all banks.
 
 ### Transfer history mapping
 
-Transfer status codes are normalized to lowercase before lookup, matching the
-backend status map. Each mapped history item also stores the raw synchronization
-parameters required by `updateBankTransferStatus`.
+History entries are grouped by company and mapped to display-oriented source and
+destination account data, balances, transfer amount, payment document, and
+request ID. The status and synchronization parameter fields remain controller
+support code but are not part of the active mapped view item.
 
 ### Layout and actions
 
-Transfer history columns were resized to accommodate the synchronization action
-and the status display. The automatic-transfer configuration consultation action
-is currently commented out in the automatic-history toolbar while the schedule
-submission flow is being used instead.
+Both wizard dialogs use a `1220px` content width. Unused description, branch,
+payment-document, and status columns are hidden. History filtering currently
+uses company search and date ranges; status filtering is commented out. Manual
+transfer success reloads the MANUAL history when that tab is active.
+
+The automatic-transfer configuration consultation action remains commented out in
+the automatic-history toolbar while schedule submission is handled through
+`scheduleTransfer`.
+
+### Manual transfer OData refactor
+
+The one-time transfer flow now invokes `/postBankTransferOdata(...)` instead of
+the previous RFC-shaped `/postBankTransfer(...)` payload. The active payload uses
+SAP paying/payee bank account identifiers, payment method `T`, a two-decimal
+amount, currency, transfer type `MANUAL`, and the selected company code. The
+controller retains the former RFC payload as commented reference code only.
 
 ---
 
