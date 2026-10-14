@@ -269,9 +269,7 @@ sap.ui.define([
          *     valorTransferencia: {monto, moneda},
          *     paymentDoc: string,
          *     requestId: string,
-         *     status: {code, text, state},
-         *     tipo: string,
-         *     parameters: {amount, companyCode, houseBank, runDate, referenceDocumentNumber}
+         *     tipo: string
          *   }
          */
         _mapTransferHistoryItem: function (oItem, sType) {
@@ -1652,10 +1650,8 @@ sap.ui.define([
         /**
          * Handle origin/source account selection change
          *
-         * Updates wizard state when the user selects a source account.
-         * Only one origin account can be selected at a time.
-         * Accounts in `cuentaCentralTable` that have the same HouseBank as
-         * the selected origin account cannot be selected as destination accounts.
+         * Updates the selected source accounts in the review and hides
+         * centralized accounts whose HouseBank matches a selected source.
          *
          * @public
          * @function
@@ -1672,9 +1668,9 @@ sap.ui.define([
         },
 
         /**
-         * Update review with selectsed centralized account
+         * Update review with selected centralized account
          * 
-         * Displays destination/pooling account details including bank name and account info.
+         * Displays the destination bank label and selected account number.
          * 
          * @private
          * @function
@@ -3259,8 +3255,10 @@ sap.ui.define([
         /**
          * Submit transfer to backend OData service
          * 
-         * Constructs OData payload with accounts, amounts, bank data, and payment control info.
-         * Submits to /postBankTransfer operation with transfer details.
+         * Resolves the selected company and account metadata, then invokes
+         * `/postBankTransferOdata(...)` with SAP account identifiers, amount,
+         * currency, payment method, transfer type, and company code. Refreshes
+         * manual history when the MANUAL tab is active.
          * 
          * @public
          * @function
