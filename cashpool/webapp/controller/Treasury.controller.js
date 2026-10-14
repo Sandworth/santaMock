@@ -938,7 +938,7 @@ sap.ui.define([
          * Load banks and accounts for selected company from OData
          * 
          * Calls OData service to fetch bank and account data for the selected company.
-         * Implements request deduplication to handle rapid company changes.
+         * Ignores stale responses to handle rapid company changes.
          * Uses callback pattern for flexible success/error handling.
          * 
          * @private
@@ -973,22 +973,13 @@ sap.ui.define([
                 oDialog.setBusy(true);
             }
 
-            const oActionBinding = oCashpoolModel.bindContext("/postSelectCompany(...)");
-            oActionBinding.setParameter("parameters", { CompanyCode: sCompanyCode });
+            const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, [
+                new Filter("CompanyCode", FilterOperator.EQ, sCompanyCode)
+            ], {
+                $expand: "AccountBalance"
+            });
 
-            return oActionBinding.invoke()
-                .then(() => {
-                    if (this._mActiveCompanyRequestKeys[sModelName] !== sRequestKey) {
-                        return null;
-                    }
-
-                    const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, [
-                        new Filter("companyCode", FilterOperator.EQ, sCompanyCode)
-                    ], {
-                        $expand: "AccountBalance"
-                    });
-                    return oBanksBinding.requestContexts(0, 1000);
-                })
+            return oBanksBinding.requestContexts(0, 1000)
                 .then((aContexts) => {
                     if (!aContexts || this._mActiveCompanyRequestKeys[sModelName] !== sRequestKey) {
                         return;
@@ -1250,9 +1241,11 @@ sap.ui.define([
                 oTable.getSelectedItems().forEach((oItem) => {
                     const oCtx = oItem.getBindingContext("wizard");
                     if (oCtx) {
+                        const oData = oCtx.getObject();
+                        oData.banco=sBancoNombre; // Include bank name in the account data
                         aSelectedAccounts.push({
                             banco: sBancoNombre,
-                            data: oCtx.getObject()
+                            data: oData
                         });
                     }
                 });
@@ -1537,8 +1530,10 @@ sap.ui.define([
             const oAccount = oSelected.getBindingContext("wizard").getObject();
             return {
                 houseBankId: oAccount.HouseBank,
-                houseBankAccId: oAccount.AccountId,
-                partnerAccount: oAccount.PartnerAccount ? oAccount.PartnerAccount.slice(2) : ""
+                houseBankAccId: oAccount.AccountId
+                // add bellow only if we use RFC instead of OData
+                //,
+                // partnerAccount: oAccount.PartnerAccount ? oAccount.PartnerAccount.slice(2) : ""
             };
         },
 
@@ -1655,22 +1650,29 @@ sap.ui.define([
         },
 
         /**
-         * Update review with selected bank accounts
-         * 
-         * Lists all selected accounts in comma-separated format.
-         * 
-         * @private
+         * Handle origin/source account selection change
+         *
+         * Updates wizard state when the user selects a source account.
+         * Only one origin account can be selected at a time.
+         * Accounts in `cuentaCentralTable` that have the same HouseBank as
+         * the selected origin account cannot be selected as destination accounts.
+         *
+         * @public
          * @function
+         * @param {sap.ui.base.Event} oEvent - Item selection event
          * @returns {void}
          */
         _updateReviewCuentas: function () {
             const oModel = this._getWizardModel();
             const aCuentasSeleccionadas = this._getSelectedStep2Accounts().map((oEntry) => oEntry.data);
-            oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.Description).join(", ") || "-");
+            const aHouseBankIDsToBlock = this.byId("bancosListStep2").getAggregation("items").map(e=>e.getContent()[0].getContent()[0].getSelectedItems())[0].map(a=>a.getBindingContext("wizard").getObject()).flatMap(x=>x.HouseBank);
+            const aCuentaCentralItems = this.byId("cuentaCentralTable").getAggregation("items");//.map(e=>e._oSingleSelectControl);
+            aCuentaCentralItems.map(oItem=>{oItem.setVisible(!aHouseBankIDsToBlock.includes(oItem.getBindingContext("wizard").getObject().HouseBank))});
+            oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.banco + " - " + c.cuentaCorriente).join("\n") || "-");
         },
 
         /**
-         * Update review with selected centralized account
+         * Update review with selectsed centralized account
          * 
          * Displays destination/pooling account details including bank name and account info.
          * 
@@ -1684,8 +1686,9 @@ sap.ui.define([
             const oSelected = oCuentaTable ? oCuentaTable.getItems().find((i) => i.getSelected()) : null;
             if (oSelected) {
                 const oCtx = oSelected.getBindingContext("wizard");
-                oModel.setProperty("/review/cuentaCentralNombre", "Santander");
-                oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().Description}\nOficina: ${oCtx.getObject().oficina}\nIBAN: ${oCtx.getObject().cuentaCorriente}`);
+                oModel.setProperty("/review/cuentaCentralNombre", "BANCO SANTANDER");
+                //oModel.setProperty("/review/cuentaCentralCuenta", `${oCtx.getObject().Description}\nOficina: ${oCtx.getObject().oficina}\nIBAN: ${oCtx.getObject().cuentaCorriente}`);
+                oModel.setProperty("/review/cuentaCentralCuenta", oCtx.getObject().cuentaCorriente);
             } else {
                 oModel.setProperty("/review/cuentaCentralNombre", "");
                 oModel.setProperty("/review/cuentaCentralCuenta", "");
@@ -1729,7 +1732,7 @@ sap.ui.define([
                     const aCuentas = oModel.getProperty("/horariosPersonalizadosPorCuenta") || [];
                     const aCuentasConHorario = aCuentas.filter((c) => c.selectedHorario);
                     if (aCuentasConHorario.length > 0) {
-                        const aResumen = aCuentasConHorario.map((c) => `${c.banco} - ${c.nombre}: ${c.selectedHorario}`).join("\n");
+                        const aResumen = aCuentasConHorario.map((c) => `${c.banco} - ${c.cuentaCorriente}: ${c.selectedHorario}`).join("\n");
                         sReviewHorario = `${sSelectedText}:\n ${aResumen}`;
                     }
                 }
@@ -3039,6 +3042,8 @@ sap.ui.define([
          * 
          * Updates wizard state when user selects source account.
          * Only one account selection allowed at a time.
+         * Accounts in `cuentaDestinoTable` with the same HouseBank as the selected
+         * origin account cannot be selected as the destination account.
          * 
          * @public
          * @function
@@ -3048,6 +3053,9 @@ sap.ui.define([
         onCuentaOrigenSelectionChange: function (oEvent) {
             this.byId("bancosListTransferStep2").getAggregation("items").map(e => { e.getContent()[0].getContent()[0].getSelectedItem()?.setSelected(false) })
             oEvent.getParameter("listItem").setSelected(true);
+            const sSelectedHouseBank = oEvent.getParameter("listItem").getBindingContext("wizardTransfer").getObject().HouseBank;
+            const aCuentaCentralItems = this.byId("cuentaDestinoTable").getAggregation("items");//.map(e=>e._oSingleSelectControl);
+            aCuentaCentralItems.map(oItem=>{oItem.setVisible(oItem.getBindingContext("wizardTransfer").getObject().HouseBank !== sSelectedHouseBank)});
             this._updateTransferNavState(1);
         },
 
@@ -3154,7 +3162,8 @@ sap.ui.define([
                                 if (oSelCtx) {
                                     const sBanco = oSelCtx.getPath().split("/cuentas")[0];
                                     oModel.setProperty("/review/cuentaOrigenBanco", oModel.getProperty(sBanco + "/BankName"));
-                                    oModel.setProperty("/review/cuentaOrigenCuenta", `${oSelCtx.getObject().Description}\nCuenta: ${oSelCtx.getObject().cuentaCorriente}`);
+                                    // oModel.setProperty("/review/cuentaOrigenCuenta", `${oSelCtx.getObject().Description}\nCuenta: ${oSelCtx.getObject().cuentaCorriente}`);
+                                    oModel.setProperty("/review/cuentaOrigenCuenta", oSelCtx.getObject().cuentaCorriente);
                                 }
                             }
                         }
@@ -3169,8 +3178,9 @@ sap.ui.define([
                 if (aSelDest.length > 0) {
                     const oCtxDest = aSelDest[0].getBindingContext("wizardTransfer");
                     if (oCtxDest) {
-                        oModel.setProperty("/review/cuentaDestinoBanco", "Banco Santander S.A.");
-                        oModel.setProperty("/review/cuentaDestinoCuenta", `${oCtxDest.getObject().Description}\nCuenta: ${oCtxDest.getObject().cuentaCorriente}`);
+                        oModel.setProperty("/review/cuentaDestinoBanco", "BANCO SANTANDER");
+                        // oModel.setProperty("/review/cuentaDestinoCuenta", `${oCtxDest.getObject().Description}\nCuenta: ${oCtxDest.getObject().cuentaCorriente}`);
+                        oModel.setProperty("/review/cuentaDestinoCuenta", oCtxDest.getObject().cuentaCorriente);
                     }
                 }
             }
@@ -3258,12 +3268,14 @@ sap.ui.define([
          * @returns {void}
          */
         onConfirmTransfer: function (oTransferObject) {
+            const sTransferType = "MANUAL";
             const oTreasureModel = this.getView().getModel("Cashpool");
             const oTransferModel = this._getWizardModel("transfer");
+            const sCompanyCode = oTransferModel.getData().empresas.find(e => e.cif == oTransferModel.getData().review.cif).CompanyCode;
             const oBancoDestinoDetails = oTransferModel.getData()._bancosAll.find(e => e.BankName == oTransferModel.getData().review.cuentaDestinoBanco);
             const oBancoOrigenDetails = oTransferModel.getData()._bancosAll.find(e => e.BankName == oTransferModel.getData().review.cuentaOrigenBanco);
-            const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaOrigenCuenta.split("\n")[1].slice(-24));
-            const oCuentaDestinoDetails = oTransferModel.getData()._cuentasCentralAll.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaDestinoCuenta.split("\n")[1].slice(-24));
+            const oCuentaOrigenDetails = oBancoOrigenDetails.cuentas.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaOrigenCuenta);
+            const oCuentaDestinoDetails = oTransferModel.getData()._cuentasCentralAll.find(e => e.cuentaCorriente == oTransferModel.getData().review.cuentaDestinoCuenta);
             // for RFC ---> const sImporteFixed2 = Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(2);
             // for RFC ---> const sImporteFixed8 = Number.parseFloat(-oTransferModel.getData().preparedTransfer.importe).toFixed(8);
             // for RFC ---> const oContext = oTreasureModel.bindContext('/postBankTransfer(...)');
@@ -3280,7 +3292,8 @@ sap.ui.define([
                     "paymentRequestAmountInPaytCrcy": sImporteFixed2,
                     "paymentRequestCurrency": oCuentaOrigenDetails.Currency,
                     "payeeBankAccount": oCuentaDestinoDetails.BankAccountNumber,
-                    "type": "MANUAL"
+                    "type": sTransferType,
+                    "companyCode": sCompanyCode
                 }
             }
             
@@ -3330,8 +3343,11 @@ sap.ui.define([
                     MessageToast.show("Error from backend: " + oError.message.value);
                     return;
                 } else {
-                    console.log(oError);                    
+                    console.log(oError);
                     MessageToast.show("Bank transfer posted successfully!");
+                    if (this._getViewModel().getProperty("/selectedTab") === sTransferType) {
+                        this._loadTransferHistoryData(sTransferType);
+                    }
                 }
                 /*
                 *  Return handling for RFC
