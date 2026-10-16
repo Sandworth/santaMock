@@ -82,7 +82,7 @@ Send a payload to `/scheduleTransfer` with the structure:
     - Use `selectedHorario` from matching account entry
 
 #### payeeAccount Object
-- Build identically to how `onAnotherButtonPress()` builds the destination account
+- Build identically to how `onConfirmTransfer()` builds the destination account
 - Extract from the review object (populated by `_updateReviewCuentaCentral()`)
 - Lookup full account details from `_cuentasCentralAll` using review data
 - Fields:
@@ -208,7 +208,7 @@ Private function that builds transfer configuration:
 5. Selected dias + saldoType (steps 4-5) → transferConfiguration
 
 ## Error Handling
-- Wrap OData invoke in .then().catch() pattern (same as onAnotherButtonPress)
+- Wrap OData invoke in .then().catch() pattern (same as onConfirmTransfer)
 - On error: MessageToast shows error.error.message or generic message
 - On success: MessageToast shows success message, dialog closes (same flow as transfer wizard)
 

@@ -1,0 +1,14 @@
+{
+	"servers": {
+		"ui5-mcp-server": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@ui5/mcp-server@latest"
+			],
+			"gallery": "https://mcp-api-center-indragroup.data.westeurope.azure-apicenter.ms/workspaces/default",
+			"version": "Original"
+		}
+	},
+	"inputs": []
+}

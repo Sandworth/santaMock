@@ -1661,7 +1661,7 @@ sap.ui.define([
         _updateReviewCuentas: function () {
             const oModel = this._getWizardModel();
             const aCuentasSeleccionadas = this._getSelectedStep2Accounts().map((oEntry) => oEntry.data);
-            const aHouseBankIDsToBlock = this.byId("bancosListStep2").getAggregation("items").map(e=>e.getContent()[0].getContent()[0].getSelectedItems())[0].map(a=>a.getBindingContext("wizard").getObject()).flatMap(x=>x.HouseBank);
+            const aHouseBankIDsToBlock = this.byId("bancosListStep2").getAggregation("items").map(e=>e.getContent().flatMap(y=>y.getContent()[0].getSelectedItems())).flat().map(a=>a.getBindingContext("wizard").getObject()).flatMap(x=>x.HouseBank)
             const aCuentaCentralItems = this.byId("cuentaCentralTable").getAggregation("items");//.map(e=>e._oSingleSelectControl);
             aCuentaCentralItems.map(oItem=>{oItem.setVisible(!aHouseBankIDsToBlock.includes(oItem.getBindingContext("wizard").getObject().HouseBank))});
             oModel.setProperty("/review/cuentasSeleccionadas", aCuentasSeleccionadas.map((c) => c.banco + " - " + c.cuentaCorriente).join("\n") || "-");
