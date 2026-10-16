@@ -1084,7 +1084,7 @@ sap.ui.define([
 			const oComboBox = oEvent.getSource();
 			const oBundle = this.getResourceBundle();
 
-			if (!sBancoName.includes("Santander")) {
+			if (!sBancoName.includes("SANTANDER")) {
 				oComboBox.setValueState("Error");
 				oComboBox.setValueStateText(oBundle.getText("reqSelectSantanderAccount"));
 				return;

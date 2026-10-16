@@ -22,7 +22,7 @@
         alwaysShowContentHeader="false"
         preserveHeaderStateOnScroll="true"
         upperCaseAnchorBar="false"
-        backgroundDesignAnchorBar="Transparent"
+        backgroundDesignAnchorBar="Solid"
         showFooter="true"
     >
         <!-- =========================================================== -->
@@ -190,6 +190,7 @@
                                                     state="Success"
                                                     emptyIndicatorMode="On"
                                                 />
+                                                <Text class="disclaimerText" text="{i18n>simDisclaimer}"/>
                                             </layout:content>
                                         </layout:SimpleForm>
                                     </content>
