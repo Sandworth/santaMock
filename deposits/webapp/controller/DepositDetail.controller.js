@@ -4,8 +4,10 @@ sap.ui.define([
 	"sap/m/MessageToast",
 	"sap/m/MessageBox",
 	"sap/ui/core/format/NumberFormat",
+	"sap/ui/model/type/Currency",
+	"sap/ui/model/type/DateTime",
 	"../model/formatter"
-], function (BaseController, JSONModel, MessageToast, MessageBox, NumberFormat, Formatter) {
+], function (BaseController, JSONModel, MessageToast, MessageBox, NumberFormat, CurrencyType, DateTimeType, Formatter) {
 	"use strict";
 
 	/**
@@ -53,6 +55,7 @@ sap.ui.define([
 				importeSolicitudDisplay: "",
 				cuentasFiltradas: []
 			}), "request");
+		
 
 			this.oRouter.getRoute("DepositDetail").attachPatternMatched(this._onDepositMatched, this);
 		},
@@ -66,11 +69,15 @@ sap.ui.define([
 		 * - `isDisplay=false`: Binds to `/Deposits('<key>')` for existing request details
 		 * - `isSantander=true`: Includes client info in expand
 		 * 
-		 * After binding, if in display mode, filters available accounts by the rate's currency.
-		 * Resets both simulation and request models to initial state.
+		 * Account loading is started only for non-Santander display mode. The shared
+		 * account promise is then awaited while filtering accounts by the bound rate's
+		 * currency. History-only properties are bound only for non-display mode so
+		 * RateGrid does not request fields that are not part of its projection.
+		 * Resets both simulation and request models and request-input state for each match.
 		 *
 		 * @param {sap.ui.base.Event} oEvent - Route pattern match event with arguments.key
-		 * @returns {Promise<void>}
+		 * @returns {Promise<void>} Resolves after display-mode account filtering and input reset complete
+		 * @throws {Error} Rejects when the cashpool account request fails in display mode
 		 * @private
 		 */
 		_onDepositMatched: async function (oEvent) {
@@ -80,6 +87,9 @@ sap.ui.define([
 			this._resetRequest();
 			const bIsDisplay = this.getOwnerComponent().getModel('intent').getProperty('/isDisplay');
 			const bIsSantander = this.getOwnerComponent().getModel('intent').getProperty('/isSantander');
+			this._pCashpoolAccounts = (!bIsSantander && bIsDisplay)
+									? this._loadCashpoolAccounts()
+									: Promise.resolve([]);			
 			const sPath = bIsDisplay ? `/RateGrid('${sKey}')` : `/Deposits('${sKey}')`;
 			const aSelect = bIsDisplay ? ["currency_ID", "tenor_ID", "rate", "createdAt"] : ["currency_ID", "tenor_ID", "rate", "amount", "createdAt", "startDate", "maturityDate", "status", "createdBy"];
 			let sExpand = bIsDisplay ? "currency,tenor" : "currency,tenor";
@@ -94,17 +104,14 @@ sap.ui.define([
 				parameters: { $select: aSelect, $expand: sExpand }
 			});
 
-			// Set bindings programmatically to avoid OData V4 drill-down errors
-			// (expression bindings in XML resolve ALL parts regardless of condition)
-			const oView = this.getView();
-			const sUserNamePath = bIsSantander ? "mainService>requestedBy" : "mainService>createdBy";
-			oView.byId("requestedTimelineItem").bindProperty("userName", { path: sUserNamePath });
-			if (bIsSantander) {
-				oView.byId("clientNameText").bindProperty("text", { path: "mainService>client/name" });
+			// History-only OData bindings are created after the intent is known.
+			// XML bindings would resolve even when their parent controls are hidden.
+			if (!bIsDisplay) {
+				this._bindHistoryProperties(bIsSantander);
 			}
 
 			if (bIsDisplay) {
-				this._filterAccountsByCurrency();
+				await this._filterAccountsByCurrency();
 			}
 			// Reset input "reqAmountInput"
 			const oReqInput = this.getView().byId("reqAmountInput");
@@ -119,6 +126,50 @@ sap.ui.define([
 				oReqInput.setEnabled(false);
 			}
 
+		},
+
+		/**
+		 * Binds properties that are available only on the deposit history entity.
+		 * Keeping these bindings out of the XML prevents RateGrid requests from
+		 * trying to resolve fields that are not part of the RateGrid projection.
+		 *
+		 * @param {boolean} bIsSantander - Whether to bind Santander client and requester properties
+		 * @returns {void}
+		 * @private
+		 */
+		_bindHistoryProperties: function (bIsSantander) {
+			const oView = this.getView();
+			const sUserNamePath = bIsSantander ? "mainService>requestedBy" : "mainService>createdBy";
+			oView.byId("requestedTimelineItem").bindProperty("userName", { path: sUserNamePath });
+			oView.byId("headerStartDate").bindProperty("text", {
+				parts: [{ path: "mainService>startDate" }],
+				formatter: Formatter.dateTimeToDate
+			});
+			oView.byId("headerMaturityDate").bindProperty("text", {
+				parts: [{ path: "mainService>maturityDate" }],
+				formatter: Formatter.dateTimeToDate
+			});
+			oView.byId("detailAmount").bindProperty("text", {
+				parts: [
+					{ path: "mainService>amount" },
+					{ path: "mainService>currency_ID" }
+				],
+				type: new CurrencyType({ currencyCode: false })
+			});
+			oView.byId("detailMaturityDate").bindProperty("text", {
+				path: "mainService>maturityDate",
+				type: new DateTimeType({
+					relative: true,
+					relativeScale: "day",
+					relativeRange: 365,
+					source: { pattern: "yyyy-MM-ddTHH:mm:ss.SSSZ" }
+				})
+			});
+			oView.byId("requestedTimelineItem").bindProperty("dateTime", { path: "mainService>startDate" });
+			oView.byId("approvedTimelineItem").bindProperty("dateTime", { path: "mainService>startDate" });
+			if (bIsSantander) {
+				oView.byId("clientNameText").bindProperty("text", { path: "mainService>client/name" });
+			}
 		},
 
 		/**
@@ -491,7 +542,7 @@ sap.ui.define([
 			const oBundle = this.getResourceBundle();
 			const oInput = this.getView().byId("reqAmountInput");
 
-			if (sBancoName !== "Santander") {
+			if (!sBancoName.includes("SANTANDER")) {
 				if (oComboBox) {
 					oComboBox.setValueState("Error");
 					oComboBox.setValueStateText(oBundle.getText("reqSelectSantanderAccount"));
@@ -534,21 +585,11 @@ sap.ui.define([
 			if (!oCtx) { return; }
 			await oCtx.requestObject();
 			const sCurrency = oCtx.getProperty("currency_ID");
-			const aBancos = this.getModel("banks").getProperty("/bancos");
-			const aCuentasFiltradas = [];
-			aBancos.forEach(function (oBanco) {
-				oBanco.cuentas
-					.filter(function (oCuenta) { return oCuenta.currency === sCurrency; })
-					.forEach(function (oCuenta) {
-						aCuentasFiltradas.push({
-							banco: oBanco.nombre,
-							nombre: oCuenta.nombre,
-							cuentaCorriente: oCuenta.cuentaCorriente,
-							saldoInfoCent: oCuenta.saldoInfoCent,
-							currency: oCuenta.currency
-						});
-					});
+			const aAccounts = await this._pCashpoolAccounts;
+			const aCuentasFiltradas = aAccounts.filter(function (oAccount) {
+				return oAccount.currency === sCurrency;
 			});
+
 			this.getModel("request").setProperty("/cuentasFiltradas", aCuentasFiltradas);
 		},
 

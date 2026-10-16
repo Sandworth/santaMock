@@ -49,6 +49,44 @@ sap.ui.define([
 			return this;
 		},
 
+		_loadCashpoolAccounts: function () {
+			const oOwnerComponent = this.getOwnerComponent();
+			if (oOwnerComponent._pCashpoolAccounts) {
+				return oOwnerComponent._pCashpoolAccounts;
+			}
+
+			const oCashpoolModel = this.getOwnerComponent().getModel("Cashpooling");
+			if (!oCashpoolModel) {
+				return Promise.reject(new Error("Cashpooling OData model is not available"));
+			}
+
+			const oBanksBinding = oCashpoolModel.bindList("/Banks", null, null, null, {
+				$expand: "AccountBalance"
+			});
+
+			oOwnerComponent._pCashpoolAccounts = oBanksBinding.requestContexts(0, 1000).then(function (aContexts) {
+				return aContexts.reduce(function (aAccounts, oContext) {
+					const oBank = oContext.getObject();
+					const sBankName = oBank.BankName || "";
+					const aBalances = Array.isArray(oBank.AccountBalance) ? oBank.AccountBalance : [];
+
+					aBalances.forEach(function (oAccount) {
+						aAccounts.push({
+							banco: sBankName,
+							nombre: oAccount.Description || oAccount.Iban || oAccount.BankAccountNumber || "",
+							cuentaCorriente: oAccount.BankAccountNumber || "",
+							saldoInfoCent: Number(oAccount.StatementAmount) || 0,
+							currency: oAccount.Currency || ""
+						});
+					});
+
+					return aAccounts;
+				}, []);
+			});
+
+			return oOwnerComponent._pCashpoolAccounts;
+		},
+
 		/**
 		 * Convenience method for triggering the navigation to a specific target.
 		 * @public
@@ -357,11 +395,11 @@ sap.ui.define([
 				confirmButtonText: oOptions.confirmButtonText,
 				confirmationText: oOptions.confirmationText,
 				signers: [
-					{ name: "Lucía Fernández", email: "", selected: false },
-					{ name: "Alejandro Martínez", email: "", selected: false },
-					{ name: "Carmen García", email: "", selected: false },
-					{ name: "Javier Rodríguez", email: "", selected: false },
-					{ name: "Sofía López", email: "", selected: false }
+					{ fullName: "Pedro González-Tarrío", email: "", selected: false },
+					{ fullName: "Pablo Borobio", email: "pablo.borobio@servexternos.gruposantander.com", selected: false },
+					{ fullName: "Carmen García", email: "", selected: false },
+					{ fullName: "Luis Felice", email: "", selected: false },
+					{ fullName: "Javier Rodríguez", email: "", selected: false }
 				]
 			});
 
@@ -413,25 +451,74 @@ sap.ui.define([
 			const aSelectedSigners = this.getModel("signers").getProperty("/signers")
 				.filter((oSigner) => oSigner.selected);
 
+			const bAccepted = this.getModel("signers").getProperty("/accepted");
 			if (!aSelectedSigners.length) {
 				MessageBox.error(this._getText("signerSelectionRequired"));
 				return;
 			}
-
+			
 			if (aSelectedSigners.some((oSigner) => !oSigner.email.trim())) {
 				MessageBox.error(this._getText("signerEmailRequired"));
 				return;
 			}
-
+			
+			if (!bAccepted) {
+				MessageBox.error(this._getText("signerDisclaimerRequired"));
+				return;
+			}
+			
 			const emailRegex = /^[a-zA-Z0-9._%+-]+@servexternos.gruposantander.com$/i;
 			const hasInvalidEmail = aSelectedSigners.some((oSigner) => !emailRegex.test(oSigner.email.trim()));
 			if (hasInvalidEmail) {
 				MessageBox.error(this._getText("signerEmailInvalid"));
 				return;
 			}
+			const aSigners = aSelectedSigners.map((oSigner) => {
+				const { selected, ...rest } = oSigner;
+				return rest;
+			});
+			const sStart = new Date(oWorkflow.payload.startDate).toLocaleString("es-ES", {
+				year: "numeric",
+				month: "long",
+				day: "numeric",
+			})
+			const oContractPayload = {
+				"signers": aSigners,
+				"email": "x673375@gruposantander.com",
+				"fullName": "Pablo B",
+				"bank": "Banco Santander, S.A. (en adelante, el Banco), Sucursal 2613 TORREVIEJA,PO. VISTA ALEGRE,13, sita en TORREVIEJA, PO. VI",
+				"automaticRenewal": "SI",
+				"operatingInstructions": "Indistinta",
+				"term": "12 meses a contar desde la fecha de adeudo del importe de la imposición en la cuenta asociada",
+				"startDate": "los intereses se devengarán a partir de la fecha de adeudo del importe de la imposición en la cuenta asociada",
+				"interest": `${oWorkflow.payload.rate}% (TAE: ${Number.parseFloat(Number(oWorkflow.payload.rate)+0.045).toString()}%)`,
+				"interestSettlement": "anual, calculados en la forma prevista en el apartado A de la Condición General 'Intereses'",
+				"iban": "ES9400490001502616255451 ",
+				"penalties": "2 %",
+				"place": "TORREVIEJA, PO. VI",
+				"contractDate": sStart,
+				"document": "92247040C",
+				"nationality": "Español",
+				"residence": "España",
+				"address": "Calle Mayor 1, Madrid",
+				"cnae": "5510 HOTELY ALOJAMIENTOS SIMILAR",
+				"professionalStatus": "CUENTA PROPIA",
+				"capacity": "TITULAR",
+				"amountCurrency": `${oWorkflow.payload.amount} ${oWorkflow.payload.currency_ID}`
+			}
 
 			try {
-				await this.getView().getModel("mainService").bindList("/Deposits").create(oWorkflow.payload);
+				const oDepositContext = this.getView().getModel("mainService")
+					.bindList("/Deposits")
+					.create(oWorkflow.payload, true);
+				const oContractContext = this.getView().getModel("mainService")
+					.bindList("/Contract")
+					.create(oContractPayload, true);
+
+				await Promise.all([
+					oDepositContext.created(),
+					oContractContext.created()
+				]);
 				this._oSignerSelectionDialog.close();
 				if (oWorkflow.onSuccess) {
 					oWorkflow.onSuccess.call(this, aSelectedSigners, oWorkflow.payload);

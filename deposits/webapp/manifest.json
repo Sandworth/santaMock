@@ -23,6 +23,13 @@
         "settings": {
           "odataVersion": "4.0"
         }
+      },
+      "cashpooling": {
+        "uri": "/cashpooling/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
       }
     },
     "crossNavigation": {
@@ -104,9 +111,14 @@
           "earlyRequests": true
         }
       },
-      "banks": {
-        "type": "sap.ui.model.json.JSONModel",
-        "uri": "model/data/Banks.json"
+      "Cashpooling": {
+        "dataSource": "cashpooling",
+        "type": "sap.ui.model.odata.v4.ODataModel",
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
       }
     },
     "resources": {

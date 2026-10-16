@@ -22,7 +22,7 @@
         alwaysShowContentHeader="false"
         preserveHeaderStateOnScroll="true"
         upperCaseAnchorBar="false"
-        backgroundDesignAnchorBar="Transparent"
+        backgroundDesignAnchorBar="Solid"
         showFooter="true"
     >
         <!-- =========================================================== -->
@@ -100,22 +100,12 @@
                     visible="{intent>/isHistory}"
                 >
                     <ObjectStatus
+                        id="headerStartDate"
                         title="{i18n>lblStartDate}"
-                        text="{
-										parts: [
-											{ path: 'mainService>startDate' }
-										],
-										formatter: 'Formatter.dateTimeToDate'
-										}"
                     />
                     <ObjectStatus
+                        id="headerMaturityDate"
                         title="{i18n>lblMaturityDate}"
-                        text="{
-										parts: [
-											{ path: 'mainService>maturityDate' }
-										],
-										formatter: 'Formatter.dateTimeToDate'
-										}"
                     />
                 </l:VerticalLayout>
             </HBox>
@@ -200,6 +190,7 @@
                                                     state="Success"
                                                     emptyIndicatorMode="On"
                                                 />
+                                                <Text class="disclaimerText" text="{i18n>simDisclaimer}"/>
                                             </layout:content>
                                         </layout:SimpleForm>
                                     </content>
@@ -292,26 +283,10 @@
                         <Text id="clientNameText" visible="{intent>/isSantander}" />
                         <Label text="{i18n>colAmount}" />
                         <Text
-                            text="{
-								parts: [
-									{ path: 'mainService>amount' },
-									{ path: 'mainService>currency_ID' }
-								],
-								type: 'CurrencyType',
-								formatOptions: { currencyCode : false }
-								}"
+                            id="detailAmount"
                         />
                         <Label text="{i18n>lblTimeToMaturity}" />
-                        <Text text="{
-									path: 'mainService>maturityDate',
-									type: 'DateTimeType',
-									formatOptions: {
-										relative: true,
-										relativeScale: 'day',
-                                        relativeRange: 365,
-										source: { pattern: 'yyyy-MM-ddTHH:mm:ss.SSSZ' }
-									}
-								}" />
+                        <Text id="detailMaturityDate" />
                     </layout:SimpleForm>
                 </uxap:ObjectPageSubSection>
             </uxap:ObjectPageSection>
@@ -336,13 +311,12 @@
                                 id="requestedTimelineItem"
                                 icon="sap-icon://activity-individual"
                                 text="{i18n>timelineDepositRequested}"
-                                dateTime="{mainService>startDate}"
                             />
                             <commons:TimelineItem
+                                id="approvedTimelineItem"
                                 userName="User ABC"
                                 icon="sap-icon://activity-2"
                                 text="{i18n>timelineDepositApproved}"
-                                dateTime="{mainService>startDate}"
                             />
                         </commons:content>
                     </commons:Timeline>
