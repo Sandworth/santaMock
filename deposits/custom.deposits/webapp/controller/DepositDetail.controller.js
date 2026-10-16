@@ -69,11 +69,15 @@ sap.ui.define([
 		 * - `isDisplay=false`: Binds to `/Deposits('<key>')` for existing request details
 		 * - `isSantander=true`: Includes client info in expand
 		 * 
-		 * After binding, if in display mode, filters available accounts by the rate's currency.
-		 * Resets both simulation and request models to initial state.
+		 * Account loading is started only for non-Santander display mode. The shared
+		 * account promise is then awaited while filtering accounts by the bound rate's
+		 * currency. History-only properties are bound only for non-display mode so
+		 * RateGrid does not request fields that are not part of its projection.
+		 * Resets both simulation and request models and request-input state for each match.
 		 *
 		 * @param {sap.ui.base.Event} oEvent - Route pattern match event with arguments.key
-		 * @returns {Promise<void>}
+		 * @returns {Promise<void>} Resolves after display-mode account filtering and input reset complete
+		 * @throws {Error} Rejects when the cashpool account request fails in display mode
 		 * @private
 		 */
 		_onDepositMatched: async function (oEvent) {
@@ -129,7 +133,8 @@ sap.ui.define([
 		 * Keeping these bindings out of the XML prevents RateGrid requests from
 		 * trying to resolve fields that are not part of the RateGrid projection.
 		 *
-		 * @param {boolean} bIsSantander - Whether the Santander history variant is active
+		 * @param {boolean} bIsSantander - Whether to bind Santander client and requester properties
+		 * @returns {void}
 		 * @private
 		 */
 		_bindHistoryProperties: function (bIsSantander) {
@@ -537,7 +542,7 @@ sap.ui.define([
 			const oBundle = this.getResourceBundle();
 			const oInput = this.getView().byId("reqAmountInput");
 
-			if (!sBancoName.includes("Santander")) {
+			if (!sBancoName.includes("SANTANDER")) {
 				if (oComboBox) {
 					oComboBox.setValueState("Error");
 					oComboBox.setValueStateText(oBundle.getText("reqSelectSantanderAccount"));

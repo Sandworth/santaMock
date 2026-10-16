@@ -141,6 +141,7 @@
                             unit="{customRequest>/currency}"
                             state="Success"
                             emptyIndicatorMode="On" />
+					<Text class="disclaimerText" text="{i18n>simDisclaimer}"/>					
                 </forms:content>
             </forms:SimpleForm>
         </content>

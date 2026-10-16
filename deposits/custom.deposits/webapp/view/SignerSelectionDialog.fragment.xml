@@ -2,17 +2,17 @@
     <Dialog
         id="signerSelectionDialog"
         title="{signers>/dialogTitle}"
-        contentWidth="38rem"
+        contentWidth="40rem"
         draggable="true"
         state="Information"
         class="sapUiResponsivePadding--content"
-        resizable="true">
+        resizable="false">
         <content>
             <Text
                 text="{signers>/confirmationText}"
                 wrapping="true"
-                class="sapUiSmallMarginTopBottom" />
-            <Title text="{i18n>signerSelectionTitle}" level="H4" />
+                class="sapUiSmallMarginTopBottom sapUiTinyMarginBegin" />
+            <Title text="{i18n>signerSelectionTitle}" class="sapUiTinyMarginBegin" level="H4" />
             <List
                 id="signerList"
                 showSeparators="Inner"
@@ -22,9 +22,14 @@
                             alignItems="Center"
 				            justifyContent="SpaceBetween">
                         <CheckBox
-                            text="{signers>fullName}"
                             selected="{signers>selected}"
                             select=".onSignerSelectionChange" />
+                        <Input
+                            class="sapUiTinyMarginTop"
+                            width="250px"
+                            value="{signers>fullName}"
+                            enabled="{signers>selected}"
+                        />    
                         <Input
                             class="sapUiTinyMarginTop"
                             width="250px"
@@ -35,6 +40,8 @@
                     </HBox>
                 </CustomListItem>
             </List>
+            <Text class="disclaimerText sapUiTinyMarginBegin sapUiSmallMarginTopBottom" text="{i18n>signerDisclaimer}"/>
+            <CheckBox selected="{signers>/accepted}" text="{i18n>signerTerms}" class="sapUiSmallMarginBottom"/>
         </content>
         <beginButton>
             <Button text="{i18n>customReqCancelBtn}" press=".onCancelSignerSelection" />

@@ -398,6 +398,7 @@ sap.ui.define([
 					{ fullName: "Pedro González-Tarrío", email: "", selected: false },
 					{ fullName: "Pablo Borobio", email: "pablo.borobio@servexternos.gruposantander.com", selected: false },
 					{ fullName: "Carmen García", email: "", selected: false },
+					{ fullName: "Luis Felice", email: "", selected: false },
 					{ fullName: "Javier Rodríguez", email: "", selected: false }
 				]
 			});
@@ -450,16 +451,22 @@ sap.ui.define([
 			const aSelectedSigners = this.getModel("signers").getProperty("/signers")
 				.filter((oSigner) => oSigner.selected);
 
+			const bAccepted = this.getModel("signers").getProperty("/accepted");
 			if (!aSelectedSigners.length) {
 				MessageBox.error(this._getText("signerSelectionRequired"));
 				return;
 			}
-
+			
 			if (aSelectedSigners.some((oSigner) => !oSigner.email.trim())) {
 				MessageBox.error(this._getText("signerEmailRequired"));
 				return;
 			}
-
+			
+			if (!bAccepted) {
+				MessageBox.error(this._getText("signerDisclaimerRequired"));
+				return;
+			}
+			
 			const emailRegex = /^[a-zA-Z0-9._%+-]+@servexternos.gruposantander.com$/i;
 			const hasInvalidEmail = aSelectedSigners.some((oSigner) => !emailRegex.test(oSigner.email.trim()));
 			if (hasInvalidEmail) {
@@ -497,7 +504,7 @@ sap.ui.define([
 				"cnae": "5510 HOTELY ALOJAMIENTOS SIMILAR",
 				"professionalStatus": "CUENTA PROPIA",
 				"capacity": "TITULAR",
-				"amountCurrency": `${oWorkflow.confirmationText.split(" de ")[2].split(". ")[0]}`
+				"amountCurrency": `${oWorkflow.payload.amount} ${oWorkflow.payload.currency_ID}`
 			}
 
 			try {
