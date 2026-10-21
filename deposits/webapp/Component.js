@@ -2,8 +2,9 @@ sap.ui.define([
     "sap/ui/core/UIComponent",
     "sap/ui/model/json/JSONModel",
     "sap/f/FlexibleColumnLayoutSemanticHelper",
+    "custom/deposits/model/models",
     "sap/f/library"
-], function (UIComponent, JSONModel, FlexibleColumnLayoutSemanticHelper, fioriLibrary) {
+], function (UIComponent, JSONModel, FlexibleColumnLayoutSemanticHelper, models, fioriLibrary) {
     "use strict";
 
     return UIComponent.extend("custom.deposits.Component", {
@@ -19,6 +20,7 @@ sap.ui.define([
             // Model to hold FCL layout state — start with OneColumn so FCL renders immediately
             var oModel = new JSONModel({ layout: "OneColumn" });
             this.setModel(oModel);
+            this.setModel(models.createUserModel(), "userModel");
 
             var oRouter = this.getRouter();
             oRouter.attachBeforeRouteMatched(this._onBeforeRouteMatched, this);

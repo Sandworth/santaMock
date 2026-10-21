@@ -20,6 +20,14 @@ sap.ui.define(["sap/ui/core/format/NumberFormat", "sap/ui/core/format/DateFormat
 			return value && value.toUpperCase();
 		},
 
+		hasScopeAccess: function (aScopes, bIsSantander, bIsHistory) {
+			return !bIsSantander && !bIsHistory && Array.isArray(aScopes)
+				&& aScopes.some(function (sScope) {
+					return typeof sScope === "string" && sScope.endsWith("CashApp_Config_CashPool");
+					//return typeof sScope === "string" && sScope.endsWith(".Bank_SANT");
+				});
+		},
+
 		/**
 		 * Formats a floating-point number with grouping separators and 2 decimal places.
 		 * @param {number} fValue - The number to format

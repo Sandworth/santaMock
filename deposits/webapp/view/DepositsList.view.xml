@@ -42,6 +42,22 @@
                         text="{i18n>noFiltersActive}"
                     />
                 </f:snappedContent>
+                <f:actions>
+                    <Button
+                        visible="{
+                            parts: [
+                                { path: 'userModel>/scopes' },
+                                { path: 'intent>/isSantander' },
+                                { path: 'intent>/isHistory' }
+                            ],
+                            formatter: 'Formatter.hasScopeAccess'
+                        }"
+                        id="refreshBtn"
+                        icon="sap-icon://action-settings"
+                        type="Transparent"
+                        press=".onOpenConfigDialog"
+                    />
+                </f:actions>
             </f:DynamicPageTitle>
         </f:title>
 

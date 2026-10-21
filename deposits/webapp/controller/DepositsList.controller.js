@@ -1468,6 +1468,50 @@ sap.ui.define([
 		},
 
 		/**
+		 * Opens the configuration dialog for the application.
+		 * Dynamically loads the fragment, adds it as a dependent, and opens it.
+		 * @returns {void}
+		 * @public
+		 */
+		onOpenConfigDialog: function () {
+			// Dinamically load the fragment for the config dialog
+			Fragment.load({
+				name: "custom.deposits.view.ConfigDialog",
+				id: "configDialog",
+				controller: this
+			}).then((oDialog) => {
+				this.oView.addDependent(oDialog);
+				this.oConfigDialog = oDialog; // Store reference
+				oDialog.open();
+			});
+			// Initialize config model with default values if not already set
+			if (!this.getModel("config")) {
+				const oConfigData = {
+					settings: [
+						{ variable: "PARTNER", value: "0001000271", application: 2 },
+						{ variable: "PRODUCT_TYPE", value: "DEP", application: 2 },
+						{ variable: "TRANSACTION_TYPE", value: 100, application: 2 },
+						{ variable: "PAYMENT_METHOD", value: "T", application: 1 }
+					]
+				};
+				this.setModel(new JSONModel(oConfigData), "config");
+			}
+		},
+
+		/**
+		 * Closes and destroys the configuration dialog, cleaning up resources.
+		 * @returns {void}
+		 * @public
+		 */
+		onCancelConfig: function () {
+			if (this.oConfigDialog) {
+				this.oConfigDialog.close();
+				this.oConfigDialog.destroy();
+				this.oConfigDialog = null;
+			}
+		},
+
+		/**
 		 * Lifecycle hook called when the controller is destroyed.
 		 * Cleans up the signer selection dialog to prevent memory leaks.
 		 *

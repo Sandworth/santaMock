@@ -1,0 +1,61 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	core:require="{
+		Float: 'sap/ui/model/type/Float',
+		Date: 'sap/ui/model/type/Date',
+		CurrencyType: 'sap/ui/model/type/Currency',
+		Formatter: 'custom/deposits/model/formatter'
+	}"    >
+    <Dialog
+		id="configDialog"
+		title="{i18n>configDialogTitle}"
+		resizable="false"
+        contentWidth="600px"
+		draggable="true"
+		showHeader="true">
+        <content>
+            <Table
+                items="{
+                        path: 'config>/settings',
+                        filters: [{path: 'application', operator: 'EQ', value1: 2}]
+                        }">
+                <headerToolbar>
+                    <OverflowToolbar>
+                        <Title text="{i18n>configDialogBapiTitle}" />
+                    </OverflowToolbar>
+                </headerToolbar>
+                <columns>
+                    <Column>
+                        <Text text="{i18n>configDialogTableCol1}" />
+                    </Column>
+                    <Column>
+                        <Text text="{i18n>configDialogTableCol2}" />
+                    </Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <customData>
+                            <core:CustomData key="configKey" value="{config>application}" />
+                        </customData>
+                        <cells>
+                            <Text text="{config>variable}" />
+                            <Input value="{config>value}" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+        <beginButton>
+            <Button
+				text="{i18n>configDialogCancelBtn}"
+				press=".onCancelConfig" />
+        </beginButton>
+        <endButton>
+            <Button
+				text="{i18n>configDialogSubmitBtn}"
+				type="Emphasized"
+				press=".onSubmitConfig" />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>

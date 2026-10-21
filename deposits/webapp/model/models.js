@@ -6,6 +6,11 @@ sap.ui.define(["sap/ui/model/json/JSONModel", "sap/ui/model/BindingMode", "sap/u
 			const oModel = new JSONModel(Device);
 			oModel.setDefaultBindingMode(BindingMode.OneWay);
 			return oModel;
+		},
+		createUserModel: function () {
+			const oModel = new JSONModel(sap.ui.require.toUrl("custom/deposits/user-api/currentUser"));
+			oModel.setDefaultBindingMode(BindingMode.OneWay);
+			return oModel;
 		}
 	};
 });
